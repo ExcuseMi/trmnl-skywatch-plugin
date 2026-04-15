@@ -1,0 +1,43 @@
+---
+strategy: polling
+no_screen_padding: 'yes'
+dark_mode: 'yes'
+static_data: ''
+polling_verb: get
+framework_version: 
+serverless_language: 
+polling_url: 'https://api.airplanes.live/v2/point/{{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}/{{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}/50'
+polling_headers: ''
+polling_body: 
+id: 286469
+custom_fields:
+- keyname: author_info
+  name: About SkyWatch
+  field_type: author_bio
+  description: Real-time aircraft radar on your TRMNL display. Shows planes overhead on a live map with directional icons. Closest aircraft stats shown at a glance. Powered by <strong>airplanes.live</strong>.
+  github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
+  category: travel
+  help_text: TRMNL X Ready
+- keyname: lat
+  field_type: string
+  name: Latitude
+  description: Center latitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
+  help_text: Decimal degrees · e.g. 51.5074 (London) · 40.7128 (New York)
+  placeholder: '51.5074'
+- keyname: lon
+  field_type: string
+  name: Longitude
+  description: Center longitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
+  help_text: Decimal degrees · e.g. -0.1278 (London) · -74.006 (New York)
+  placeholder: "-0.1278"
+- keyname: unit
+  field_type: select
+  name: Measurement Units
+  description: Unit system used for speed, altitude, and distance.
+  options:
+  - Metric (km/h, m, km): metric
+  - Imperial (knots, ft, nm): imperial
+  default: metric
+  optional: true
+name: SkyWatch
+refresh_interval: 15

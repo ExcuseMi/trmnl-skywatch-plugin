@@ -1,0 +1,326 @@
+{% template main %}
+{% assign local_timestamp = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
+
+{% if data.planes == blank %}
+
+<div class="layout layout--col gap--small">
+  <div class="description lg:description--large">No aircraft data — check your latitude and longitude settings.</div>
+</div>
+<div class="title_bar">
+  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "Sky Watch"}}</span>
+</div>
+
+{% else %}
+
+{% assign instance_id = "inst_" | append_random %}
+
+<div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}">
+  <svg class="image image-dither image--fill w--full h--full rounded"
+       viewBox="0 0 768 768"
+       preserveAspectRatio="xMidYMid slice">
+    <defs id="sky-defs-{{ instance_id }}"></defs>
+    <g id="sky-tiles-{{ instance_id }}"></g>
+    <g id="sky-planes-{{ instance_id }}"></g>
+    <g id="sky-center-{{ instance_id }}"></g>
+  </svg>
+</div>
+
+<div class="title_bar">
+  <svg class="w--8 h--8 dark:hidden"  viewBox="0 0 36 36" version="1.1"  preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>plane-solid</title>
+    <path class="clr-i-solid clr-i-solid-path-1" d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"></path><path class="clr-i-solid clr-i-solid-path-2" d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"></path>
+    <rect x="0" y="0" width="36" height="36" fill-opacity="0"/>
+</svg>
+<svg class="w--8 h--8 dark:block hidden"  fill="#ffffff" viewBox="0 0 36 36" version="1.1"  preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>plane-solid</title>
+    <path class="clr-i-solid clr-i-solid-path-1" d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"></path><path class="clr-i-solid clr-i-solid-path-2" d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"></path>
+    <rect x="0" y="0" width="36" height="36" fill-opacity="0"/>
+</svg>
+  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "SkyWatch" }}</span>
+  <span class="instance">{% if trmnl.plugin_settings.custom_fields_values.unit == "imperial" %}
+  {{ local_timestamp | date: "%I:%M %p" }}
+{% else %}
+  {{ local_timestamp | date: "%H:%M" }}
+{% endif %}
+</span>
+</div>
+
+<script>
+(function () {
+  // Instance-specific data from the data object
+  var instanceId = '{{ instance_id }}';
+  var planes     = {{ data.planes | json }};
+  var total      = {{ data.total | default: 0 }};
+  var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
+  var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
+  var mapStyle   = 'cartodb_dark';
+  var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
+  var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
+  var view       = {{ view | default: 1 }};
+
+  var S = 768, T = 256;
+  var z = 10;
+
+  /* ---------- Calculate optimal zoom ---------- */
+  function calculateOptimalZoom() {
+    if (!planes || planes.length === 0) return 10;
+    if (planes.length >= 5 && planes.length <= 10) return 10;
+
+    var planesWithDistance = planes
+      .filter(function(p) { return p.lat != null && p.lon != null; })
+      .map(function(p) {
+        var latDiff = Math.abs(p.lat - centerLat);
+        var lonDiff = Math.abs(p.lon - centerLon);
+        var distance = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+        return { plane: p, distance: distance };
+      })
+      .sort(function(a, b) { return a.distance - b.distance; });
+
+    if (planesWithDistance.length === 0) return 10;
+
+    var targetIndex = Math.min(7, planesWithDistance.length - 1);
+    var targetDistance = planesWithDistance[targetIndex].distance * 1.15;
+
+    if (targetDistance < 1.5) return 10;
+    if (targetDistance < 3) return 9;
+    if (targetDistance < 6) return 8;
+    if (targetDistance < 12) return 7;
+    return 6;
+  }
+
+  z = calculateOptimalZoom();
+
+  function init() {
+    // Find this specific instance's container
+    var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
+    if (!container) {
+      console.error('Container not found for instance', instanceId);
+      return;
+    }
+
+    /* ---------- Mercator tile math ---------- */
+    function ll2tf(lat, lon) {
+      var n  = Math.pow(2, z);
+      var lr = lat * Math.PI / 180;
+      return {
+        x: (lon + 180) / 360 * n,
+        y: (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n
+      };
+    }
+
+    var ct = ll2tf(centerLat, centerLon);
+    var cx = Math.round(ct.x);
+    var cy = Math.round(ct.y);
+
+    function ll2px(lat, lon) {
+      var t = ll2tf(lat, lon);
+      return {
+        x: (t.x - ct.x) * T + S / 2,
+        y: (t.y - ct.y) * T + S / 2
+      };
+    }
+
+    /* ---------- Unit conversion ---------- */
+    function formatAltitude(ft) {
+      if (ft == null || ft === 'ground') return ft === 'ground' ? 'GND' : '—';
+      if (unit === 'imperial') {
+        return (+ft).toLocaleString() + ' ft';
+      } else {
+        return Math.round(+ft * 0.3048).toLocaleString() + ' m';
+      }
+    }
+
+    function formatSpeed(kt) {
+      if (kt == null) return '—';
+      if (unit === 'imperial') {
+        return Math.round(kt) + ' kt';
+      } else {
+        return Math.round(kt * 1.852) + ' km/h';
+      }
+    }
+
+    /* ---------- map tiles ---------- */
+    function renderTiles() {
+      var ml   = container.querySelector('#sky-tiles-' + instanceId);
+      var defs = container.querySelector('#sky-defs-' + instanceId);
+      if (!ml || !defs) return;
+
+      for (var dy = -2; dy <= 1; dy++) {
+        for (var dx = -2; dx <= 1; dx++) {
+          var tx = cx + dx, ty = cy + dy;
+          var px = (tx - ct.x) * T + S / 2;
+          var py = (ty - ct.y) * T + S / 2;
+          var pid = 'sk_' + instanceId + '_' + tx + '_' + ty;
+
+          var patt = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+          patt.setAttribute('id', pid);
+          patt.setAttribute('patternUnits', 'userSpaceOnUse');
+          patt.setAttribute('x', px);  patt.setAttribute('y', py);
+          patt.setAttribute('width', T); patt.setAttribute('height', T);
+
+          var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+          var useDark = darkMode || mapStyle === 'cartodb_dark';
+          var url = useDark
+            ? ('https://a.basemaps.cartocdn.com/dark_all/'  + z + '/' + tx + '/' + ty + '.png')
+            : ('https://a.basemaps.cartocdn.com/light_all/' + z + '/' + tx + '/' + ty + '.png');
+          img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
+          img.setAttribute('width', T); img.setAttribute('height', T);
+          patt.appendChild(img);
+          defs.appendChild(patt);
+
+          var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', px);   rect.setAttribute('y', py);
+          rect.setAttribute('width', T); rect.setAttribute('height', T);
+          rect.setAttribute('fill', 'url(#' + pid + ')');
+          ml.appendChild(rect);
+        }
+      }
+    }
+
+    /* ---------- center marker ---------- */
+    var HOME_D = 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z';
+
+    function renderCenter() {
+      var g = container.querySelector('#sky-center-' + instanceId);
+      if (!g) return;
+
+      var pos = ll2px(centerLat, centerLon);
+      var ns  = 'http://www.w3.org/2000/svg';
+      var useDark = darkMode || mapStyle === 'cartodb_dark';
+      var fillColor = useDark ? '#ffffff' : '#000000';
+      var bgColor = useDark ? '#000000' : '#ffffff';
+
+      var bg = document.createElementNS(ns, 'circle');
+      bg.setAttribute('cx', pos.x.toFixed(0));
+      bg.setAttribute('cy', pos.y.toFixed(0));
+      bg.setAttribute('r',  '13');
+      bg.setAttribute('fill', bgColor);
+      g.appendChild(bg);
+
+      var path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', HOME_D);
+      path.setAttribute('transform',
+        'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ')' +
+        ' scale(1.4) translate(-8,-8)');
+      path.setAttribute('fill', fillColor);
+      g.appendChild(path);
+    }
+
+    /* ---------- plane icons ---------- */
+    var PLANE_D = 'M22 16.21v-1.895L14 8V4a2 2 0 0 0-4 0v4.105L2 14.42v1.789l8-2.81V18l-3 2v2l5-2 5 2v-2l-3-2v-4.685l8 2.895z';
+    var PLANE_T = 'translate(-12,-13) scale(0.85)';
+
+    function renderPlanes() {
+      var layer = container.querySelector('#sky-planes-' + instanceId);
+      if (!layer) return;
+
+      var sc       = view >= 3 ? 1.1 : 1.6;
+      var ns       = 'http://www.w3.org/2000/svg';
+      var useDark  = darkMode || mapStyle === 'cartodb_dark';
+      var planeColor = useDark ? '#ffffff' : '#000000';
+
+      (planes || []).forEach(function (p) {
+        if (p.lat == null || p.lon == null) return;
+        var pos = ll2px(p.lat, p.lon);
+        if (pos.x < -30 || pos.x > S + 30 || pos.y < -30 || pos.y > S + 30) return;
+
+        var track = p.track != null ? p.track : 0;
+
+        var g = document.createElementNS(ns, 'g');
+        g.setAttribute('transform',
+          'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ')' +
+          ' rotate(' + track + ')' +
+          ' scale(' + sc + ')');
+
+        var path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', PLANE_D);
+        path.setAttribute('transform', PLANE_T);
+        path.setAttribute('fill', planeColor);
+        g.appendChild(path);
+        layer.appendChild(g);
+
+        if (view <= 4) {
+          var iconR = sc * 12;
+          var labelX = pos.x + iconR + 3;
+          var labelY1 = pos.y - 2;
+          var labelY2 = pos.y + 9;
+          var altY = labelY2 + 12;
+
+          var lbl = (p.flight || '').trim() || p.r || '';
+          var altStr = formatAltitude(p.alt_baro);
+          var speedStr = formatSpeed(p.gs);
+
+          if (lbl) {
+            var flightBg = document.createElementNS(ns, 'rect');
+            flightBg.setAttribute('x', (labelX - 2).toFixed(0));
+            flightBg.setAttribute('y', (labelY1 - 10).toFixed(0));
+            flightBg.setAttribute('width', (lbl.length * 7 + 4).toFixed(0));
+            flightBg.setAttribute('height', '14');
+            flightBg.setAttribute('fill', '#000000');
+            flightBg.setAttribute('rx', '2');
+            layer.appendChild(flightBg);
+
+            var txt = document.createElementNS(ns, 'text');
+            txt.setAttribute('x', labelX.toFixed(0));
+            txt.setAttribute('y', labelY1.toFixed(0));
+            txt.setAttribute('font-size', '14');
+            txt.setAttribute('font-weight', 'bold');
+            txt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
+            txt.setAttribute('fill', planeColor);
+            txt.textContent = lbl;
+            layer.appendChild(txt);
+          }
+
+          var speedBg = document.createElementNS(ns, 'rect');
+          speedBg.setAttribute('x', (labelX - 2).toFixed(0));
+          speedBg.setAttribute('y', (labelY2 - 10).toFixed(0));
+          speedBg.setAttribute('width', (speedStr.length * 6 + 4).toFixed(0));
+          speedBg.setAttribute('height', '14');
+          speedBg.setAttribute('fill', '#000000');
+          speedBg.setAttribute('rx', '2');
+          layer.appendChild(speedBg);
+
+          var infoTxt = document.createElementNS(ns, 'text');
+          infoTxt.setAttribute('x', labelX.toFixed(0));
+          infoTxt.setAttribute('y', labelY2.toFixed(0));
+          infoTxt.setAttribute('font-size', '12');
+          infoTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
+          infoTxt.setAttribute('fill', planeColor);
+          infoTxt.textContent = speedStr;
+          layer.appendChild(infoTxt);
+
+          var altBg = document.createElementNS(ns, 'rect');
+          altBg.setAttribute('x', (labelX - 2).toFixed(0));
+          altBg.setAttribute('y', (altY - 10).toFixed(0));
+          altBg.setAttribute('width', (altStr.length * 6 + 4).toFixed(0));
+          altBg.setAttribute('height', '14');
+          altBg.setAttribute('fill', '#000000');
+          altBg.setAttribute('rx', '2');
+          layer.appendChild(altBg);
+
+          var altTxt = document.createElementNS(ns, 'text');
+          altTxt.setAttribute('x', labelX.toFixed(0));
+          altTxt.setAttribute('y', altY.toFixed(0));
+          altTxt.setAttribute('font-size', '12');
+          altTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
+          altTxt.setAttribute('fill', planeColor);
+          altTxt.textContent = altStr;
+          layer.appendChild(altTxt);
+        }
+      });
+    }
+
+    renderTiles();
+    renderCenter();
+    renderPlanes();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+{% endif %}
+{% endtemplate %}

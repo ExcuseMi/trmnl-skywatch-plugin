@@ -1,0 +1,87 @@
+# TRMNLP configuration
+# {{ env.VARIABLE }} interpolation is available here
+---
+watch:
+  - .trmnlp.yml
+  - src
+
+custom_fields: {}
+
+variables:
+  trmnl:
+    system:
+      timestamp_utc: 1744000000
+    plugin_settings:
+      instance_name: "SkyWatch"
+      strategy: polling
+      dark_mode: 'no'
+      no_screen_padding: 'no'
+      polling_headers: ''
+      polling_url: ''
+      custom_fields_values:
+        lat: '51.5074'
+        lon: '-0.1278'
+        map_style: 'cartodb'
+        dist_unit: 'nm'
+  planes:
+    - hex: '400f44'
+      flight: 'BAW112'
+      r: 'G-XLEH'
+      t: 'A388'
+      alt_baro: 3500
+      gs: 210
+      track: 295
+      baro_rate: -768
+      lat: 51.48
+      lon: -0.44
+    - hex: '4ca8e9'
+      flight: 'RYR4202'
+      r: 'EI-DLX'
+      t: 'B738'
+      alt_baro: 28000
+      gs: 382
+      track: 85
+      baro_rate: 1024
+      lat: 51.72
+      lon: 0.28
+    - hex: '3c4583'
+      flight: 'DLH441'
+      r: 'D-ABCE'
+      t: 'A320'
+      alt_baro: 35000
+      gs: 448
+      track: 220
+      baro_rate: 0
+      lat: 51.30
+      lon: -0.35
+    - hex: '406e03'
+      flight: 'EZY8431'
+      r: 'G-EZTV'
+      t: 'A319'
+      alt_baro: 12000
+      gs: 306
+      track: 140
+      baro_rate: -1792
+      lat: 51.60
+      lon: 0.12
+    - hex: '407606'
+      flight: 'TOM3WB'
+      r: 'G-TAWF'
+      t: 'B738'
+      alt_baro: 5200
+      gs: 242
+      track: 50
+      baro_rate: 320
+      lat: 51.42
+      lon: -0.15
+    - hex: '4009c4'
+      flight: 'VIR26'
+      r: 'G-VBZZ'
+      t: 'A35K'
+      alt_baro: 38000
+      gs: 520
+      track: 280
+      baro_rate: 0
+      lat: 51.55
+      lon: 0.45
+  total: 6
