@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- Radar sweep (SkyWatch style) -->
+  <!-- Sweep fill (quarter arc) -->
+  <path d="M12 12 L22 12 A10 10 0 0 0 12 2 Z" opacity="0.35"/>
+  <!-- Outer ring -->
+  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <!-- Inner ring -->
+  <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1"/>
+  <!-- Crosshair -->
+  <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1"/>
+  <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1"/>
+  <!-- Sweep line -->
+  <line x1="12" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/>
+  <!-- Center dot -->
+  <circle cx="12" cy="12" r="1.5"/>
+</svg>

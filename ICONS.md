@@ -1,3 +1,19 @@
+# Icons
+
+## Titlebar Icon
+
+Three options available in `assets/`. Update the inline SVG paths in `plugin/src/shared.liquid` (lines matching `h--8 dark:hidden` / `h--8 dark:block hidden`) to swap.
+
+| Preview | File | Style | Used by |
+|---------|------|-------|---------|
+| <img src="assets/icon-topdown.svg" width="32"/> | `icon-topdown.svg` | Top-down airliner silhouette | Flightradar24, FlightAware, ADS-B Exchange |
+| <img src="assets/icon-radar.svg" width="32"/> | `icon-radar.svg` | Radar sweep scope | — (SkyWatch-specific) |
+| <img src="assets/icon-departure.svg" width="32"/> | `icon-departure.svg` | Departure / takeoff side-view | iOS Maps, Google Maps, airports |
+
+**Recommendation:** `icon-topdown.svg` — immediately recognisable as a flight tracker, matches the top-down plane icons rendered on the map itself.
+
+---
+
 # Aircraft Icons
 
 Aircraft icons used in SkyWatch's on-map radar display, sourced from [ADS-B Radar](https://adsb-radar.com/).
