@@ -4,18 +4,19 @@ no_screen_padding: 'yes'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
-framework_version: 
-serverless_language: 
+framework_version:
+serverless_language:
 polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}'
 polling_headers: ''
-polling_body: 
+polling_body:
 id: 286469
 custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: "Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 minutes with all aircraft in a 50\xA0nm radius.<br />36 type-specific icons — A320s, 747s, helicopters, gliders and more.<br />Major airports marked on the map.<br />Altitude shown by icon brightness and label shading.<br />Emergency squawks (hijack \xB7 no radio \xB7 Mayday) flagged automatically.<br /><br />Powered by <strong>airplanes.live</strong> \xB7 Icons by <a href=\"https://adsb-radar.com/\" target=\"_blank\">ADS-B Radar</a> \xB7 <a href=\"https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md\" target=\"_blank\">Icon guide</a>"
+  description: Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 minutes — all aircraft within a 50 nm radius.<br />36 type-specific icons covering airliners, GA, military, helicopters and more.<br />Major airports marked on the map.<br />Icon brightness and label shading indicate altitude at a glance.<br />Emergency squawks (hijack · no radio · Mayday) flagged automatically.<br /><br />Powered by <strong>airplanes.live</strong> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
+  learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md
   category: travel
   help_text: TRMNL X Ready
 - keyname: address
@@ -24,20 +25,23 @@ custom_fields:
   description: City or address to centre the radar on.<br />Takes priority over Latitude / Longitude if both are set.
   help_text: e.g. "London, UK" or "Central Park, NY"
   placeholder: London, UK
+  group: Location
   optional: true
 - keyname: lat
   field_type: string
   name: Latitude
-  description: Centre latitude for the radar view.<br />Used only when no Address is set. Find your coordinates at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
+  description: Centre latitude for the radar view.<br />Only used when no Address is set.<br />Find your coordinates at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
   help_text: e.g. 51.5074 (London) · 40.7128 (New York)
   placeholder: '51.5074'
+  group: Location
   optional: true
 - keyname: lon
   field_type: string
   name: Longitude
-  description: Centre longitude for the radar view.<br />Used only when no Address is set.
+  description: Centre longitude for the radar view.<br />Only used when no Address is set.
   help_text: e.g. -0.1278 (London) · -74.0060 (New York)
   placeholder: "-0.1278"
+  group: Location
   optional: true
 - keyname: unit
   field_type: select

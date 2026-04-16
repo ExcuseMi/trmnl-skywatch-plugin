@@ -13,6 +13,10 @@ Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 m
 ---
 <!-- PLUGIN_STATS_END -->
 
+## Documentation
+
+- [Aircraft Icon Reference](ICONS.md) — all aircraft icons, fallback categories, visual encoding guide, and titlebar icon options
+
 ## Aircraft Icons
 
 Icons by [ADS-B Radar](https://adsb-radar.com/) — free SVG set used for on-map aircraft rendering.
