@@ -87,16 +87,12 @@ async def increment_stat(field: str, amount: int = 1):
     await redis_client.hincrby(STATS_KEY, field, amount)
 
 
-async def get_stats() -> dict:
-    raw = await redis_client.hgetall(STATS_KEY)
-    return {k: int(v) for k, v in raw.items()}
-
-
 async def _background_stats_logger():
     """Log a stats summary every hour."""
     while True:
         await asyncio.sleep(3600)
-        s = await get_stats()
+        raw = await redis_client.hgetall(STATS_KEY)
+        s = {k: int(v) for k, v in raw.items()}
         total  = s.get('requests', 0)
         hits   = s.get('cache_hits', 0)
         misses = s.get('cache_misses', 0)
@@ -454,20 +450,6 @@ async def debug_airports():
     lat_key, lon_key = tile_key(lat, lon)
     airports = await fetch_airports(lat, lon, lat_key, lon_key)
     return jsonify({'tile': [lat_key, lon_key], 'count': len(airports), 'airports': airports})
-
-
-@app.route('/stats')
-async def stats():
-    s = await get_stats()
-    total  = s.get('requests', 0)
-    hits   = s.get('cache_hits', 0)
-    misses = s.get('cache_misses', 0)
-    calls  = s.get('api_calls', 0)
-    return jsonify({
-        **s,
-        'cache_hit_rate': round(hits / total, 4) if total else None,
-        'api_calls_saved': total - calls if total else 0,
-    })
 
 
 @app.route('/health')
