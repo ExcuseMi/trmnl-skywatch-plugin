@@ -304,9 +304,9 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
     backoff = 5.0
     for attempt in range(3):
         t0 = time.monotonic()
+        last_api_call_time = t0
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(url)
-        last_api_call_time = time.monotonic()
         elapsed_ms = int((time.monotonic() - t0) * 1000)
 
         if response.status_code == 429:
@@ -353,7 +353,7 @@ async def api_worker():
                 continue
 
             elapsed    = time.monotonic() - last_api_call_time
-            sleep_time = max(0.0, 2.0 - elapsed)
+            sleep_time = max(0.0, 1.0 - elapsed)
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
