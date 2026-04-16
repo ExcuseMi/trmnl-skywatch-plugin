@@ -1,5 +1,17 @@
 version: '3.8'
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: skywatch-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   skywatch-proxy:
     build:
       context: ./backend
@@ -10,11 +22,16 @@ services:
       - "${PORT:-8080}:8080"
     environment:
       - ENABLE_IP_WHITELIST=${ENABLE_IP_WHITELIST:-false}
-    volumes:
-      - ./data:/data
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
+volumes:
+  redis_data:

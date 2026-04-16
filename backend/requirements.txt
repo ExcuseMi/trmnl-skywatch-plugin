@@ -1,4 +1,4 @@
 quart==0.19.9
 httpx==0.28.1
-aiosqlite==0.22.1
+redis[hiredis]==5.2.1
 hypercorn==0.17.3
