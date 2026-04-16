@@ -32,6 +32,7 @@ function transform(input) {
   return {
     data: {
       planes:     planes,
+      airports:   Array.isArray(input.data.airports) ? input.data.airports : [],
       total:      input.data.total != null ? input.data.total : planes.length,
       lat:        centerLat,
       lon:        centerLon,
