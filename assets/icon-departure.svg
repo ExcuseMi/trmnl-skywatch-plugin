@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-  <!-- Departure / takeoff style (iOS / Google Maps style) -->
-  <path d="M2.5 19.5 L21.5 19.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-  <path d="M3 14.5 L7.5 16 L12.5 17.5 C14 18 15.5 17.5 16.5 16.5 L21 11.5 C21.5 11 21.2 10.2 20.5 10.2 L17.5 10.2 L14 6 C13.5 5.4 12.8 5 12 5 L10 5 C9.3 5 9 5.8 9.4 6.4 L11.5 10.2 L8 10.2 L6.5 8.2 C6.2 7.8 5.7 7.5 5.2 7.5 L4 7.5 C3.4 7.5 3 8 3.2 8.6 L4.5 12 L3 13 C2.6 13.3 2.5 13.9 2.8 14.3 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <rect width="24" height="24" rx="4" fill="#111"/>
+  <line x1="2.5" y1="19.5" x2="21.5" y2="19.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+  <path fill="#fff" d="M3 14.5 L7.5 16 L12.5 17.5 C14 18 15.5 17.5 16.5 16.5 L21 11.5 C21.5 11 21.2 10.2 20.5 10.2 L17.5 10.2 L14 6 C13.5 5.4 12.8 5 12 5 L10 5 C9.3 5 9 5.8 9.4 6.4 L11.5 10.2 L8 10.2 L6.5 8.2 C6.2 7.8 5.7 7.5 5.2 7.5 L4 7.5 C3.4 7.5 3 8 3.2 8.6 L4.5 12 L3 13 C2.6 13.3 2.5 13.9 2.8 14.3 Z"/>
 </svg>
