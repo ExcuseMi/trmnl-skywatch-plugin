@@ -24,7 +24,9 @@ function transform(input) {
       track:     a.track,
       baro_rate: a.baro_rate || 0,
       lat:       a.lat,
-      lon:       a.lon
+      lon:       a.lon,
+      desc:      a.desc,
+      type:      a.type
     };
   });
 

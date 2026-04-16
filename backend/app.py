@@ -191,6 +191,7 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
 
         # Simple Euclidean distance for sorting
         dist = math.sqrt((p_lat - center_lat)**2 + (p_lon - center_lon)**2)
+        desc = a.get('desc')
 
         processed.append({
             'hex':       a.get('hex', ''),
@@ -203,7 +204,8 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
             'baro_rate': a.get('baro_rate', 0),
             'lat':       p_lat,
             'lon':       p_lon,
-            '_dist':     dist
+            '_dist':     dist,
+            'desc':      desc,
         })
 
     # Sort by distance and limit to closest 20

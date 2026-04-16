@@ -49,7 +49,7 @@ custom_fields:
   default: metric
   optional: true
 - keyname: show_ground
-  field_type: bool
+  field_type: boolean
   name: Show Ground Traffic
   description: Include aircraft that are currently on the ground.
   default: 'false'

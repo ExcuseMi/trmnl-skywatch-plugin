@@ -286,11 +286,14 @@
 
         if (view <= 4) {
           var lbl      = (p.flight || '').trim() || p.r || '';
+          var desc     = (p.desc || '') || ''
           var altStr   = formatAltitude(p.alt_baro);
           var speedStr = formatSpeed(p.gs);
 
           var blockW = Math.max(
             lbl ? lbl.length * 7 + 4 : 0,
+            desc ? desc.length * 7 + 4 : 0,
+
             speedStr.length * 6 + 4,
             altStr.length * 6 + 4
           );
