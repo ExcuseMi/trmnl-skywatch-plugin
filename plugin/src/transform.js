@@ -3,8 +3,10 @@ function transform(input) {
   var centerLat = parseFloat(input.trmnl.plugin_settings.custom_fields_values.lat || 51.5074);
   var centerLon = parseFloat(input.trmnl.plugin_settings.custom_fields_values.lon || -0.1278);
 
+  var showGround = (input.trmnl.plugin_settings.custom_fields_values.show_ground === 'yes');
+
   var planesWithDistance = ac
-    .filter(function(a) { return a.lat != null && a.lon != null; })
+    .filter(function(a) { return a.lat != null && a.lon != null && (showGround || a.alt_baro !== 'ground'); })
     .map(function(a) {
       // Calculate distance from center
       var latDiff = Math.abs(a.lat - centerLat);

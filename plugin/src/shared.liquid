@@ -1,5 +1,5 @@
 {% template main %}
-{% assign local_timestamp = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
+{% assign local_timestamp = 'now' | date: "%s" | plus: trmnl.user.utc_offset %}
 
 {% if data.planes == blank %}
 
@@ -20,8 +20,8 @@
        preserveAspectRatio="xMidYMid slice">
     <defs id="sky-defs-{{ instance_id }}"></defs>
     <g id="sky-tiles-{{ instance_id }}"></g>
-    <g id="sky-planes-{{ instance_id }}"></g>
     <g id="sky-center-{{ instance_id }}"></g>
+    <g id="sky-planes-{{ instance_id }}"></g>
   </svg>
 </div>
 
@@ -214,13 +214,57 @@
       var layer = container.querySelector('#sky-planes-' + instanceId);
       if (!layer) return;
 
-      var sc       = view >= 3 ? 1.1 : 1.6;
-      var ns       = 'http://www.w3.org/2000/svg';
-      var useDark  = darkMode || mapStyle === 'cartodb_dark';
+      var sc         = view >= 3 ? 1.1 : 1.6;
+      var ns         = 'http://www.w3.org/2000/svg';
+      var useDark    = darkMode || mapStyle === 'cartodb_dark';
       var planeColor = useDark ? '#ffffff' : '#000000';
+      var lineColor  = useDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
 
-      (planes || []).forEach(function (p) {
-        if (p.lat == null || p.lon == null) return;
+      // Track placed label rects to avoid overlap
+      var placedRects = [];
+
+      function overlaps(r) {
+        var pad = 4;
+        return placedRects.some(function (e) {
+          return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x &&
+                 r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
+        });
+      }
+
+      // 8 candidate anchor directions, E first (most readable), prefer away from center
+      var ANCHORS = [
+        { ax:  1, ay:  0 },  // E
+        { ax:  1, ay: -1 },  // NE
+        { ax:  0, ay: -1 },  // N
+        { ax: -1, ay: -1 },  // NW
+        { ax: -1, ay:  0 },  // W
+        { ax: -1, ay:  1 },  // SW
+        { ax:  0, ay:  1 },  // S
+        { ax:  1, ay:  1 },  // SE
+      ];
+      var ANCHOR_R = 22; // distance from plane centre to label edge
+
+      function findAnchor(pos, blockW, blockH) {
+        for (var i = 0; i < ANCHORS.length; i++) {
+          var a  = ANCHORS[i];
+          var lx = pos.x + a.ax * ANCHOR_R - (a.ax < 0 ? blockW : (a.ax === 0 ? blockW / 2 : 0));
+          var ly = pos.y + a.ay * ANCHOR_R - (a.ay < 0 ? blockH : (a.ay === 0 ? blockH / 2 : 0));
+          var r  = { x: lx, y: ly, w: blockW, h: blockH };
+          if (!overlaps(r)) return { x: lx, y: ly, r: r, ax: a.ax, ay: a.ay };
+        }
+        return null;
+      }
+
+      // Closest planes to center get label priority
+      var sorted = (planes || [])
+        .filter(function (p) { return p.lat != null && p.lon != null; })
+        .sort(function (a, b) {
+          var da = Math.pow(a.lat - centerLat, 2) + Math.pow(a.lon - centerLon, 2);
+          var db = Math.pow(b.lat - centerLat, 2) + Math.pow(b.lon - centerLon, 2);
+          return da - db;
+        });
+
+      sorted.forEach(function (p) {
         var pos = ll2px(p.lat, p.lon);
         if (pos.x < -30 || pos.x > S + 30 || pos.y < -30 || pos.y > S + 30) return;
 
@@ -240,20 +284,44 @@
         layer.appendChild(g);
 
         if (view <= 4) {
-          var iconR = sc * 12;
-          var labelX = pos.x + iconR + 3;
-          var labelY1 = pos.y - 2;
-          var labelY2 = pos.y + 9;
-          var altY = labelY2 + 12;
-
-          var lbl = (p.flight || '').trim() || p.r || '';
-          var altStr = formatAltitude(p.alt_baro);
+          var lbl      = (p.flight || '').trim() || p.r || '';
+          var altStr   = formatAltitude(p.alt_baro);
           var speedStr = formatSpeed(p.gs);
 
+          var blockW = Math.max(
+            lbl ? lbl.length * 7 + 4 : 0,
+            speedStr.length * 6 + 4,
+            altStr.length * 6 + 4
+          );
+          var blockH = (lbl ? 14 : 0) + 14 + 14;
+
+          var anchor = findAnchor(pos, blockW, blockH);
+          if (!anchor) return;
+          placedRects.push(anchor.r);
+
+          var lx = anchor.x;
+          var ly = anchor.y;
+
+          // Leader line: from plane edge to nearest corner of label box
+          var lineTX = lx + (anchor.ax < 0 ? blockW : (anchor.ax === 0 ? blockW / 2 : 0));
+          var lineTY = ly + (anchor.ay < 0 ? blockH : (anchor.ay === 0 ? blockH / 2 : 0));
+
+          var line = document.createElementNS(ns, 'line');
+          line.setAttribute('x1', pos.x.toFixed(0));
+          line.setAttribute('y1', pos.y.toFixed(0));
+          line.setAttribute('x2', lineTX.toFixed(0));
+          line.setAttribute('y2', lineTY.toFixed(0));
+          line.setAttribute('stroke', lineColor);
+          line.setAttribute('stroke-width', '1');
+          layer.appendChild(line);
+
+          var rowY = ly;
+
           if (lbl) {
+            rowY += 14;
             var flightBg = document.createElementNS(ns, 'rect');
-            flightBg.setAttribute('x', (labelX - 2).toFixed(0));
-            flightBg.setAttribute('y', (labelY1 - 10).toFixed(0));
+            flightBg.setAttribute('x', lx.toFixed(0));
+            flightBg.setAttribute('y', (rowY - 11).toFixed(0));
             flightBg.setAttribute('width', (lbl.length * 7 + 4).toFixed(0));
             flightBg.setAttribute('height', '14');
             flightBg.setAttribute('fill', '#000000');
@@ -261,49 +329,51 @@
             layer.appendChild(flightBg);
 
             var txt = document.createElementNS(ns, 'text');
-            txt.setAttribute('x', labelX.toFixed(0));
-            txt.setAttribute('y', labelY1.toFixed(0));
-            txt.setAttribute('font-size', '14');
+            txt.setAttribute('x', (lx + 2).toFixed(0));
+            txt.setAttribute('y', rowY.toFixed(0));
+            txt.setAttribute('font-size', '12');
             txt.setAttribute('font-weight', 'bold');
             txt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-            txt.setAttribute('fill', planeColor);
+            txt.setAttribute('fill', '#ffffff');
             txt.textContent = lbl;
             layer.appendChild(txt);
           }
 
+          rowY += 14;
           var speedBg = document.createElementNS(ns, 'rect');
-          speedBg.setAttribute('x', (labelX - 2).toFixed(0));
-          speedBg.setAttribute('y', (labelY2 - 10).toFixed(0));
+          speedBg.setAttribute('x', lx.toFixed(0));
+          speedBg.setAttribute('y', (rowY - 11).toFixed(0));
           speedBg.setAttribute('width', (speedStr.length * 6 + 4).toFixed(0));
-          speedBg.setAttribute('height', '14');
+          speedBg.setAttribute('height', '13');
           speedBg.setAttribute('fill', '#000000');
           speedBg.setAttribute('rx', '2');
           layer.appendChild(speedBg);
 
           var infoTxt = document.createElementNS(ns, 'text');
-          infoTxt.setAttribute('x', labelX.toFixed(0));
-          infoTxt.setAttribute('y', labelY2.toFixed(0));
-          infoTxt.setAttribute('font-size', '12');
+          infoTxt.setAttribute('x', (lx + 2).toFixed(0));
+          infoTxt.setAttribute('y', rowY.toFixed(0));
+          infoTxt.setAttribute('font-size', '11');
           infoTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-          infoTxt.setAttribute('fill', planeColor);
+          infoTxt.setAttribute('fill', '#ffffff');
           infoTxt.textContent = speedStr;
           layer.appendChild(infoTxt);
 
+          rowY += 13;
           var altBg = document.createElementNS(ns, 'rect');
-          altBg.setAttribute('x', (labelX - 2).toFixed(0));
-          altBg.setAttribute('y', (altY - 10).toFixed(0));
+          altBg.setAttribute('x', lx.toFixed(0));
+          altBg.setAttribute('y', (rowY - 11).toFixed(0));
           altBg.setAttribute('width', (altStr.length * 6 + 4).toFixed(0));
-          altBg.setAttribute('height', '14');
+          altBg.setAttribute('height', '13');
           altBg.setAttribute('fill', '#000000');
           altBg.setAttribute('rx', '2');
           layer.appendChild(altBg);
 
           var altTxt = document.createElementNS(ns, 'text');
-          altTxt.setAttribute('x', labelX.toFixed(0));
-          altTxt.setAttribute('y', altY.toFixed(0));
-          altTxt.setAttribute('font-size', '12');
+          altTxt.setAttribute('x', (lx + 2).toFixed(0));
+          altTxt.setAttribute('y', rowY.toFixed(0));
+          altTxt.setAttribute('font-size', '11');
           altTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-          altTxt.setAttribute('fill', planeColor);
+          altTxt.setAttribute('fill', '#ffffff');
           altTxt.textContent = altStr;
           layer.appendChild(altTxt);
         }

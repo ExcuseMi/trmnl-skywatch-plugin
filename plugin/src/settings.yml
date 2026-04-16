@@ -39,5 +39,14 @@ custom_fields:
   - Imperial (knots, ft, nm): imperial
   default: metric
   optional: true
+- keyname: show_ground
+  field_type: select
+  name: Show Ground Traffic
+  description: Include aircraft that are currently on the ground.
+  options:
+  - Hide ground traffic: 'no'
+  - Show ground traffic: 'yes'
+  default: 'no'
+  optional: true
 name: SkyWatch
 refresh_interval: 15
