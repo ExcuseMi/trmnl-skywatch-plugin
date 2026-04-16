@@ -119,8 +119,8 @@ async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> 
     query = f"""
 [out:json][timeout:15];
 (
-  node["aeroway"="aerodrome"](around:{RADIUS_M},{lat},{lon});
-  way["aeroway"="aerodrome"](around:{RADIUS_M},{lat},{lon});
+  node["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
+  way["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
 );
 out center tags;
 """
@@ -142,10 +142,9 @@ out center tags;
         if a_lat is None or a_lon is None:
             continue
         airports.append({
-            'icao': tags.get('icao') or tags.get('ref') or '',
             'iata': tags.get('iata') or '',
+            'icao': tags.get('icao') or tags.get('ref:icao') or '',
             'name': tags.get('name') or '',
-            'type': tags.get('aerodrome:type') or tags.get('aerodrome') or 'small_airport',
             'lat':  a_lat,
             'lon':  a_lon,
         })

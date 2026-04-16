@@ -475,9 +475,8 @@
         var pos = ll2px(a.lat, a.lon);
         if (pos.x < -20 || pos.x > S + 20 || pos.y < -20 || pos.y > S + 20) return;
 
-        var isLarge = a.type === 'large_airport';
-        var r = isLarge ? 6 : 4;
-        var strokeW = isLarge ? 2 : 1.5;
+        var r = 6;
+        var strokeW = 2;
         var color = useDark ? '#ffffff' : '#000000';
 
         // Outer circle
@@ -503,7 +502,7 @@
         });
 
         // ICAO label
-        var code = a.icao || a.iata || '';
+        var code = a.iata || a.icao || '';
         if (code && view <= 3) {
           var t = document.createElementNS(ns, 'text');
           t.setAttribute('x', (pos.x + r + 3).toFixed(1));
