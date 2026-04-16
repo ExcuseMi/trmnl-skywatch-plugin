@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Real-time aircraft radar on your TRMNL display.<br />Shows planes overhead on a live map with directional icons.<br />Closest aircraft stats shown at a glance. Powered by <strong>airplanes.live</strong>.
+  description: Real-time aircraft radar on your TRMNL display.<br />Shows planes overhead on a live map with directional icons.<br />Closest aircraft stats shown at a glance.<br />Powered by <strong>airplanes.live</strong>.
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   category: travel
   help_text: TRMNL X Ready
@@ -25,11 +25,6 @@ custom_fields:
   help_text: e.g. "London, UK" or "Central Park, NY"
   placeholder: "London, UK"
   optional: true
-  conditional_validation:
-    - when: address
-      hidden:
-        - lat
-        - lon
 - keyname: lat
   field_type: string
   name: Latitude
@@ -54,13 +49,10 @@ custom_fields:
   default: metric
   optional: true
 - keyname: show_ground
-  field_type: select
+  field_type: bool
   name: Show Ground Traffic
   description: Include aircraft that are currently on the ground.
-  options:
-  - Hide ground traffic: 'no'
-  - Show ground traffic: 'yes'
-  default: 'no'
+  default: 'false'
   optional: true
 name: SkyWatch
 refresh_interval: 15

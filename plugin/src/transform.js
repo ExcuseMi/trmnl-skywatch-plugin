@@ -1,8 +1,8 @@
 function transform(input) {
-  var ac = (input && Array.isArray(input.ac)) ? input.ac : [];
+  var ac = (input && Array.isArray(input.data.ac)) ? input.data.ac : [];
 
-  var centerLat = parseFloat(input.lat || input.trmnl.plugin_settings.custom_fields_values.lat || 51.5074);
-  var centerLon = parseFloat(input.lon || input.trmnl.plugin_settings.custom_fields_values.lon || -0.1278);
+  var centerLat = parseFloat(input.data.lat || 51.5074);
+  var centerLon = parseFloat(input.data.lon || -0.1278);
   var units = input.trmnl.plugin_settings.custom_fields_values.unit || 'metric';
 
   var planes = ac.map(function(a) {

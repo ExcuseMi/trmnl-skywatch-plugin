@@ -64,7 +64,6 @@ async def init_db():
 
 
 async def get_from_cache(lat_grid: float, lon_grid: float):
-    """Returns (data_dict, is_fresh).  data_dict is None when no cache entry."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             'SELECT data_json, fetched_at FROM plane_cache WHERE lat_grid = ? AND lon_grid = ?',
@@ -72,12 +71,15 @@ async def get_from_cache(lat_grid: float, lon_grid: float):
         )
         row = await cursor.fetchone()
         if row:
-            data_json, fetched_at = row
-            age = datetime.now() - datetime.fromisoformat(fetched_at)
+            data_json, fetched_at_str = row
+            fetched_at = datetime.fromisoformat(fetched_at_str)
+            now = datetime.now(timezone.utc)
+            age = now - fetched_at
             is_fresh = age < timedelta(minutes=CACHE_MINUTES)
+            if not is_fresh:
+                logger.debug(f"Cache stale for {lat_grid},{lon_grid}: age={age.total_seconds():.1f}s")
             return json.loads(data_json), is_fresh
     return None, False
-
 
 async def purge_cache():
     """Delete old cache entries to keep the DB small."""
@@ -85,7 +87,7 @@ async def purge_cache():
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 'DELETE FROM plane_cache WHERE fetched_at < ?',
-                ((datetime.now() - timedelta(hours=1)).isoformat(),)
+                ((datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),)
             )
             await db.execute(
                 'DELETE FROM geocoding_cache WHERE cached_at < ?',
@@ -154,7 +156,7 @@ async def geocode_address(address: str):
                     async with aiosqlite.connect(DB_PATH) as db:
                         await db.execute(
                             'INSERT OR REPLACE INTO geocoding_cache VALUES (?, ?, ?, ?)',
-                            (address, lat, lon, datetime.now().isoformat())
+                            (address, lat, lon, datetime.now(timezone.utc).isoformat())
                         )
                         await db.commit()
                     return {'lat': lat, 'lon': lon}
@@ -235,9 +237,8 @@ async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float,
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             'INSERT OR REPLACE INTO plane_cache VALUES (?, ?, ?, ?)',
-            (lat_grid, lon_grid, json.dumps(reduced), datetime.now().isoformat())
+            (lat_grid, lon_grid, json.dumps(reduced), datetime.now(timezone.utc).isoformat())
         )
-        await db.commit()
 
     return reduced
 
@@ -279,7 +280,8 @@ async def fetch_planes(lat: float, lon: float, show_ground: bool):
 
     cached_data, is_fresh = await get_from_cache(lat_grid, lon_grid)
     if is_fresh:
-        logger.info(f"Cache hit for {lat_grid},{lon_grid}")
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(fetched_at_str)  # you'd need fetched_at_str
+        logger.info(f"Cache hit for {lat_grid},{lon_grid} (age {age.total_seconds():.0f}s)")
         return cached_data
 
     if api_queue.qsize() >= MAX_QUEUE_SIZE:
