@@ -9,8 +9,6 @@ import math
 from datetime import datetime, timedelta, timezone
 from quart import Quart, request, jsonify
 
-MAX_PLANES = 30
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +25,7 @@ ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true
 IP_REFRESH_HOURS = 24
 MAX_QUEUE_SIZE = 20      # reject new requests beyond this queue depth
 QUEUE_TIMEOUT = 5.0      # seconds to wait in queue before falling back to cache
+MAX_PLANES = 30          # closest planes to return
 
 # TRMNL server IPs
 TRMNL_IPS: set = set()
@@ -193,24 +192,24 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
 
         # Simple Euclidean distance for sorting
         dist = math.sqrt((p_lat - center_lat)**2 + (p_lon - center_lon)**2)
-        desc = a.get('desc')
 
         processed.append({
             'hex':       a.get('hex', ''),
             'flight':    (a.get('flight', '')).strip(),
             'r':         a.get('r', ''),
             't':         a.get('t', ''),
+            'cat':       a.get('category'),
+            'desc':      a.get('desc', ''),
             'alt_baro':  alt,
             'gs':        a.get('gs'),
             'track':     a.get('track'),
             'baro_rate': a.get('baro_rate', 0),
             'lat':       p_lat,
             'lon':       p_lon,
-            '_dist':     dist,
-            'desc':      desc,
+            '_dist':     dist
         })
 
-    # Sort by distance and limit to closest 20
+    # Sort by distance and limit to closest MAX_PLANES
     processed.sort(key=lambda x: x['_dist'])
     closest = processed[:MAX_PLANES]
 
@@ -340,7 +339,7 @@ async def get_planes():
     if data:
         data['lat'] = lat
         data['lon'] = lon
-        return jsonify({ 'data': data})
+        return jsonify(data)
     return jsonify({'error': 'Failed to fetch data'}), 500
 
 

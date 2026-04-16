@@ -51,7 +51,6 @@
 
 <script>
 (function () {
-  // Instance-specific data from the data object
   var instanceId = '{{ instance_id }}';
   var planes     = {{ data.planes | json }};
   var total      = {{ data.total | default: 0 }};
@@ -65,11 +64,8 @@
   var S = 768, T = 256;
   var z = 10;
 
-  /* ---------- Calculate optimal zoom ---------- */
   function calculateOptimalZoom() {
     if (!planes || planes.length === 0) return 10;
-    if (planes.length >= 5 && planes.length <= 10) return 10;
-
     var planesWithDistance = planes
       .filter(function(p) { return p.lat != null && p.lon != null; })
       .map(function(p) {
@@ -81,10 +77,8 @@
       .sort(function(a, b) { return a.distance - b.distance; });
 
     if (planesWithDistance.length === 0) return 10;
-
     var targetIndex = Math.min(7, planesWithDistance.length - 1);
     var targetDistance = planesWithDistance[targetIndex].distance * 1.15;
-
     if (targetDistance < 1.5) return 10;
     if (targetDistance < 3) return 9;
     if (targetDistance < 6) return 8;
@@ -95,14 +89,11 @@
   z = calculateOptimalZoom();
 
   function init() {
-    // Find this specific instance's container
     var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
-    if (!container) {
-      console.error('Container not found for instance', instanceId);
-      return;
-    }
+    if (!container) return;
 
-    /* ---------- Mercator tile math ---------- */
+    var ns = 'http://www.w3.org/2000/svg';
+
     function ll2tf(lat, lon) {
       var n  = Math.pow(2, z);
       var lr = lat * Math.PI / 180;
@@ -124,7 +115,6 @@
       };
     }
 
-    /* ---------- Unit conversion ---------- */
     function formatAltitude(val) {
       if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
       return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' ft' : ' m');
@@ -135,26 +125,22 @@
       return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' kt' : ' km/h');
     }
 
-    /* ---------- map tiles ---------- */
     function renderTiles() {
       var ml   = container.querySelector('#sky-tiles-' + instanceId);
       var defs = container.querySelector('#sky-defs-' + instanceId);
       if (!ml || !defs) return;
-
       for (var dy = -2; dy <= 1; dy++) {
         for (var dx = -2; dx <= 1; dx++) {
           var tx = cx + dx, ty = cy + dy;
           var px = (tx - ct.x) * T + S / 2;
           var py = (ty - ct.y) * T + S / 2;
           var pid = 'sk_' + instanceId + '_' + tx + '_' + ty;
-
-          var patt = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+          var patt = document.createElementNS(ns, 'pattern');
           patt.setAttribute('id', pid);
           patt.setAttribute('patternUnits', 'userSpaceOnUse');
           patt.setAttribute('x', px);  patt.setAttribute('y', py);
           patt.setAttribute('width', T); patt.setAttribute('height', T);
-
-          var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+          var img = document.createElementNS(ns, 'image');
           var useDark = darkMode || mapStyle === 'cartodb_dark';
           var url = useDark
             ? ('https://a.basemaps.cartocdn.com/dark_all/'  + z + '/' + tx + '/' + ty + '.png')
@@ -163,8 +149,7 @@
           img.setAttribute('width', T); img.setAttribute('height', T);
           patt.appendChild(img);
           defs.appendChild(patt);
-
-          var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          var rect = document.createElementNS(ns, 'rect');
           rect.setAttribute('x', px);   rect.setAttribute('y', py);
           rect.setAttribute('width', T); rect.setAttribute('height', T);
           rect.setAttribute('fill', 'url(#' + pid + ')');
@@ -173,86 +158,96 @@
       }
     }
 
-    var HOME_D = 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z';
-
     function renderCenter() {
       var g = container.querySelector('#sky-center-' + instanceId);
       if (!g) return;
-
       var pos = ll2px(centerLat, centerLon);
-      var ns  = 'http://www.w3.org/2000/svg';
       var useDark = darkMode || mapStyle === 'cartodb_dark';
       var fillColor = useDark ? '#ffffff' : '#000000';
-      var bgColor = useDark ? '#000000' : '#ffffff';
-
-      var bg = document.createElementNS(ns, 'circle');
-      bg.setAttribute('cx', pos.x.toFixed(0));
-      bg.setAttribute('cy', pos.y.toFixed(0));
-      bg.setAttribute('r',  '13');
-      bg.setAttribute('fill', bgColor);
-      g.appendChild(bg);
-
+      
       var path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', HOME_D);
-      path.setAttribute('transform',
-        'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ')' +
-        ' scale(1.4) translate(-8,-8)');
+      path.setAttribute('d', 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z');
+      path.setAttribute('transform', 'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ') scale(1.4) translate(-8,-8)');
       path.setAttribute('fill', fillColor);
+      
+      // Add a small shadow/glow for visibility on dark maps if needed
+      if (useDark) {
+        path.setAttribute('stroke', '#000000');
+        path.setAttribute('stroke-width', '1');
+      } else {
+        path.setAttribute('stroke', '#ffffff');
+        path.setAttribute('stroke-width', '1');
+      }
+      
       g.appendChild(path);
     }
 
-    /* ---------- plane icons ---------- */
-    var PLANE_D = 'M22 16.21v-1.895L14 8V4a2 2 0 0 0-4 0v4.105L2 14.42v1.789l8-2.81V18l-3 2v2l5-2 5 2v-2l-3-2v-4.685l8 2.895z';
-    var PLANE_T = 'translate(-12,-13) scale(0.85)';
+    var ICONS = {
+      AIRLINER: { d: 'M22 16.21v-1.895L14 8V4a2 2 0 0 0-4 0v4.105L2 14.42v1.789l8-2.81V18l-3 2v2l5-2 5 2v-2l-3-2v-4.685l8 2.895z', v: '0 0 24 24' },
+      SMALL: { d: 'm 32,1.1 0.1,0 0.2,0.1 0.2,0.2 0.3,0.4 0.4,0.9 0.5,1.6 0.6,2.4 0.3,2.3 0.2,2.8 0,6.1 0.2,1.3 0.6,0.9 6.1,5.6 -0.1,-0.7 -0.3,0 -0.2,-1.2 0,-1.2 0.1,-1 0.1,-0.3 2.1,0 0.1,0.3 0.1,1 0,1.2 -0.2,1.2 -0.3,0 -0.2,1.8 6.4,5.8 -0.1,-0.7 0,-1.2 0.1,-1 0.1,-0.3 2.1,0 0.1,0.3 0.1,1 0,1.2 -0.1,1.2 -0.3,0 -0.2,1.1 8.3,7.1 0.2,0.3 0.1,0.3 0.7,2.7 0,0.9 -0.7,-0.7 -9.1,-5.4 -1.9,-1.1 0,0.4 -0.1,0.5 -0.3,-0.5 -0.1,-0.7 -3.1,-1.8 0,0.4 -0.1,0.5 -0.3,-0.5 -0.1,-0.7 -1.4,-0.8 -3.2,-1 0,0.5 -0.1,0.5 -0.3,-0.5 -0.1,-0.7 -2,-0.6 0,0.5 -0.1,0.5 -0.3,-0.5 -0.1,-0.7 -2.2,-0.7 0,12.1 -0.3,3.7 -0.3,2.6 -0.4,1.9 0.2,0.4 7.4,6.6 0.2,0.3 0.1,0.3 0,1.9 -9.1,-2.5 -0.5,1.6 0,1.6 -0.1,0.1 -0.1,-0.1 0,-1.6 -0.5,-1.6 -9.1,2.5 0,-1.9 0.1,-0.3 0.2,-0.3 7.4,-6.6 0.2,-0.4 -0.4,-1.9 -0.3,-2.6 -0.3,-3.7 0,-12.1 -2.2,0.7 -0.1,0.7 -0.3,0.5 -0.1,-0.5 0,-0.5 -2,0.6 -0.1,0.7 -0.3,0.5 -0.1,-0.5 0,-0.5 -3.2,1 -1.4,0.8 -0.1,0.7 -0.3,0.5 -0.1,-0.5 0,-0.4 -3.1,1.8 -0.1,0.7 -0.3,0.5 -0.1,-0.5 0,-0.4 -11,6.5 -0.7,0.7 0,-0.9 0.7,-2.7 0.1,-0.3 0.2,-0.3 8.3,-7.1 -0.1,-1.1 -0.3,0 -0.2,-1.2 0,-1.2 0.1,-1 0.1,-0.3 2.1,0 0.1,0.3 0.1,1 0,1.2 -0.1,0.7 6.4,-5.8 -0.2,-1.8 -0.3,0 -0.2,-1.2 0,-1.2 0.1,-1 0.1,-0.3 2.1,0 0.1,0.3 0.1,1 0,1.2 -0.2,1.2 -0.3,0 -0.1,0.7 6.1,-5.6 0.7,-0.9 0.2,-1.3 -0.1,-6.1 0.2,-2.8 0.3,-2.3 0.6,-2.4 0.5,-1.6 0.4,-0.9 0.3,-0.4 0.2,-0.2 0.2,-0.1 z', v: '0 0 64 64', f: 'matrix(-1,0,0,1,64,0)' },
+      HELI: { d: 'M463.096,252.605l-133.38-52.861V78.503V47.101c0-4.338-3.519-7.851-7.851-7.851s-7.851,3.513-7.851,7.851v31.402h-11.569 C293.433,32.987,266.884,0,235.512,0c-31.37,0-57.919,32.987-66.938,78.503h-19.416V47.101c0-4.338-3.519-7.851-7.851-7.851 s-7.85,3.513-7.85,7.851v31.402v43.46l-109-43.2c-6.987-2.771-14.597-0.112-16.99,5.933c-2.395,6.045,1.327,13.187,8.312,15.961 l117.678,46.639v80.363v23.551c0,4.341,3.518,7.851,7.85,7.851s7.851-3.51,7.851-7.851V227.66h48.1 c7.64,25.239,14.703,58.196,14.703,94.207v78.502h7.851v39.528c0,8.079,7.027,14.644,15.701,14.644 c8.674,0,15.699-6.564,15.699-14.644v-39.528h7.851v-78.502c0-35.618,6.984-68.655,14.606-94.207h40.347v23.551 c0,4.341,3.519,7.851,7.851,7.851s7.851-3.51,7.851-7.851V227.66v-2.583l124.703,49.425c6.981,2.773,14.596,0.121,16.987-5.935 C473.799,262.512,470.081,255.383,463.096,252.605z M314.015,94.204v99.322l-24.132-9.567 c9.91-19.424,15.877-44.248,15.877-71.307c0-6.297-0.409-12.435-1.03-18.448H314.015z M149.158,94.204h17.132 c-0.621,6.014-1.023,12.151-1.023,18.448c0,7.694,0.486,15.207,1.406,22.468l-17.515-6.939V94.204z M149.158,211.958v-58.436 l23.536,9.327c1.775,5.688,3.829,11.093,6.155,16.186l-0.433-0.148c0,0,6.476,12.457,13.74,33.071H149.158z M278.714,211.958 c0.749-2.18,1.479-4.208,2.22-6.215l15.682,6.215H278.714z M266.913,408.219c-4.328,0-7.851,3.518-7.851,7.85v54.954c0,4.332,3.522,7.851,7.851,7.851c4.332,0,7.85-3.519,7.85-7.851 v-54.954C274.762,411.736,271.245,408.219,266.913,408.219z', v: '0 0 478.874 478.873' },
+      JUMBO: { d: 'm 32,10.2 0.4,0.7 0.2,0.6 4.7,0 0,0.2 -4.6,0.1 0.1,0.4 0.7,0 0.6,0.2 0.3,0.4 0.2,0.7 0.3,3.5 0.1,3 11.3,0 15.6,0.7 0.6,0.4 0.3,0.8 0,5.5 -17.5,2.5 -10.6,0 -1.8,14.1 8,1.2 0.4,0.5 0.2,1.1 0,1.2 -0.2,0.9 -0.4,0.7 -7.3,1.1 -1.3,-2.5 -0.1,5.6 -0.2,0.1 -0.2,-0.1 -0.1,-5.6 -1.3,2.5 -7.3,-1.1 -0.4,-0.7 -0.2,-0.9 0,-1.2 0.2,-1.1 0.4,-0.4 8,-1.3 -1.8,-14.1 -10.6,0 -17.5,-2.5 0,-5.5 0.3,-0.8 0.6,-0.3 15.6,-0.8 11.3,0 0.1,-3 0.3,-3.5 0.2,-0.7 0.3,-0.4 0.6,-0.2 0.7,0 0.1,-0.4 -4.7,-0.1 0,-0.2 4.8,0 0.2,-0.6 z', v: '0 0 64 64', f: 'matrix(-1,0,0,1,64,0)' }
+    };
+
+    function setupSymbols() {
+      var defs = container.querySelector('#sky-defs-' + instanceId);
+      Object.keys(ICONS).forEach(function(key) {
+        var icon = ICONS[key];
+        var sym = document.createElementNS(ns, 'symbol');
+        sym.setAttribute('id', 'icon-' + key + '-' + instanceId);
+        sym.setAttribute('viewBox', icon.v);
+        var g = document.createElementNS(ns, 'g');
+        if (icon.f) g.setAttribute('transform', icon.f);
+        var path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', icon.d);
+        g.appendChild(path);
+        sym.appendChild(g);
+        defs.appendChild(sym);
+      });
+    }
+
+    function getIconKey(p) {
+      var cat = (p.cat || '').toUpperCase(), type = (p.t || '').toUpperCase(), desc = (p.desc || '').toLowerCase();
+      if (cat === 'A7' || desc.indexOf('heli') !== -1 || type.indexOf('H135') !== -1 || type.indexOf('H145') !== -1) return 'HELI';
+      if (cat === 'A5' || type === 'B744' || type === 'B748' || type === 'A388' || type === 'A346' || type === 'A343' || type === 'C17' || type === 'C5') return 'JUMBO';
+      if (cat === 'A1' || type === 'C172' || type === 'C152' || type === 'P28A' || type === 'SR22' || type === 'DA40' || type === 'DA42' || type === 'PC12') return 'SMALL';
+      return 'AIRLINER';
+    }
 
     function renderPlanes() {
       var layer = container.querySelector('#sky-planes-' + instanceId);
       if (!layer) return;
-
-      var sc         = view >= 3 ? 1.1 : 1.6;
-      var ns         = 'http://www.w3.org/2000/svg';
-      var useDark    = darkMode || mapStyle === 'cartodb_dark';
+      var sc = view >= 3 ? 1.1 : 1.6;
+      var useDark = darkMode || mapStyle === 'cartodb_dark';
       var planeColor = useDark ? '#ffffff' : '#000000';
-      var lineColor  = useDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
-
-      // Track placed label rects to avoid overlap
+      var lineColor = useDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
       var placedRects = [];
 
       function overlaps(r) {
         var pad = 4;
         return placedRects.some(function (e) {
-          return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x &&
-                 r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
+          return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x && r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
         });
       }
 
-      // 8 candidate anchor directions, E first (most readable), prefer away from center
-      var ANCHORS = [
-        { ax:  1, ay:  0 },  // E
-        { ax:  1, ay: -1 },  // NE
-        { ax:  0, ay: -1 },  // N
-        { ax: -1, ay: -1 },  // NW
-        { ax: -1, ay:  0 },  // W
-        { ax: -1, ay:  1 },  // SW
-        { ax:  0, ay:  1 },  // S
-        { ax:  1, ay:  1 },  // SE
-      ];
-      var ANCHOR_R = 22; // distance from plane centre to label edge
-
-      function findAnchor(pos, blockW, blockH) {
-        for (var i = 0; i < ANCHORS.length; i++) {
-          var a  = ANCHORS[i];
-          var lx = pos.x + a.ax * ANCHOR_R - (a.ax < 0 ? blockW : (a.ax === 0 ? blockW / 2 : 0));
-          var ly = pos.y + a.ay * ANCHOR_R - (a.ay < 0 ? blockH : (a.ay === 0 ? blockH / 2 : 0));
-          var r  = { x: lx, y: ly, w: blockW, h: blockH };
-          if (!overlaps(r)) return { x: lx, y: ly, r: r, ax: a.ax, ay: a.ay };
-        }
-        return null;
+      function getPlaneEdgePoint(centerX, centerY, planeTrack, targetX, targetY) {
+        var angleToTarget = Math.atan2(targetY - centerY, targetX - centerX);
+        var planeAngle = planeTrack * Math.PI / 180;
+        var localAngle = angleToTarget - planeAngle;
+        var planeHalfWidth = 10 * sc, planeHalfHeight = 6 * sc;
+        var cosA = Math.cos(localAngle), sinA = Math.sin(localAngle);
+        var den = Math.pow(cosA / planeHalfWidth, 2) + Math.pow(sinA / planeHalfHeight, 2);
+        if (den === 0) return { x: centerX, y: centerY };
+        var t = 1 / Math.sqrt(den);
+        t = Math.min(t, Math.sqrt(planeHalfWidth * planeHalfWidth + planeHalfHeight * planeHalfHeight));
+        var lx = t * cosA, ly = t * sinA;
+        return {
+          x: centerX + (lx * Math.cos(planeAngle) - ly * Math.sin(planeAngle)),
+          y: centerY + (lx * Math.sin(planeAngle) + ly * Math.cos(planeAngle))
+        };
       }
 
-      // Closest planes to center get label priority
-      var sorted = (planes || [])
-        .filter(function (p) { return p.lat != null && p.lon != null; })
+      var sorted = (planes || []).filter(function (p) { return p.lat != null && p.lon != null; })
         .sort(function (a, b) {
           var da = Math.pow(a.lat - centerLat, 2) + Math.pow(a.lon - centerLon, 2);
           var db = Math.pow(b.lat - centerLat, 2) + Math.pow(b.lon - centerLon, 2);
@@ -262,154 +257,100 @@
       sorted.forEach(function (p) {
         var pos = ll2px(p.lat, p.lon);
         if (pos.x < -30 || pos.x > S + 30 || pos.y < -30 || pos.y > S + 30) return;
-
-        var track = p.track != null ? p.track : 0;
-
+        var track = p.track != null ? p.track : 0, iconKey = getIconKey(p);
         var g = document.createElementNS(ns, 'g');
-        g.setAttribute('transform',
-          'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ')' +
-          ' rotate(' + track + ')' +
-          ' scale(' + sc + ')');
-
-        var path = document.createElementNS(ns, 'path');
-        path.setAttribute('d', PLANE_D);
-        path.setAttribute('transform', PLANE_T);
-        path.setAttribute('fill', planeColor);
-        g.appendChild(path);
+        g.setAttribute('transform', 'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ') rotate(' + track + ') scale(' + sc + ')');
+        var use = document.createElementNS(ns, 'use');
+        use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-' + iconKey + '-' + instanceId);
+        use.setAttribute('width', '24'); use.setAttribute('height', '24');
+        use.setAttribute('x', '-12'); use.setAttribute('y', '-12');
+        use.setAttribute('fill', planeColor);
+        g.appendChild(use);
         layer.appendChild(g);
 
         if (view <= 4) {
-          var lbl      = (p.flight || '').trim() || p.r || '';
-          var desc = ((p.desc || '').trim() || '').slice(0, 10);
-          var altStr   = formatAltitude(p.alt_baro);
-          var speedStr = formatSpeed(p.gs);
-
-          // Calculate block height based on what fields are present
-          var rowCount = 1; // speed row always present
-          if (lbl) rowCount++; // flight row
-          if (desc) rowCount++; // description row
-          // alt row always present
-          rowCount++; // +1 for alt row
-
+          var lbl = (p.flight || '').trim() || p.r || '', desc = ((p.desc || '').trim() || '').slice(0, 10);
+          var altStr = formatAltitude(p.alt_baro), speedStr = formatSpeed(p.gs);
+          var rowCount = 1 + (lbl ? 1 : 0) + (desc ? 1 : 0) + 1;
           var blockH = rowCount * 14;
-
-          // Calculate max width needed
-          var maxWidth = speedStr.length * 6 + 4;
-          if (lbl) maxWidth = Math.max(maxWidth, lbl.length * 7 + 4);
-          if (desc) maxWidth = Math.max(maxWidth, desc.length * 7 + 4);
-          maxWidth = Math.max(maxWidth, altStr.length * 6 + 4);
-          var blockW = maxWidth;
-
-          var anchor = findAnchor(pos, blockW, blockH);
+          var maxWidth = Math.max(speedStr.length * 6 + 4, lbl.length * 7 + 4, desc.length * 7 + 4, altStr.length * 6 + 4);
+          var ANCHORS = [{ax:1,ay:0},{ax:1,ay:-1},{ax:0,ay:-1},{ax:-1,ay:-1},{ax:-1,ay:0},{ax:-1,ay:1},{ax:0,ay:1},{ax:1,ay:1}], ANCHOR_R = 28;
+          var anchor = null;
+          for (var i = 0; i < ANCHORS.length; i++) {
+            var a = ANCHORS[i];
+            var lx = pos.x + a.ax * ANCHOR_R - (a.ax < 0 ? maxWidth : (a.ax === 0 ? maxWidth / 2 : 0));
+            var ly = pos.y + a.ay * ANCHOR_R - (a.ay < 0 ? blockH : (a.ay === 0 ? blockH / 2 : 0));
+            var r = { x: lx, y: ly, w: maxWidth, h: blockH };
+            if (!overlaps(r)) { anchor = { x: lx, y: ly, r: r }; break; }
+          }
           if (!anchor) return;
           placedRects.push(anchor.r);
-
-          var lx = anchor.x;
-          var ly = anchor.y;
-
-          // Leader line: from plane edge to nearest corner of label box
-          var lineTX = lx + (anchor.ax < 0 ? blockW : (anchor.ax === 0 ? blockW / 2 : 0));
-          var lineTY = ly + (anchor.ay < 0 ? blockH : (anchor.ay === 0 ? blockH / 2 : 0));
-
+          var lx = anchor.x, ly = anchor.y;
+          var labelConnectX = lx + maxWidth / 2, labelConnectY = ly + (lbl ? 14 : 0) + 7;
+          var planeEdge = getPlaneEdgePoint(pos.x, pos.y, track, labelConnectX, labelConnectY);
           var line = document.createElementNS(ns, 'line');
-          line.setAttribute('x1', pos.x.toFixed(0));
-          line.setAttribute('y1', pos.y.toFixed(0));
-          line.setAttribute('x2', lineTX.toFixed(0));
-          line.setAttribute('y2', lineTY.toFixed(0));
-          line.setAttribute('stroke', lineColor);
-          line.setAttribute('stroke-width', '1');
+          line.setAttribute('x1', planeEdge.x.toFixed(0)); line.setAttribute('y1', planeEdge.y.toFixed(0));
+          line.setAttribute('x2', labelConnectX.toFixed(0)); line.setAttribute('y2', labelConnectY.toFixed(0));
+          line.setAttribute('stroke', lineColor); line.setAttribute('stroke-width', '1.5');
           layer.appendChild(line);
-
           var rowY = ly;
-
-          // Flight row
           if (lbl) {
             rowY += 14;
             var flightBg = document.createElementNS(ns, 'rect');
-            flightBg.setAttribute('x', lx.toFixed(0));
-            flightBg.setAttribute('y', (rowY - 11).toFixed(0));
-            flightBg.setAttribute('width', (lbl.length * 7 + 4).toFixed(0));
-            flightBg.setAttribute('height', '14');
-            flightBg.setAttribute('fill', '#000000');
-            flightBg.setAttribute('rx', '2');
+            flightBg.setAttribute('x', lx.toFixed(0)); flightBg.setAttribute('y', (rowY - 11).toFixed(0));
+            flightBg.setAttribute('width', (lbl.length * 7 + 4).toFixed(0)); flightBg.setAttribute('height', '14');
+            flightBg.setAttribute('fill', '#000000'); flightBg.setAttribute('rx', '2');
             layer.appendChild(flightBg);
-
             var txt = document.createElementNS(ns, 'text');
-            txt.setAttribute('x', (lx + 2).toFixed(0));
-            txt.setAttribute('y', rowY.toFixed(0));
-            txt.setAttribute('font-size', '12');
-            txt.setAttribute('font-weight', 'bold');
+            txt.setAttribute('x', (lx + 2).toFixed(0)); txt.setAttribute('y', rowY.toFixed(0));
+            txt.setAttribute('font-size', '12'); txt.setAttribute('font-weight', 'bold');
             txt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-            txt.setAttribute('fill', '#ffffff');
-            txt.textContent = lbl;
+            txt.setAttribute('fill', '#ffffff'); txt.textContent = lbl;
             layer.appendChild(txt);
           }
-
-          // Description row (added under flight)
           if (desc) {
             rowY += 14;
             var descBg = document.createElementNS(ns, 'rect');
-            descBg.setAttribute('x', lx.toFixed(0));
-            descBg.setAttribute('y', (rowY - 11).toFixed(0));
-            descBg.setAttribute('width', (desc.length * 7 + 4).toFixed(0));
-            descBg.setAttribute('height', '13');
-            descBg.setAttribute('fill', '#000000');
-            descBg.setAttribute('rx', '2');
+            descBg.setAttribute('x', lx.toFixed(0)); descBg.setAttribute('y', (rowY - 11).toFixed(0));
+            descBg.setAttribute('width', (desc.length * 7 + 4).toFixed(0)); descBg.setAttribute('height', '13');
+            descBg.setAttribute('fill', '#000000'); descBg.setAttribute('rx', '2');
             layer.appendChild(descBg);
-
             var descTxt = document.createElementNS(ns, 'text');
-            descTxt.setAttribute('x', (lx + 2).toFixed(0));
-            descTxt.setAttribute('y', rowY.toFixed(0));
+            descTxt.setAttribute('x', (lx + 2).toFixed(0)); descTxt.setAttribute('y', rowY.toFixed(0));
             descTxt.setAttribute('font-size', '11');
             descTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-            descTxt.setAttribute('fill', '#cccccc');
-            descTxt.textContent = desc;
+            descTxt.setAttribute('fill', '#cccccc'); descTxt.textContent = desc;
             layer.appendChild(descTxt);
           }
-
-          // Speed row
           rowY += 14;
           var speedBg = document.createElementNS(ns, 'rect');
-          speedBg.setAttribute('x', lx.toFixed(0));
-          speedBg.setAttribute('y', (rowY - 11).toFixed(0));
-          speedBg.setAttribute('width', (speedStr.length * 6 + 4).toFixed(0));
-          speedBg.setAttribute('height', '13');
-          speedBg.setAttribute('fill', '#000000');
-          speedBg.setAttribute('rx', '2');
+          speedBg.setAttribute('x', lx.toFixed(0)); speedBg.setAttribute('y', (rowY - 11).toFixed(0));
+          speedBg.setAttribute('width', (speedStr.length * 6 + 4).toFixed(0)); speedBg.setAttribute('height', '13');
+          speedBg.setAttribute('fill', '#000000'); speedBg.setAttribute('rx', '2');
           layer.appendChild(speedBg);
-
           var infoTxt = document.createElementNS(ns, 'text');
-          infoTxt.setAttribute('x', (lx + 2).toFixed(0));
-          infoTxt.setAttribute('y', rowY.toFixed(0));
+          infoTxt.setAttribute('x', (lx + 2).toFixed(0)); infoTxt.setAttribute('y', rowY.toFixed(0));
           infoTxt.setAttribute('font-size', '11');
           infoTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-          infoTxt.setAttribute('fill', '#ffffff');
-          infoTxt.textContent = speedStr;
+          infoTxt.setAttribute('fill', '#ffffff'); infoTxt.textContent = speedStr;
           layer.appendChild(infoTxt);
-
-          // Altitude row
           rowY += 13;
           var altBg = document.createElementNS(ns, 'rect');
-          altBg.setAttribute('x', lx.toFixed(0));
-          altBg.setAttribute('y', (rowY - 11).toFixed(0));
-          altBg.setAttribute('width', (altStr.length * 6 + 4).toFixed(0));
-          altBg.setAttribute('height', '13');
-          altBg.setAttribute('fill', '#000000');
-          altBg.setAttribute('rx', '2');
+          altBg.setAttribute('x', lx.toFixed(0)); altBg.setAttribute('y', (rowY - 11).toFixed(0));
+          altBg.setAttribute('width', (altStr.length * 6 + 4).toFixed(0)); altBg.setAttribute('height', '13');
+          altBg.setAttribute('fill', '#000000'); altBg.setAttribute('rx', '2');
           layer.appendChild(altBg);
-
           var altTxt = document.createElementNS(ns, 'text');
-          altTxt.setAttribute('x', (lx + 2).toFixed(0));
-          altTxt.setAttribute('y', rowY.toFixed(0));
+          altTxt.setAttribute('x', (lx + 2).toFixed(0)); altTxt.setAttribute('y', rowY.toFixed(0));
           altTxt.setAttribute('font-size', '11');
           altTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-          altTxt.setAttribute('fill', '#ffffff');
-          altTxt.textContent = altStr;
+          altTxt.setAttribute('fill', '#ffffff'); altTxt.textContent = altStr;
           layer.appendChild(altTxt);
         }
       });
     }
 
+    setupSymbols();
     renderTiles();
     renderCenter();
     renderPlanes();
