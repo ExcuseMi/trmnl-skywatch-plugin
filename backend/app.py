@@ -116,19 +116,21 @@ def airport_cache_key(lat_key: int, lon_key: int) -> str:
 
 
 async def _load_ourairports() -> list:
-    """Fetch and parse OurAirports CSV, cached globally for 24h."""
+    """Return the cached airport list, or [] if not yet populated."""
     raw = await redis_client.get(OURAIRPORTS_CACHE_KEY)
-    if raw:
-        return json.loads(raw)
+    return json.loads(raw) if raw else []
 
-    logger.info("Fetching OurAirports CSV...")
+
+async def _refresh_ourairports():
+    """Fetch and parse OurAirports CSV, store in Redis."""
+    logger.info("Refreshing OurAirports CSV...")
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(OURAIRPORTS_CSV_URL)
             resp.raise_for_status()
     except Exception as e:
-        logger.error(f"OurAirports fetch error: {e}")
-        return []
+        logger.error(f"OurAirports fetch error: {e} — keeping existing cache")
+        return
 
     airports = []
     reader = csv.DictReader(io.StringIO(resp.text))
@@ -151,9 +153,15 @@ async def _load_ourairports() -> list:
             'lon':  a_lon,
         })
 
-    await redis_client.setex(OURAIRPORTS_CACHE_KEY, AIRPORT_CACHE_TTL, json.dumps(airports))
-    logger.info(f"OurAirports: loaded {len(airports)} large/medium airports with IATA codes")
-    return airports
+    await redis_client.set(OURAIRPORTS_CACHE_KEY, json.dumps(airports))
+    logger.info(f"OurAirports: {len(airports)} large/medium airports cached")
+
+
+async def _background_ourairports():
+    """Refresh OurAirports dataset immediately at startup, then every 24h."""
+    while True:
+        await _refresh_ourairports()
+        await asyncio.sleep(AIRPORT_CACHE_TTL)
 
 
 async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> list:
@@ -166,13 +174,12 @@ async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> 
     if not all_airports:
         return []
 
-    nearby = []
     cos_lat = math.cos(math.radians(lat))
+    nearby = []
     for a in all_airports:
         dlat = a['lat'] - lat
         dlon = (a['lon'] - lon) * cos_lat
-        dist_nm = math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG_LAT
-        if dist_nm <= RADIUS_NM:
+        if math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG_LAT <= RADIUS_NM:
             nearby.append(a)
 
     await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(nearby))
@@ -444,6 +451,7 @@ async def startup():
 
     api_queue = asyncio.Queue()
     asyncio.ensure_future(api_worker())
+    asyncio.ensure_future(_background_ourairports())
 
     if ENABLE_IP_WHITELIST:
         TRMNL_IPS = await fetch_trmnl_ips()
