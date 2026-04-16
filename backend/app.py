@@ -9,6 +9,8 @@ import math
 from datetime import datetime, timedelta, timezone
 from quart import Quart, request, jsonify
 
+MAX_PLANES = 30
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -210,7 +212,7 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
 
     # Sort by distance and limit to closest 20
     processed.sort(key=lambda x: x['_dist'])
-    closest = processed[:20]
+    closest = processed[:MAX_PLANES]
 
     for p in closest:
         del p['_dist']
