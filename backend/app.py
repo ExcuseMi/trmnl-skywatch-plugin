@@ -1,5 +1,7 @@
 import os
 import asyncio
+import csv
+import io
 import httpx
 import time
 import json
@@ -23,9 +25,12 @@ MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 50
 
-AIRPORT_CACHE_TTL = 24 * 3600   # airports barely change
-OVERPASS_URL      = 'https://overpass-api.de/api/interpreter'
-RADIUS_M          = 92600       # 50 nautical miles in metres
+AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
+OURAIRPORTS_CSV_URL  = 'https://ourairports.com/data/airports.csv'
+OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
+RADIUS_DEG           = 1.5        # ~165 km bounding box pre-filter before precise distance check
+RADIUS_NM            = 50.0       # 50 nautical miles
+NM_PER_DEG_LAT       = 60.0
 
 TRMNL_IPS: set = set()
 
@@ -110,49 +115,69 @@ def airport_cache_key(lat_key: int, lon_key: int) -> str:
     return f"skywatch:airports:{lat_key}:{lon_key}"
 
 
+async def _load_ourairports() -> list:
+    """Fetch and parse OurAirports CSV, cached globally for 24h."""
+    raw = await redis_client.get(OURAIRPORTS_CACHE_KEY)
+    if raw:
+        return json.loads(raw)
+
+    logger.info("Fetching OurAirports CSV...")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(OURAIRPORTS_CSV_URL)
+            resp.raise_for_status()
+    except Exception as e:
+        logger.error(f"OurAirports fetch error: {e}")
+        return []
+
+    airports = []
+    reader = csv.DictReader(io.StringIO(resp.text))
+    for row in reader:
+        if row.get('type') not in ('large_airport', 'medium_airport'):
+            continue
+        iata = (row.get('iata_code') or '').strip()
+        if not iata:
+            continue
+        try:
+            a_lat = float(row['latitude_deg'])
+            a_lon = float(row['longitude_deg'])
+        except (ValueError, KeyError):
+            continue
+        airports.append({
+            'iata': iata,
+            'icao': (row.get('gps_code') or row.get('ident') or '').strip(),
+            'name': (row.get('name') or '').strip(),
+            'lat':  a_lat,
+            'lon':  a_lon,
+        })
+
+    await redis_client.setex(OURAIRPORTS_CACHE_KEY, AIRPORT_CACHE_TTL, json.dumps(airports))
+    logger.info(f"OurAirports: loaded {len(airports)} large/medium airports with IATA codes")
+    return airports
+
+
 async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> list:
     key = airport_cache_key(lat_key, lon_key)
     raw = await redis_client.get(key)
     if raw:
         return json.loads(raw)
 
-    query = f"""
-[out:json][timeout:15];
-(
-  node["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
-  way["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
-  relation["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
-);
-out center tags;
-"""
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.post(OVERPASS_URL, data={'data': query})
-            resp.raise_for_status()
-            elements = resp.json().get('elements', [])
-    except Exception as e:
-        logger.error(f"Overpass error: {e}")
+    all_airports = await _load_ourairports()
+    if not all_airports:
         return []
 
-    airports = []
-    for el in elements:
-        tags = el.get('tags', {})
-        # Use center coords for ways, direct coords for nodes
-        a_lat = el.get('lat') or (el.get('center') or {}).get('lat')
-        a_lon = el.get('lon') or (el.get('center') or {}).get('lon')
-        if a_lat is None or a_lon is None:
-            continue
-        airports.append({
-            'iata': tags.get('iata') or '',
-            'icao': tags.get('icao') or tags.get('ref:icao') or '',
-            'name': tags.get('name') or '',
-            'lat':  a_lat,
-            'lon':  a_lon,
-        })
+    nearby = []
+    cos_lat = math.cos(math.radians(lat))
+    for a in all_airports:
+        dlat = a['lat'] - lat
+        dlon = (a['lon'] - lon) * cos_lat
+        dist_nm = math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG_LAT
+        if dist_nm <= RADIUS_NM:
+            nearby.append(a)
 
-    await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(airports))
-    logger.info(f"Fetched {len(airports)} airports for {lat_key},{lon_key}")
-    return airports
+    await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(nearby))
+    logger.info(f"Airports for tile {lat_key},{lon_key}: {len(nearby)} within {RADIUS_NM}nm")
+    return nearby
 
 
 # ---------------------------------------------------------------------------
