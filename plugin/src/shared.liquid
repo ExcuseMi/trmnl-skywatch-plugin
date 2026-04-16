@@ -173,7 +173,6 @@
       }
     }
 
-    /* ---------- center marker ---------- */
     var HOME_D = 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z';
 
     function renderCenter() {
@@ -183,19 +182,14 @@
       var pos = ll2px(centerLat, centerLon);
       var ns  = 'http://www.w3.org/2000/svg';
       var useDark = darkMode || mapStyle === 'cartodb_dark';
-      
-      // Black icon on white circle is most visible on dark maps
-      var fillColor = useDark ? '#000000' : '#ffffff';
-      var bgColor   = useDark ? '#ffffff' : '#000000';
-      var strokeColor = useDark ? '#000000' : '#ffffff';
+      var fillColor = useDark ? '#ffffff' : '#000000';
+      var bgColor = useDark ? '#000000' : '#ffffff';
 
       var bg = document.createElementNS(ns, 'circle');
       bg.setAttribute('cx', pos.x.toFixed(0));
       bg.setAttribute('cy', pos.y.toFixed(0));
       bg.setAttribute('r',  '13');
       bg.setAttribute('fill', bgColor);
-      bg.setAttribute('stroke', strokeColor);
-      bg.setAttribute('stroke-width', '2');
       g.appendChild(bg);
 
       var path = document.createElementNS(ns, 'path');
@@ -286,18 +280,25 @@
 
         if (view <= 4) {
           var lbl      = (p.flight || '').trim() || p.r || '';
-          var desc     = (p.desc || '') || ''
+          var desc = ((p.desc || '').trim() || '').slice(0, 10);
           var altStr   = formatAltitude(p.alt_baro);
           var speedStr = formatSpeed(p.gs);
 
-          var blockW = Math.max(
-            lbl ? lbl.length * 7 + 4 : 0,
-            desc ? desc.length * 7 + 4 : 0,
+          // Calculate block height based on what fields are present
+          var rowCount = 1; // speed row always present
+          if (lbl) rowCount++; // flight row
+          if (desc) rowCount++; // description row
+          // alt row always present
+          rowCount++; // +1 for alt row
 
-            speedStr.length * 6 + 4,
-            altStr.length * 6 + 4
-          );
-          var blockH = (lbl ? 14 : 0) + 14 + 14;
+          var blockH = rowCount * 14;
+
+          // Calculate max width needed
+          var maxWidth = speedStr.length * 6 + 4;
+          if (lbl) maxWidth = Math.max(maxWidth, lbl.length * 7 + 4);
+          if (desc) maxWidth = Math.max(maxWidth, desc.length * 7 + 4);
+          maxWidth = Math.max(maxWidth, altStr.length * 6 + 4);
+          var blockW = maxWidth;
 
           var anchor = findAnchor(pos, blockW, blockH);
           if (!anchor) return;
@@ -321,6 +322,7 @@
 
           var rowY = ly;
 
+          // Flight row
           if (lbl) {
             rowY += 14;
             var flightBg = document.createElementNS(ns, 'rect');
@@ -343,6 +345,29 @@
             layer.appendChild(txt);
           }
 
+          // Description row (added under flight)
+          if (desc) {
+            rowY += 14;
+            var descBg = document.createElementNS(ns, 'rect');
+            descBg.setAttribute('x', lx.toFixed(0));
+            descBg.setAttribute('y', (rowY - 11).toFixed(0));
+            descBg.setAttribute('width', (desc.length * 7 + 4).toFixed(0));
+            descBg.setAttribute('height', '13');
+            descBg.setAttribute('fill', '#000000');
+            descBg.setAttribute('rx', '2');
+            layer.appendChild(descBg);
+
+            var descTxt = document.createElementNS(ns, 'text');
+            descTxt.setAttribute('x', (lx + 2).toFixed(0));
+            descTxt.setAttribute('y', rowY.toFixed(0));
+            descTxt.setAttribute('font-size', '11');
+            descTxt.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
+            descTxt.setAttribute('fill', '#cccccc');
+            descTxt.textContent = desc;
+            layer.appendChild(descTxt);
+          }
+
+          // Speed row
           rowY += 14;
           var speedBg = document.createElementNS(ns, 'rect');
           speedBg.setAttribute('x', lx.toFixed(0));
@@ -362,6 +387,7 @@
           infoTxt.textContent = speedStr;
           layer.appendChild(infoTxt);
 
+          // Altitude row
           rowY += 13;
           var altBg = document.createElementNS(ns, 'rect');
           altBg.setAttribute('x', lx.toFixed(0));
