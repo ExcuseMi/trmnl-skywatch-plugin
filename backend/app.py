@@ -39,6 +39,8 @@ api_queue: asyncio.Queue     = None
 last_api_call_time: float    = 0.0
 _inflight: dict              = {}   # (lat_key, lon_key, show_ground) -> Future
 
+STATS_KEY = 'skywatch:stats'
+
 
 # ---------------------------------------------------------------------------
 # Tile key — 0.5° resolution (~55 km), well within the 50 nm API radius
@@ -75,6 +77,38 @@ async def get_from_cache(lat_key: int, lon_key: int, show_ground: bool):
 async def set_cache(lat_key: int, lon_key: int, show_ground: bool, data: dict):
     key = cache_key(lat_key, lon_key, show_ground)
     await redis_client.setex(key, CACHE_TTL, json.dumps(data))
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+async def increment_stat(field: str, amount: int = 1):
+    await redis_client.hincrby(STATS_KEY, field, amount)
+
+
+async def get_stats() -> dict:
+    raw = await redis_client.hgetall(STATS_KEY)
+    return {k: int(v) for k, v in raw.items()}
+
+
+async def _background_stats_logger():
+    """Log a stats summary every hour."""
+    while True:
+        await asyncio.sleep(3600)
+        s = await get_stats()
+        total  = s.get('requests', 0)
+        hits   = s.get('cache_hits', 0)
+        misses = s.get('cache_misses', 0)
+        dedup  = s.get('inflight_hits', 0)
+        calls  = s.get('api_calls', 0)
+        errors = s.get('api_errors', 0)
+        hit_rate = f"{hits/total*100:.1f}%" if total else "n/a"
+        logger.info(
+            f"STATS | requests={total} cache_hits={hits} misses={misses} "
+            f"inflight_dedup={dedup} api_calls={calls} api_errors={errors} "
+            f"hit_rate={hit_rate}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -270,11 +304,17 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
 
     lat, lon = tile_center(lat_key, lon_key)
     url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
+    t0 = time.monotonic()
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(url)
         last_api_call_time = time.monotonic()
+        elapsed_ms = int((time.monotonic() - t0) * 1000)
         response.raise_for_status()
         raw_data = response.json()
+
+    await increment_stat('api_calls')
+    ac_count = len(raw_data.get('ac', []))
+    logger.info(f"API CALL: tile={lat_key},{lon_key} ac={ac_count} status={response.status_code} elapsed={elapsed_ms}ms")
 
     reduced = reduce_payload(raw_data, lat, lon, show_ground)
     reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
@@ -312,6 +352,7 @@ async def api_worker():
 
         except Exception as e:
             logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
+            await increment_stat('api_errors')
             if not fut.done():
                 fut.set_exception(e)
         finally:
@@ -330,13 +371,16 @@ async def fetch_planes(lat: float, lon: float, show_ground: bool):
     cached = await get_from_cache(lat_key, lon_key, show_ground)
     if cached is not None:
         logger.info(f"CACHE HIT: {lat_key},{lon_key} ground={show_ground}")
+        await increment_stat('cache_hits')
         return cached
 
     logger.info(f"CACHE MISS: {lat_key},{lon_key} ground={show_ground}")
+    await increment_stat('cache_misses')
 
     # Attach to an already-queued future for the same tile
     if inflight_key in _inflight:
         logger.info(f"IN-FLIGHT HIT: {lat_key},{lon_key}")
+        await increment_stat('inflight_hits')
         try:
             return await asyncio.wait_for(asyncio.shield(_inflight[inflight_key]), timeout=QUEUE_TIMEOUT)
         except asyncio.TimeoutError:
@@ -389,6 +433,7 @@ async def get_planes():
     if lat is None or lon is None:
         return jsonify({'error': 'Missing lat/lon or address'}), 400
 
+    await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
     data, airports = await asyncio.gather(
         fetch_planes(lat, lon, show_ground),
@@ -409,6 +454,20 @@ async def debug_airports():
     lat_key, lon_key = tile_key(lat, lon)
     airports = await fetch_airports(lat, lon, lat_key, lon_key)
     return jsonify({'tile': [lat_key, lon_key], 'count': len(airports), 'airports': airports})
+
+
+@app.route('/stats')
+async def stats():
+    s = await get_stats()
+    total  = s.get('requests', 0)
+    hits   = s.get('cache_hits', 0)
+    misses = s.get('cache_misses', 0)
+    calls  = s.get('api_calls', 0)
+    return jsonify({
+        **s,
+        'cache_hit_rate': round(hits / total, 4) if total else None,
+        'api_calls_saved': total - calls if total else 0,
+    })
 
 
 @app.route('/health')
@@ -452,6 +511,7 @@ async def startup():
     api_queue = asyncio.Queue()
     asyncio.ensure_future(api_worker())
     asyncio.ensure_future(_background_ourairports())
+    asyncio.ensure_future(_background_stats_logger())
 
     if ENABLE_IP_WHITELIST:
         TRMNL_IPS = await fetch_trmnl_ips()
