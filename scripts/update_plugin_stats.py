@@ -25,18 +25,31 @@ def md5(path):
     return h.hexdigest()
 
 
-def download_image(url, dest):
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
+CONTENT_TYPE_EXT = {
+    "image/svg+xml": ".svg",
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+}
+
+
+def download_image(url, dest_stem):
+    """Download url, detect real type, return final path (ext may differ from stem)."""
+    os.makedirs(os.path.dirname(dest_stem), exist_ok=True)
     resp = requests.get(url, timeout=15)
     resp.raise_for_status()
+
+    content_type = resp.headers.get("Content-Type", "").split(";")[0].strip()
+    ext = CONTENT_TYPE_EXT.get(content_type) or os.path.splitext(url)[1] or ".png"
+    dest = dest_stem if dest_stem.endswith(ext) else (os.path.splitext(dest_stem)[0] + ext)
+
     new_bytes = resp.content
-    if os.path.exists(dest):
-        old_hash = md5(dest)
-        if hashlib.md5(new_bytes).hexdigest() == old_hash:
-            return False  # unchanged
+    if os.path.exists(dest) and hashlib.md5(new_bytes).hexdigest() == md5(dest):
+        return dest  # unchanged
+
     with open(dest, "wb") as f:
         f.write(new_bytes)
-    return True
+    return dest
 
 
 def fetch_plugin(plugin_id):
@@ -54,16 +67,14 @@ def build_section(plugin_id, data):
     screenshot_url = data.get("screenshot_url", "")
     description = (data.get("author_bio") or {}).get("description", "")
 
-    icon_path = os.path.join(ASSETS_DIR, f"{plugin_id}_icon.png")
-    screenshot_path = os.path.join(ASSETS_DIR, f"{plugin_id}_screenshot.png")
+    icon_stem = os.path.join(ASSETS_DIR, f"{plugin_id}_icon.png")
+    screenshot_stem = os.path.join(ASSETS_DIR, f"{plugin_id}_screenshot.png")
 
-    if icon_url:
-        download_image(icon_url, icon_path)
-    if screenshot_url:
-        download_image(screenshot_url, screenshot_path)
+    icon_path = download_image(icon_url, icon_stem) if icon_url else icon_stem
+    screenshot_path = download_image(screenshot_url, screenshot_stem) if screenshot_url else screenshot_stem
 
-    icon_rel = f"assets/plugin-images/{plugin_id}_icon.png"
-    screenshot_rel = f"assets/plugin-images/{plugin_id}_screenshot.png"
+    icon_rel = os.path.relpath(icon_path, REPO_ROOT)
+    screenshot_rel = os.path.relpath(screenshot_path, REPO_ROOT)
 
     lines = [
         f'## <img src="{icon_rel}" alt="{name} icon" width="32"/> [{name}](https://trmnl.com/recipes/{plugin_id})',
