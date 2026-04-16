@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 minutes — all aircraft within a 50 nm radius.<br />36 type-specific icons covering airliners, GA, military, helicopters and more.<br />Major airports marked on the map.<br />Icon brightness and label shading indicate altitude at a glance.<br />Emergency squawks (hijack · no radio · Mayday) flagged automatically.<br /><br />Powered by <strong>airplanes.live</strong> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
+  description: Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 minutes — all aircraft within a 50 nm radius.<br />36 type-specific icons covering airliners, GA, military, helicopters and more.<br />Major airports marked on the map.<br />Icon brightness and label shading indicate altitude at a glance.<br />Emergency squawks (hijack · no radio · Mayday) flagged automatically.<br /><br />Each label shows <strong>callsign</strong> · aircraft type · altitude · speed.<br /><br />Powered by <strong>airplanes.live</strong> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md
   category: travel
