@@ -204,6 +204,7 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
             'gs':        a.get('gs'),
             'track':     a.get('track'),
             'baro_rate': a.get('baro_rate', 0),
+            'squawk':    a.get('squawk', ''),
             'lat':       p_lat,
             'lon':       p_lon,
             '_dist':     dist
