@@ -44,12 +44,13 @@ os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('''
-            CREATE TABLE IF NOT EXISTS plane_cache (
-                lat_grid REAL,
-                lon_grid REAL,
+            CREATE TABLE IF NOT EXISTS plane_cache_v2 (
+                lat_key INTEGER,
+                lon_key INTEGER,
+                show_ground INTEGER,
                 data_json TEXT,
                 fetched_at TIMESTAMP,
-                PRIMARY KEY (lat_grid, lon_grid)
+                PRIMARY KEY (lat_key, lon_key, show_ground)
             )
         ''')
         await db.execute('''
@@ -63,35 +64,38 @@ async def init_db():
         await db.commit()
 
 
-async def get_from_cache(lat_grid: float, lon_grid: float):
+async def get_from_cache(lat_key: int, lon_key: int, show_ground: bool):
+    """Returns (data_dict, is_fresh).  data_dict is None when no cache entry."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            'SELECT data_json, fetched_at FROM plane_cache WHERE lat_grid = ? AND lon_grid = ?',
-            (lat_grid, lon_grid)
+            'SELECT data_json, fetched_at FROM plane_cache_v2 WHERE lat_key = ? AND lon_key = ? AND show_ground = ?',
+            (lat_key, lon_key, int(show_ground))
         )
         row = await cursor.fetchone()
         if row:
             data_json, fetched_at_str = row
             fetched_at = datetime.fromisoformat(fetched_at_str)
-            now = datetime.now(timezone.utc)
-            age = now - fetched_at
+            if fetched_at.tzinfo is None:
+                fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+            
+            age = datetime.now(timezone.utc) - fetched_at
             is_fresh = age < timedelta(minutes=CACHE_MINUTES)
-            if not is_fresh:
-                logger.debug(f"Cache stale for {lat_grid},{lon_grid}: age={age.total_seconds():.1f}s")
             return json.loads(data_json), is_fresh
     return None, False
+
 
 async def purge_cache():
     """Delete old cache entries to keep the DB small."""
     try:
+        now = datetime.now(timezone.utc)
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
-                'DELETE FROM plane_cache WHERE fetched_at < ?',
-                ((datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),)
+                'DELETE FROM plane_cache_v2 WHERE fetched_at < ?',
+                ((now - timedelta(hours=1)).isoformat(),)
             )
             await db.execute(
                 'DELETE FROM geocoding_cache WHERE cached_at < ?',
-                ((datetime.now() - timedelta(days=30)).isoformat(),)
+                ((now - timedelta(days=30)).isoformat(),)
             )
             await db.commit()
         logger.info("Purged old cache entries")
@@ -219,7 +223,7 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
 # API queue worker
 # ---------------------------------------------------------------------------
 
-async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float, show_ground: bool) -> dict:
+async def _do_api_call(lat_key: int, lon_key: int, lat: float, lon: float, show_ground: bool) -> dict:
     """Make the upstream API call, persist to cache, and return the payload."""
     global last_api_call_time
 
@@ -231,14 +235,15 @@ async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float,
         raw_data = response.json()
 
     reduced = reduce_payload(raw_data, lat, lon, show_ground)
-    # Store the fetch time inside the payload
-    reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
+    now_utc = datetime.now(timezone.utc)
+    reduced['fetched_at_utc'] = now_utc.isoformat()
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            'INSERT OR REPLACE INTO plane_cache VALUES (?, ?, ?, ?)',
-            (lat_grid, lon_grid, json.dumps(reduced), datetime.now(timezone.utc).isoformat())
+            'INSERT OR REPLACE INTO plane_cache_v2 VALUES (?, ?, ?, ?, ?)',
+            (lat_key, lon_key, int(show_ground), json.dumps(reduced), now_utc.isoformat())
         )
+        await db.commit()
 
     return reduced
 
@@ -248,7 +253,7 @@ async def api_worker():
     global last_api_call_time
 
     while True:
-        lat_grid, lon_grid, lat, lon, show_ground, fut = await api_queue.get()
+        lat_key, lon_key, lat, lon, show_ground, fut = await api_queue.get()
         try:
             if fut.done():
                 continue
@@ -258,12 +263,12 @@ async def api_worker():
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
-            data = await _do_api_call(lat_grid, lon_grid, lat, lon, show_ground)
+            data = await _do_api_call(lat_key, lon_key, lat, lon, show_ground)
             if not fut.done():
                 fut.set_result(data)
 
         except Exception as e:
-            logger.error(f"API worker error for {lat_grid},{lon_grid}: {e}")
+            logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
             if not fut.done():
                 fut.set_exception(e)
         finally:
@@ -275,36 +280,31 @@ async def api_worker():
 # ---------------------------------------------------------------------------
 
 async def fetch_planes(lat: float, lon: float, show_ground: bool):
-    lat_grid = round(lat, 2)
-    lon_grid = round(lon, 2)
+    lat_key = int(lat * 100)
+    lon_key = int(lon * 100)
 
-    cached_data, is_fresh = await get_from_cache(lat_grid, lon_grid)
+    cached_data, is_fresh = await get_from_cache(lat_key, lon_key, show_ground)
     if is_fresh:
-        age = datetime.now(timezone.utc) - datetime.fromisoformat(fetched_at_str)  # you'd need fetched_at_str
-        logger.info(f"Cache hit for {lat_grid},{lon_grid} (age {age.total_seconds():.0f}s)")
+        logger.info(f"CACHE HIT: {lat_key}, {lon_key}, ground={show_ground}")
         return cached_data
 
+    logger.info(f"CACHE MISS: {lat_key}, {lon_key}, ground={show_ground}")
+
     if api_queue.qsize() >= MAX_QUEUE_SIZE:
-        logger.warning(
-            f"Queue full ({api_queue.qsize()}/{MAX_QUEUE_SIZE}), "
-            f"returning stale cache for {lat_grid},{lon_grid}"
-        )
+        logger.warning(f"Queue full, returning stale cache for {lat_key},{lon_key}")
         return cached_data
 
     loop = asyncio.get_event_loop()
     fut: asyncio.Future = loop.create_future()
-    await api_queue.put((lat_grid, lon_grid, lat, lon, show_ground, fut))
+    await api_queue.put((lat_key, lon_key, lat, lon, show_ground, fut))
 
     try:
         return await asyncio.wait_for(fut, timeout=QUEUE_TIMEOUT)
     except asyncio.TimeoutError:
-        logger.warning(
-            f"Queue timeout ({QUEUE_TIMEOUT}s) for {lat_grid},{lon_grid}, "
-            f"returning stale cache"
-        )
+        logger.warning(f"Queue timeout, returning stale cache for {lat_key},{lon_key}")
         return cached_data
     except Exception as e:
-        logger.error(f"fetch_planes error for {lat_grid},{lon_grid}: {e}")
+        logger.error(f"fetch_planes error: {e}")
         return cached_data
 
 
@@ -336,7 +336,7 @@ async def get_planes():
     if data:
         data['lat'] = lat
         data['lon'] = lon
-        return jsonify(data)
+        return jsonify({ 'data': data})
     return jsonify({'error': 'Failed to fetch data'}), 500
 
 

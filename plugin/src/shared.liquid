@@ -183,14 +183,19 @@
       var pos = ll2px(centerLat, centerLon);
       var ns  = 'http://www.w3.org/2000/svg';
       var useDark = darkMode || mapStyle === 'cartodb_dark';
-      var fillColor = useDark ? '#ffffff' : '#000000';
-      var bgColor = useDark ? '#000000' : '#ffffff';
+      
+      // Black icon on white circle is most visible on dark maps
+      var fillColor = useDark ? '#000000' : '#ffffff';
+      var bgColor   = useDark ? '#ffffff' : '#000000';
+      var strokeColor = useDark ? '#000000' : '#ffffff';
 
       var bg = document.createElementNS(ns, 'circle');
       bg.setAttribute('cx', pos.x.toFixed(0));
       bg.setAttribute('cy', pos.y.toFixed(0));
       bg.setAttribute('r',  '13');
       bg.setAttribute('fill', bgColor);
+      bg.setAttribute('stroke', strokeColor);
+      bg.setAttribute('stroke-width', '2');
       g.appendChild(bg);
 
       var path = document.createElementNS(ns, 'path');
