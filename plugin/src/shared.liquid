@@ -425,7 +425,7 @@
           var line = document.createElementNS(ns, 'line');
           line.setAttribute('x1',edge.x.toFixed(0)); line.setAttribute('y1',edge.y.toFixed(0));
           line.setAttribute('x2',labelCX.toFixed(0)); line.setAttribute('y2',labelCY.toFixed(0));
-          line.setAttribute('stroke',lineColor); line.setAttribute('stroke-width','1.5');
+          line.setAttribute('stroke',lineColor); line.setAttribute('stroke-width','1.5'); line.setAttribute('stroke-dasharray','3 2');
           layer.appendChild(line);
           var bgColor = altBgColor(p.alt_baro);
           var pad = 4;
@@ -505,7 +505,7 @@
         var code = a.iata || a.icao || '';
         if (code && view <= 3) {
           var t = document.createElementNS(ns, 'text');
-          t.setAttribute('x', (pos.x + r + 4).toFixed(1));
+          t.setAttribute('x', (pos.x + r + 6).toFixed(1));
           t.setAttribute('y', pos.y.toFixed(1));
           t.setAttribute('dominant-baseline', 'central');
           t.setAttribute('font-size', '11');
