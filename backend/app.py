@@ -339,7 +339,7 @@ async def get_planes():
     if data:
         data['lat'] = lat
         data['lon'] = lon
-        return jsonify(data)
+        return jsonify({ 'data': data})
     return jsonify({'error': 'Failed to fetch data'}), 500
 
 
