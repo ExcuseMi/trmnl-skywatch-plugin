@@ -26,7 +26,7 @@ QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 50
 
 AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
-OURAIRPORTS_CSV_URL  = 'https://ourairports.com/data/airports.csv'
+OURAIRPORTS_CSV_URL  = 'https://davidmegginson.github.io/ourairports-data/airports.csv'
 OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
 RADIUS_DEG           = 1.5        # ~165 km bounding box pre-filter before precise distance check
 RADIUS_NM            = 50.0       # 50 nautical miles
@@ -300,13 +300,28 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
 
     lat, lon = tile_center(lat_key, lon_key)
     url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
-    t0 = time.monotonic()
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        response = await client.get(url)
+
+    backoff = 5.0
+    for attempt in range(3):
+        t0 = time.monotonic()
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url)
         last_api_call_time = time.monotonic()
         elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+        if response.status_code == 429:
+            retry_after = float(response.headers.get('Retry-After', backoff))
+            logger.warning(f"429 rate limited tile={lat_key},{lon_key} attempt={attempt+1} retry_after={retry_after}s")
+            await increment_stat('api_rate_limited')
+            await asyncio.sleep(retry_after)
+            backoff *= 2
+            continue
+
         response.raise_for_status()
         raw_data = response.json()
+        break
+    else:
+        raise Exception(f"Rate limited after 3 attempts for tile {lat_key},{lon_key}")
 
     await increment_stat('api_calls')
     ac_count = len(raw_data.get('ac', []))
@@ -338,7 +353,7 @@ async def api_worker():
                 continue
 
             elapsed    = time.monotonic() - last_api_call_time
-            sleep_time = max(0.0, 1.0 - elapsed)
+            sleep_time = max(0.0, 2.0 - elapsed)
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
