@@ -121,6 +121,7 @@ async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> 
 (
   node["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
   way["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
+  relation["aeroway"="aerodrome"]["iata"](around:{RADIUS_M},{lat},{lon});
 );
 out center tags;
 """
@@ -367,6 +368,15 @@ async def get_planes():
         data['airports'] = airports
         return jsonify({'data': data})
     return jsonify({'error': 'Failed to fetch data'}), 500
+
+
+@app.route('/debug/airports')
+async def debug_airports():
+    lat = request.args.get('lat', type=float, default=51.5074)
+    lon = request.args.get('lon', type=float, default=-0.1278)
+    lat_key, lon_key = tile_key(lat, lon)
+    airports = await fetch_airports(lat, lon, lat_key, lon_key)
+    return jsonify({'tile': [lat_key, lon_key], 'count': len(airports), 'airports': airports})
 
 
 @app.route('/health')
