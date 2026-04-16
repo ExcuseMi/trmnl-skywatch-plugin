@@ -37,6 +37,7 @@ TRMNL_IPS: set = set()
 redis_client: aioredis.Redis = None
 api_queue: asyncio.Queue     = None
 last_api_call_time: float    = 0.0
+_backoff_until: float        = 0.0
 _inflight: dict              = {}   # (lat_key, lon_key, show_ground) -> Future
 
 STATS_KEY = 'skywatch:stats'
@@ -296,32 +297,26 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
 # ---------------------------------------------------------------------------
 
 async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
-    global last_api_call_time
+    global last_api_call_time, _backoff_until
 
     lat, lon = tile_center(lat_key, lon_key)
     url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
 
-    backoff = 5.0
-    for attempt in range(3):
-        t0 = time.monotonic()
-        last_api_call_time = t0
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(url)
-        elapsed_ms = int((time.monotonic() - t0) * 1000)
+    t0 = time.monotonic()
+    last_api_call_time = t0
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.get(url)
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
 
-        if response.status_code == 429:
-            retry_after = float(response.headers.get('Retry-After', backoff))
-            logger.warning(f"429 rate limited tile={lat_key},{lon_key} attempt={attempt+1} retry_after={retry_after}s")
-            await increment_stat('api_rate_limited')
-            await asyncio.sleep(retry_after)
-            backoff *= 2
-            continue
+    if response.status_code == 429:
+        retry_after = float(response.headers.get('Retry-After', 10.0))
+        logger.warning(f"429 rate limited tile={lat_key},{lon_key} retry_after={retry_after}s")
+        await increment_stat('api_rate_limited')
+        _backoff_until = time.monotonic() + retry_after
+        raise Exception(f"429 rate limited for tile {lat_key},{lon_key}")
 
-        response.raise_for_status()
-        raw_data = response.json()
-        break
-    else:
-        raise Exception(f"Rate limited after 3 attempts for tile {lat_key},{lon_key}")
+    response.raise_for_status()
+    raw_data = response.json()
 
     await increment_stat('api_calls')
     ac_count = len(raw_data.get('ac', []))
@@ -335,7 +330,7 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
 
 
 async def api_worker():
-    global last_api_call_time
+    global last_api_call_time, _backoff_until
 
     while True:
         lat_key, lon_key, show_ground, fut = await api_queue.get()
@@ -352,8 +347,8 @@ async def api_worker():
                     fut.set_result(cached)
                 continue
 
-            elapsed    = time.monotonic() - last_api_call_time
-            sleep_time = max(0.0, 1.0 - elapsed)
+            now        = time.monotonic()
+            sleep_time = max(0.0, _backoff_until - now, 1.0 - (now - last_api_call_time))
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
