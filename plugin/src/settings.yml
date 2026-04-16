@@ -6,7 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 
 serverless_language: 
-polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}'
+polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}'
 polling_headers: ''
 polling_body: 
 id: 286469
@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Real-time aircraft radar on your TRMNL display. Shows planes overhead on a live map with directional icons. Closest aircraft stats shown at a glance. Powered by <strong>airplanes.live</strong>.
+  description: Real-time aircraft radar on your TRMNL display.<br />Shows planes overhead on a live map with directional icons.<br />Closest aircraft stats shown at a glance. Powered by <strong>airplanes.live</strong>.
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   category: travel
   help_text: TRMNL X Ready

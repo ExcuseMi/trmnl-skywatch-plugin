@@ -5,6 +5,7 @@ import httpx
 import time
 import json
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from quart import Quart, request, jsonify
 
@@ -166,26 +167,49 @@ async def geocode_address(address: str):
 # Payload helpers
 # ---------------------------------------------------------------------------
 
-def reduce_payload(raw_data: dict) -> dict:
-    """Filter aircraft data to only what transform.js needs."""
+def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_ground: bool = False) -> dict:
+    """Filter, sort by proximity, and limit aircraft data."""
     ac_list = raw_data.get('ac', [])
-    reduced_ac = []
+    processed = []
+
     for a in ac_list:
-        reduced_ac.append({
-            'hex':      a.get('hex', ''),
-            'flight':   (a.get('flight', '')).strip(),
-            'r':        a.get('r', ''),
-            't':        a.get('t', ''),
-            'alt_baro': a.get('alt_baro'),
-            'gs':       a.get('gs'),
-            'track':    a.get('track'),
-            'baro_rate':a.get('baro_rate', 0),
-            'lat':      a.get('lat'),
-            'lon':      a.get('lon'),
+        p_lat = a.get('lat')
+        p_lon = a.get('lon')
+        alt = a.get('alt_baro')
+
+        if p_lat is None or p_lon is None:
+            continue
+
+        if not show_ground and alt == 'ground':
+            continue
+
+        # Simple Euclidean distance for sorting
+        dist = math.sqrt((p_lat - center_lat)**2 + (p_lon - center_lon)**2)
+
+        processed.append({
+            'hex':       a.get('hex', ''),
+            'flight':    (a.get('flight', '')).strip(),
+            'r':         a.get('r', ''),
+            't':         a.get('t', ''),
+            'alt_baro':  alt,
+            'gs':        a.get('gs'),
+            'track':     a.get('track'),
+            'baro_rate': a.get('baro_rate', 0),
+            'lat':       p_lat,
+            'lon':       p_lon,
+            '_dist':     dist
         })
+
+    # Sort by distance and limit to closest 20
+    processed.sort(key=lambda x: x['_dist'])
+    closest = processed[:20]
+
+    for p in closest:
+        del p['_dist']
+
     return {
-        'ac':    reduced_ac,
-        'total': raw_data.get('total', len(reduced_ac)),
+        'ac':    closest,
+        'total': raw_data.get('total', len(processed)),
     }
 
 
@@ -193,7 +217,7 @@ def reduce_payload(raw_data: dict) -> dict:
 # API queue worker
 # ---------------------------------------------------------------------------
 
-async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float) -> dict:
+async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float, show_ground: bool) -> dict:
     """Make the upstream API call, persist to cache, and return the payload."""
     global last_api_call_time
 
@@ -204,9 +228,8 @@ async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float)
         response.raise_for_status()
         raw_data = response.json()
 
-    reduced = reduce_payload(raw_data)
-    # Store the fetch time inside the payload so cached responses carry the
-    # real collection timestamp rather than the time of the request.
+    reduced = reduce_payload(raw_data, lat, lon, show_ground)
+    # Store the fetch time inside the payload
     reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -224,20 +247,17 @@ async def api_worker():
     global last_api_call_time
 
     while True:
-        lat_grid, lon_grid, lat, lon, fut = await api_queue.get()
+        lat_grid, lon_grid, lat, lon, show_ground, fut = await api_queue.get()
         try:
-            # Request may have already been abandoned (client timed out)
             if fut.done():
-                logger.debug(f"Skipping cancelled request for {lat_grid},{lon_grid}")
                 continue
 
-            # Enforce 1 req/sec
             elapsed = time.monotonic() - last_api_call_time
             sleep_time = max(0.0, 1.0 - elapsed)
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
-            data = await _do_api_call(lat_grid, lon_grid, lat, lon)
+            data = await _do_api_call(lat_grid, lon_grid, lat, lon, show_ground)
             if not fut.done():
                 fut.set_result(data)
 
@@ -253,28 +273,25 @@ async def api_worker():
 # fetch_planes — queue + cache fallback
 # ---------------------------------------------------------------------------
 
-async def fetch_planes(lat: float, lon: float):
+async def fetch_planes(lat: float, lon: float, show_ground: bool):
     lat_grid = round(lat, 2)
     lon_grid = round(lon, 2)
 
-    # Fresh cache hit — return immediately
     cached_data, is_fresh = await get_from_cache(lat_grid, lon_grid)
     if is_fresh:
         logger.info(f"Cache hit for {lat_grid},{lon_grid}")
         return cached_data
 
-    # Queue saturated — serve stale cache rather than growing the backlog
     if api_queue.qsize() >= MAX_QUEUE_SIZE:
         logger.warning(
             f"Queue full ({api_queue.qsize()}/{MAX_QUEUE_SIZE}), "
             f"returning stale cache for {lat_grid},{lon_grid}"
         )
-        return cached_data  # None when no previous cache entry
+        return cached_data
 
-    # Enqueue and wait up to QUEUE_TIMEOUT seconds
     loop = asyncio.get_event_loop()
     fut: asyncio.Future = loop.create_future()
-    await api_queue.put((lat_grid, lon_grid, lat, lon, fut))
+    await api_queue.put((lat_grid, lon_grid, lat, lon, show_ground, fut))
 
     try:
         return await asyncio.wait_for(fut, timeout=QUEUE_TIMEOUT)
@@ -283,7 +300,7 @@ async def fetch_planes(lat: float, lon: float):
             f"Queue timeout ({QUEUE_TIMEOUT}s) for {lat_grid},{lon_grid}, "
             f"returning stale cache"
         )
-        return cached_data  # None when no previous cache entry
+        return cached_data
     except Exception as e:
         logger.error(f"fetch_planes error for {lat_grid},{lon_grid}: {e}")
         return cached_data
@@ -301,6 +318,7 @@ async def get_planes():
     lat = request.args.get('lat', type=float)
     lon = request.args.get('lon', type=float)
     address = request.args.get('address', type=str)
+    show_ground = request.args.get('show_ground', 'false').lower() == 'true'
 
     if address:
         geo = await geocode_address(address)
@@ -312,7 +330,7 @@ async def get_planes():
     if lat is None or lon is None:
         return jsonify({'error': 'Missing lat/lon or address'}), 400
 
-    data = await fetch_planes(lat, lon)
+    data = await fetch_planes(lat, lon, show_ground)
     if data:
         data['lat'] = lat
         data['lon'] = lon
