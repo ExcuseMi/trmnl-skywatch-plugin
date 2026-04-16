@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  skywatch-proxy:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skywatch-proxy
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - ENABLE_IP_WHITELIST=${ENABLE_IP_WHITELIST:-false}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

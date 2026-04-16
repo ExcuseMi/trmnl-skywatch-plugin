@@ -6,7 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 
 serverless_language: 
-polling_url: 'https://api.airplanes.live/v2/point/{{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}/{{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}/50'
+polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}'
 polling_headers: ''
 polling_body: 
 id: 286469
@@ -18,6 +18,13 @@ custom_fields:
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   category: travel
   help_text: TRMNL X Ready
+- keyname: address
+  field_type: string
+  name: Location / Address
+  description: Enter your city or address. Leave blank to use Latitude/Longitude instead.
+  help_text: e.g. "London, UK" or "Central Park, NY"
+  placeholder: "London, UK"
+  optional: true
 - keyname: lat
   field_type: string
   name: Latitude
