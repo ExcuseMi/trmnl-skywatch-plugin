@@ -25,7 +25,7 @@ ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true
 IP_REFRESH_HOURS = 24
 MAX_QUEUE_SIZE = 20      # reject new requests beyond this queue depth
 QUEUE_TIMEOUT = 5.0      # seconds to wait in queue before falling back to cache
-MAX_PLANES = 30          # closest planes to return
+MAX_PLANES = 50          # closest planes to return
 
 # TRMNL server IPs
 TRMNL_IPS: set = set()
