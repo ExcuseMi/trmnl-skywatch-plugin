@@ -8,7 +8,7 @@
 ![SkyWatch screenshot](assets/plugin-images/286469_screenshot.png)
 
 ### Description
-Real-time aircraft radar on your TRMNL display. Shows planes overhead on a live map with directional icons. Closest aircraft stats shown at a glance. Powered by <strong>airplanes.live</strong>.
+Real-time aircraft radar on your TRMNL display.<br />Live map updates every 15 minutes with all aircraft in a 50 nm radius.<br />36 type-specific icons — A320s, 747s, helicopters, gliders and more.<br />Major airports marked on the map.<br />Altitude shown by icon brightness and label shading.<br />Emergency squawks (hijack · no radio · Mayday) flagged automatically.<br /><br />Powered by <strong>airplanes.live</strong> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
 
 ---
 <!-- PLUGIN_STATS_END -->
