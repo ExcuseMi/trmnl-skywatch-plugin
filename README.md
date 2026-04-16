@@ -1,7 +1,7 @@
 # trmnl-skywatch-plugin
 
 <!-- PLUGIN_STATS_START -->
-## <img src="assets/plugin-images/286469_icon.png" alt="SkyWatch icon" width="32"/> [SkyWatch](https://trmnl.com/recipes/286469)
+## <img src="assets/plugin-images/286469_icon.svg" alt="SkyWatch icon" width="32"/> [SkyWatch](https://trmnl.com/recipes/286469)
 
 ![Installs](https://trmnl-badges.gohk.xyz/badge/installs?recipe=286469) ![Forks](https://trmnl-badges.gohk.xyz/badge/forks?recipe=286469)
 
