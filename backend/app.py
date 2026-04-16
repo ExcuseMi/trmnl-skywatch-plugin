@@ -6,9 +6,7 @@ import time
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from flask import Flask, request, jsonify
-from apscheduler.schedulers.background import BackgroundScheduler
-import math
+from quart import Quart, request, jsonify
 
 # Configure logging
 logging.basicConfig(
@@ -17,86 +15,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Quart(__name__)
 
 # Configuration
 CACHE_MINUTES = 5
 DB_PATH = '/data/skywatch_cache.db'
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true'
 IP_REFRESH_HOURS = 24
+MAX_QUEUE_SIZE = 20      # reject new requests beyond this queue depth
+QUEUE_TIMEOUT = 5.0      # seconds to wait in queue before falling back to cache
 
 # TRMNL server IPs
-TRMNL_IPS = set()
-last_ip_refresh = None
-scheduler = None
+TRMNL_IPS: set = set()
 
-# Rate limiting lock/semaphore to ensure 1 request per second
-last_api_call_time = 0
-api_lock = asyncio.Lock()
+# API request queue (single worker, 1 req/sec rate limit)
+api_queue: asyncio.Queue = None
+last_api_call_time: float = 0.0
 
-# Ensure directories exist
+# Ensure data directory exists
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-async def fetch_trmnl_ips():
-    """Fetch TRMNL server IPs from their API"""
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get('https://trmnl.com/api/ips')
-            response.raise_for_status()
-            data = response.json()
-            ips = set(data.get('data', {}).get('ipv4', []))
-            ips.update(data.get('data', {}).get('ipv6', []))
-            logger.info(f"Fetched {len(ips)} TRMNL IPs")
-            return ips
-    except Exception as e:
-        logger.error(f"Failed to fetch TRMNL IPs: {e}")
-        return set()
 
-def update_trmnl_ips_sync():
-    global TRMNL_IPS, last_ip_refresh
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        TRMNL_IPS = loop.run_until_complete(fetch_trmnl_ips())
-        last_ip_refresh = datetime.now()
-    finally:
-        loop.close()
-
-async def purge_cache():
-    """Delete old cache entries to keep the DB small"""
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            # Purge plane cache older than 1 hour (it's a 5-min cache)
-            await db.execute("DELETE FROM plane_cache WHERE fetched_at < ?", 
-                             ((datetime.now() - timedelta(hours=1)).isoformat(),))
-            # Purge geocoding cache older than 30 days
-            await db.execute("DELETE FROM geocoding_cache WHERE cached_at < ?", 
-                             ((datetime.now() - timedelta(days=30)).isoformat(),))
-            await db.commit()
-        logger.info("Background task: Purged old cache data")
-    except Exception as e:
-        logger.error(f"Error purging cache: {e}")
-
-def start_schedulers():
-    global scheduler
-    scheduler = BackgroundScheduler(daemon=True)
-    
-    # Refresh TRMNL IPs every 24 hours if enabled
-    if ENABLE_IP_WHITELIST:
-        scheduler.add_job(func=update_trmnl_ips_sync, trigger='interval', hours=IP_REFRESH_HOURS)
-    
-    # Purge old cache data every 24 hours
-    scheduler.add_job(func=lambda: asyncio.run(purge_cache()), trigger='interval', hours=24)
-    
-    scheduler.start()
-    logger.info("Started background schedulers")
-
-def check_ip_whitelist():
-    if not ENABLE_IP_WHITELIST: return True
-    client_ip = (request.headers.get('CF-Connecting-IP') or 
-                 request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or 
-                 request.remote_addr)
-    return client_ip in TRMNL_IPS
+# ---------------------------------------------------------------------------
+# DB helpers
+# ---------------------------------------------------------------------------
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -119,61 +61,9 @@ async def init_db():
         ''')
         await db.commit()
 
-async def geocode_address(address):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute('SELECT lat, lon FROM geocoding_cache WHERE address = ?', (address,))
-        row = await cursor.fetchone()
-        if row: return {'lat': row[0], 'lon': row[1]}
 
-    url = "https://nominatim.openstreetmap.org/search"
-    params = {'q': address, 'format': 'json', 'limit': 1}
-    headers = {'User-Agent': 'TRMNL-Skywatch-Plugin/1.0'}
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, params=params, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                if data:
-                    lat, lon = float(data[0]['lat']), float(data[0]['lon'])
-                    async with aiosqlite.connect(DB_PATH) as db:
-                        await db.execute('INSERT OR REPLACE INTO geocoding_cache VALUES (?, ?, ?, ?)',
-                                       (address, lat, lon, datetime.now().isoformat()))
-                        await db.commit()
-                    return {'lat': lat, 'lon': lon}
-    except Exception as e:
-        logger.error(f"Geocoding error: {e}")
-    return None
-
-def reduce_payload(raw_data):
-    """Filter aircraft data to only what transform.js needs"""
-    ac_list = raw_data.get('ac', [])
-    reduced_ac = []
-    for a in ac_list:
-        reduced_ac.append({
-            'hex': a.get('hex', ''),
-            'flight': (a.get('flight', '')).strip(),
-            'r': a.get('r', ''),
-            't': a.get('t', ''),
-            'alt_baro': a.get('alt_baro'),
-            'gs': a.get('gs'),
-            'track': a.get('track'),
-            'baro_rate': a.get('baro_rate', 0),
-            'lat': a.get('lat'),
-            'lon': a.get('lon')
-        })
-    return {
-        'ac': reduced_ac,
-        'total': raw_data.get('total', len(reduced_ac))
-    }
-
-async def fetch_planes(lat, lon):
-    global last_api_call_time
-    
-    # Grid coordinates to 0.01 (~1km) for better caching
-    lat_grid = round(lat, 2)
-    lon_grid = round(lon, 2)
-
+async def get_from_cache(lat_grid: float, lon_grid: float):
+    """Returns (data_dict, is_fresh).  data_dict is None when no cache entry."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             'SELECT data_json, fetched_at FROM plane_cache WHERE lat_grid = ? AND lon_grid = ?',
@@ -182,36 +72,226 @@ async def fetch_planes(lat, lon):
         row = await cursor.fetchone()
         if row:
             data_json, fetched_at = row
-            if datetime.now() - datetime.fromisoformat(fetched_at) < timedelta(minutes=CACHE_MINUTES):
-                logger.info(f"Cache hit for {lat_grid}, {lon_grid}")
-                return json.loads(data_json)
+            age = datetime.now() - datetime.fromisoformat(fetched_at)
+            is_fresh = age < timedelta(minutes=CACHE_MINUTES)
+            return json.loads(data_json), is_fresh
+    return None, False
 
-    # Rate limiting: 1 request per second
-    async with api_lock:
-        now = time.time()
-        sleep_time = max(0, 1.0 - (now - last_api_call_time))
-        if sleep_time > 0:
-            await asyncio.sleep(sleep_time)
-        
-        url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
+
+async def purge_cache():
+    """Delete old cache entries to keep the DB small."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                'DELETE FROM plane_cache WHERE fetched_at < ?',
+                ((datetime.now() - timedelta(hours=1)).isoformat(),)
+            )
+            await db.execute(
+                'DELETE FROM geocoding_cache WHERE cached_at < ?',
+                ((datetime.now() - timedelta(days=30)).isoformat(),)
+            )
+            await db.commit()
+        logger.info("Purged old cache entries")
+    except Exception as e:
+        logger.error(f"Error purging cache: {e}")
+
+
+# ---------------------------------------------------------------------------
+# IP whitelist
+# ---------------------------------------------------------------------------
+
+async def fetch_trmnl_ips() -> set:
+    """Fetch TRMNL server IPs from their API."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get('https://trmnl.com/api/ips')
+            response.raise_for_status()
+            data = response.json()
+            ips = set(data.get('data', {}).get('ipv4', []))
+            ips.update(data.get('data', {}).get('ipv6', []))
+            logger.info(f"Fetched {len(ips)} TRMNL IPs")
+            return ips
+    except Exception as e:
+        logger.error(f"Failed to fetch TRMNL IPs: {e}")
+        return set()
+
+
+def check_ip_whitelist() -> bool:
+    if not ENABLE_IP_WHITELIST:
+        return True
+    client_ip = (
+        request.headers.get('CF-Connecting-IP') or
+        request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or
+        request.remote_addr
+    )
+    return client_ip in TRMNL_IPS
+
+
+# ---------------------------------------------------------------------------
+# Geocoding
+# ---------------------------------------------------------------------------
+
+async def geocode_address(address: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            'SELECT lat, lon FROM geocoding_cache WHERE address = ?', (address,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return {'lat': row[0], 'lon': row[1]}
+
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {'q': address, 'format': 'json', 'limit': 1}
+    headers = {'User-Agent': 'TRMNL-Skywatch-Plugin/1.0'}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    lat, lon = float(data[0]['lat']), float(data[0]['lon'])
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute(
+                            'INSERT OR REPLACE INTO geocoding_cache VALUES (?, ?, ?, ?)',
+                            (address, lat, lon, datetime.now().isoformat())
+                        )
+                        await db.commit()
+                    return {'lat': lat, 'lon': lon}
+    except Exception as e:
+        logger.error(f"Geocoding error: {e}")
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Payload helpers
+# ---------------------------------------------------------------------------
+
+def reduce_payload(raw_data: dict) -> dict:
+    """Filter aircraft data to only what transform.js needs."""
+    ac_list = raw_data.get('ac', [])
+    reduced_ac = []
+    for a in ac_list:
+        reduced_ac.append({
+            'hex':      a.get('hex', ''),
+            'flight':   (a.get('flight', '')).strip(),
+            'r':        a.get('r', ''),
+            't':        a.get('t', ''),
+            'alt_baro': a.get('alt_baro'),
+            'gs':       a.get('gs'),
+            'track':    a.get('track'),
+            'baro_rate':a.get('baro_rate', 0),
+            'lat':      a.get('lat'),
+            'lon':      a.get('lon'),
+        })
+    return {
+        'ac':    reduced_ac,
+        'total': raw_data.get('total', len(reduced_ac)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# API queue worker
+# ---------------------------------------------------------------------------
+
+async def _do_api_call(lat_grid: float, lon_grid: float, lat: float, lon: float) -> dict:
+    """Make the upstream API call, persist to cache, and return the payload."""
+    global last_api_call_time
+
+    url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.get(url)
+        last_api_call_time = time.monotonic()
+        response.raise_for_status()
+        raw_data = response.json()
+
+    reduced = reduce_payload(raw_data)
+    # Store the fetch time inside the payload so cached responses carry the
+    # real collection timestamp rather than the time of the request.
+    reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            'INSERT OR REPLACE INTO plane_cache VALUES (?, ?, ?, ?)',
+            (lat_grid, lon_grid, json.dumps(reduced), datetime.now().isoformat())
+        )
+        await db.commit()
+
+    return reduced
+
+
+async def api_worker():
+    """Single worker that drains api_queue, rate-limited to ≤1 req/sec."""
+    global last_api_call_time
+
+    while True:
+        lat_grid, lon_grid, lat, lon, fut = await api_queue.get()
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.get(url)
-                last_api_call_time = time.time()
-                response.raise_for_status()
-                raw_data = response.json()
-                reduced_data = reduce_payload(raw_data)
-                
-                async with aiosqlite.connect(DB_PATH) as db:
-                    await db.execute(
-                        'INSERT OR REPLACE INTO plane_cache VALUES (?, ?, ?, ?)',
-                        (lat_grid, lon_grid, json.dumps(reduced_data), datetime.now().isoformat())
-                    )
-                    await db.commit()
-                return reduced_data
+            # Request may have already been abandoned (client timed out)
+            if fut.done():
+                logger.debug(f"Skipping cancelled request for {lat_grid},{lon_grid}")
+                continue
+
+            # Enforce 1 req/sec
+            elapsed = time.monotonic() - last_api_call_time
+            sleep_time = max(0.0, 1.0 - elapsed)
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+
+            data = await _do_api_call(lat_grid, lon_grid, lat, lon)
+            if not fut.done():
+                fut.set_result(data)
+
         except Exception as e:
-            logger.error(f"API Error: {e}")
-            return None
+            logger.error(f"API worker error for {lat_grid},{lon_grid}: {e}")
+            if not fut.done():
+                fut.set_exception(e)
+        finally:
+            api_queue.task_done()
+
+
+# ---------------------------------------------------------------------------
+# fetch_planes — queue + cache fallback
+# ---------------------------------------------------------------------------
+
+async def fetch_planes(lat: float, lon: float):
+    lat_grid = round(lat, 2)
+    lon_grid = round(lon, 2)
+
+    # Fresh cache hit — return immediately
+    cached_data, is_fresh = await get_from_cache(lat_grid, lon_grid)
+    if is_fresh:
+        logger.info(f"Cache hit for {lat_grid},{lon_grid}")
+        return cached_data
+
+    # Queue saturated — serve stale cache rather than growing the backlog
+    if api_queue.qsize() >= MAX_QUEUE_SIZE:
+        logger.warning(
+            f"Queue full ({api_queue.qsize()}/{MAX_QUEUE_SIZE}), "
+            f"returning stale cache for {lat_grid},{lon_grid}"
+        )
+        return cached_data  # None when no previous cache entry
+
+    # Enqueue and wait up to QUEUE_TIMEOUT seconds
+    loop = asyncio.get_event_loop()
+    fut: asyncio.Future = loop.create_future()
+    await api_queue.put((lat_grid, lon_grid, lat, lon, fut))
+
+    try:
+        return await asyncio.wait_for(fut, timeout=QUEUE_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"Queue timeout ({QUEUE_TIMEOUT}s) for {lat_grid},{lon_grid}, "
+            f"returning stale cache"
+        )
+        return cached_data  # None when no previous cache entry
+    except Exception as e:
+        logger.error(f"fetch_planes error for {lat_grid},{lon_grid}: {e}")
+        return cached_data
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 @app.route('/')
 async def get_planes():
@@ -234,24 +314,54 @@ async def get_planes():
 
     data = await fetch_planes(lat, lon)
     if data:
-        # Add metadata for the plugin
-        data['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
         data['lat'] = lat
         data['lon'] = lon
         return jsonify(data)
     return jsonify({'error': 'Failed to fetch data'}), 500
 
+
 @app.route('/health')
-def health():
-    return jsonify({'status': 'healthy', 'ip_whitelist': ENABLE_IP_WHITELIST})
+async def health():
+    return jsonify({
+        'status':       'healthy',
+        'ip_whitelist': ENABLE_IP_WHITELIST,
+        'queue_size':   api_queue.qsize() if api_queue else 0,
+    })
 
-async def startup():
-    await init_db()
-    if ENABLE_IP_WHITELIST:
-        global TRMNL_IPS, last_ip_refresh
+
+# ---------------------------------------------------------------------------
+# Startup / background tasks
+# ---------------------------------------------------------------------------
+
+async def _background_purge():
+    """Purge stale cache entries every 24 hours."""
+    while True:
+        await asyncio.sleep(24 * 3600)
+        await purge_cache()
+
+
+async def _background_ip_refresh():
+    """Re-fetch TRMNL IP list every IP_REFRESH_HOURS hours."""
+    global TRMNL_IPS
+    while True:
+        await asyncio.sleep(IP_REFRESH_HOURS * 3600)
         TRMNL_IPS = await fetch_trmnl_ips()
-        last_ip_refresh = datetime.now()
-    
-    start_schedulers()
+        logger.info(f"Refreshed TRMNL IPs ({len(TRMNL_IPS)} addresses)")
 
-asyncio.run(startup())
+
+@app.before_serving
+async def startup():
+    global api_queue, TRMNL_IPS
+
+    await init_db()
+
+    api_queue = asyncio.Queue()
+    asyncio.ensure_future(api_worker())
+
+    if ENABLE_IP_WHITELIST:
+        TRMNL_IPS = await fetch_trmnl_ips()
+        asyncio.ensure_future(_background_ip_refresh())
+
+    asyncio.ensure_future(_background_purge())
+
+    logger.info("Startup complete — Hypercorn/Quart ASGI server ready")

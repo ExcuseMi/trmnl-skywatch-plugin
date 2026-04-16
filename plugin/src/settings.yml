@@ -25,18 +25,25 @@ custom_fields:
   help_text: e.g. "London, UK" or "Central Park, NY"
   placeholder: "London, UK"
   optional: true
+  conditional_validation:
+    - when: address
+      hidden:
+        - lat
+        - lon
 - keyname: lat
   field_type: string
   name: Latitude
   description: Center latitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
   help_text: Decimal degrees · e.g. 51.5074 (London) · 40.7128 (New York)
   placeholder: '51.5074'
+  optional: true
 - keyname: lon
   field_type: string
   name: Longitude
   description: Center longitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
   help_text: Decimal degrees · e.g. -0.1278 (London) · -74.006 (New York)
   placeholder: "-0.1278"
+  optional: true
 - keyname: unit
   field_type: select
   name: Measurement Units

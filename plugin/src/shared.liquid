@@ -1,5 +1,9 @@
 {% template main %}
-{% assign local_timestamp = 'now' | date: "%s" | plus: trmnl.user.utc_offset %}
+{% if data.fetched_at %}
+  {% assign local_timestamp = data.fetched_at | date: "%s" | plus: trmnl.user.utc_offset %}
+{% else %}
+  {% assign local_timestamp = 'now' | date: "%s" | plus: trmnl.user.utc_offset %}
+{% endif %}
 
 {% if data.planes == blank %}
 
@@ -121,22 +125,14 @@
     }
 
     /* ---------- Unit conversion ---------- */
-    function formatAltitude(ft) {
-      if (ft == null || ft === 'ground') return ft === 'ground' ? 'GND' : '—';
-      if (unit === 'imperial') {
-        return (+ft).toLocaleString() + ' ft';
-      } else {
-        return Math.round(+ft * 0.3048).toLocaleString() + ' m';
-      }
+    function formatAltitude(val) {
+      if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
+      return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' ft' : ' m');
     }
 
-    function formatSpeed(kt) {
-      if (kt == null) return '—';
-      if (unit === 'imperial') {
-        return Math.round(kt) + ' kt';
-      } else {
-        return Math.round(kt * 1.852) + ' km/h';
-      }
+    function formatSpeed(val) {
+      if (val == null) return '—';
+      return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' kt' : ' km/h');
     }
 
     /* ---------- map tiles ---------- */
