@@ -23,6 +23,10 @@ MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 50
 
+AIRPORT_CACHE_TTL = 24 * 3600   # airports barely change
+OVERPASS_URL      = 'https://overpass-api.de/api/interpreter'
+RADIUS_M          = 92600       # 50 nautical miles in metres
+
 TRMNL_IPS: set = set()
 
 redis_client: aioredis.Redis = None
@@ -96,6 +100,59 @@ def check_ip_whitelist() -> bool:
         request.remote_addr
     )
     return client_ip in TRMNL_IPS
+
+
+# ---------------------------------------------------------------------------
+# Airports
+# ---------------------------------------------------------------------------
+
+def airport_cache_key(lat_key: int, lon_key: int) -> str:
+    return f"skywatch:airports:{lat_key}:{lon_key}"
+
+
+async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> list:
+    key = airport_cache_key(lat_key, lon_key)
+    raw = await redis_client.get(key)
+    if raw:
+        return json.loads(raw)
+
+    query = f"""
+[out:json][timeout:15];
+(
+  node["aeroway"="aerodrome"](around:{RADIUS_M},{lat},{lon});
+  way["aeroway"="aerodrome"](around:{RADIUS_M},{lat},{lon});
+);
+out center tags;
+"""
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(OVERPASS_URL, data={'data': query})
+            resp.raise_for_status()
+            elements = resp.json().get('elements', [])
+    except Exception as e:
+        logger.error(f"Overpass error: {e}")
+        return []
+
+    airports = []
+    for el in elements:
+        tags = el.get('tags', {})
+        # Use center coords for ways, direct coords for nodes
+        a_lat = el.get('lat') or (el.get('center') or {}).get('lat')
+        a_lon = el.get('lon') or (el.get('center') or {}).get('lon')
+        if a_lat is None or a_lon is None:
+            continue
+        airports.append({
+            'icao': tags.get('icao') or tags.get('ref') or '',
+            'iata': tags.get('iata') or '',
+            'name': tags.get('name') or '',
+            'type': tags.get('aerodrome:type') or tags.get('aerodrome') or 'small_airport',
+            'lat':  a_lat,
+            'lon':  a_lon,
+        })
+
+    await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(airports))
+    logger.info(f"Fetched {len(airports)} airports for {lat_key},{lon_key}")
+    return airports
 
 
 # ---------------------------------------------------------------------------
@@ -300,10 +357,15 @@ async def get_planes():
     if lat is None or lon is None:
         return jsonify({'error': 'Missing lat/lon or address'}), 400
 
-    data = await fetch_planes(lat, lon, show_ground)
+    lat_key, lon_key = tile_key(lat, lon)
+    data, airports = await asyncio.gather(
+        fetch_planes(lat, lon, show_ground),
+        fetch_airports(lat, lon, lat_key, lon_key),
+    )
     if data:
-        data['lat'] = lat
-        data['lon'] = lon
+        data['lat']      = lat
+        data['lon']      = lon
+        data['airports'] = airports
         return jsonify({'data': data})
     return jsonify({'error': 'Failed to fetch data'}), 500
 

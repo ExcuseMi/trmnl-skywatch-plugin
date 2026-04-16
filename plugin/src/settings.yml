@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Real-time aircraft radar on your TRMNL display.<br />Shows planes overhead on a live map with directional icons.<br />Closest aircraft stats shown at a glance.<br />Powered by <strong>airplanes.live</strong>.
+  description: Real-time aircraft radar on your TRMNL display.<br />Live map with 36 type-specific aircraft icons — from A320s to helicopters.<br />Icon brightness and label shading indicate altitude at a glance.<br />Emergency squawks (hijack · no radio · Mayday) are flagged automatically.<br />Powered by <strong>airplanes.live</strong><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a><br /><br /><a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   category: travel
   help_text: TRMNL X Ready
@@ -23,7 +23,7 @@ custom_fields:
   name: Location / Address
   description: Enter your city or address. Leave blank to use Latitude/Longitude instead.
   help_text: e.g. "London, UK" or "Central Park, NY"
-  placeholder: "London, UK"
+  placeholder: London, UK
   optional: true
 - keyname: lat
   field_type: string
@@ -46,7 +46,7 @@ custom_fields:
   options:
   - Metric (km/h, m, km): metric
   - Imperial (knots, ft, nm): imperial
-  default: metric
+  default: imperial
   optional: true
 - keyname: show_ground
   field_type: boolean
