@@ -234,9 +234,8 @@ async def geocode_address(address: str):
 
     url = "https://nominatim.openstreetmap.org/search"
     params = {'q': address, 'format': 'json', 'limit': 1}
-    headers = {'User-Agent': 'TRMNL-Skywatch-Plugin/1.0'}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers={'User-Agent': USER_AGENT}) as client:
             response = await client.get(url, params=params, headers=headers)
             if response.status_code == 200:
                 data = response.json()
