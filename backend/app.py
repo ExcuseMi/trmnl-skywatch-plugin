@@ -77,6 +77,8 @@ async def get_from_cache(lat_key: int, lon_key: int, show_ground: bool):
 
 
 async def set_cache(lat_key: int, lon_key: int, show_ground: bool, data: dict):
+    if CACHE_TTL <= 0:
+        return
     key = cache_key(lat_key, lon_key, show_ground)
     await redis_client.setex(key, CACHE_TTL, json.dumps(data))
 
