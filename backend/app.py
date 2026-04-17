@@ -363,7 +363,8 @@ async def api_worker():
             logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
             await increment_stat('api_errors')
             if not fut.done():
-                fut.set_exception(e)
+                stale = await get_from_cache(lat_key, lon_key, show_ground)
+                fut.set_result(stale)
         finally:
             _inflight.pop(inflight_key, None)
             api_queue.task_done()
