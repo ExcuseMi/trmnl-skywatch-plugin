@@ -18,6 +18,7 @@ app = Quart(__name__)
 
 REDIS_URL        = os.getenv('REDIS_URL', 'redis://localhost:6379')
 CACHE_TTL        = int(os.getenv('CACHE_TTL_SECONDS', '840'))   # 14 min
+COOLDOWN_SECONDS = float(os.getenv('COOLDOWN_SECONDS', '10'))
 USER_AGENT       = os.getenv('USER_AGENT', 'TRMNL-Skywatch-Plugin/1.0')
 GEO_CACHE_TTL    = 30 * 24 * 3600                               # 30 days
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true'
@@ -351,7 +352,7 @@ async def api_worker():
                 continue
 
             now        = time.monotonic()
-            sleep_time = max(0.0, _backoff_until - now, 1.0 - (now - last_api_call_time))
+            sleep_time = max(0.0, _backoff_until - now, COOLDOWN_SECONDS - (now - last_api_call_time))
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
 
