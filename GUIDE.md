@@ -1,10 +1,45 @@
-# Aircraft Icons
+# SkyWatch Guide
 
-Aircraft icons used in SkyWatch's on-map radar display, sourced from [ADS-B Radar](https://adsb-radar.com/).
+[← Back to README](README.md)
 
-Icons are matched first by ICAO type code, then fall back to the ADS-B emitter category broadcast by the aircraft's transponder.
+SkyWatch shows a live radar of all aircraft within 50 nm (~90 km / 55 mi) of your location, updated every 15 minutes.
 
-## Specific Aircraft Types
+---
+
+## Reading the Display
+
+Each aircraft appears as an icon pointing in its direction of travel, with a label attached.
+
+**Label lines:**
+1. **Callsign** — flight number or registration (e.g. BAW123, G-ABCD)
+2. Aircraft type description (e.g. Airbus A320, Robinson R44)
+3. Altitude · Speed (e.g. 35,000 ft · 480 kt)
+
+**Brightness** reflects altitude — brighter icons are higher up, darker icons are low or on the ground.
+
+**Airports** are marked with a crosshair symbol and IATA code.
+
+**Emergency squawks** are shown at full brightness with a dashed ring and a HIJACK / NORDO / MAYDAY label:
+
+| Squawk | Meaning |
+|--------|---------|
+| 7500 | Hijack |
+| 7600 | No radio (NORDO) |
+| 7700 | Mayday / general emergency |
+
+---
+
+## How ADS-B Works
+
+Every commercial aircraft continuously broadcasts its position, altitude, speed, and identity on 1090 MHz using an ADS-B transponder. A global network of volunteers runs ground receivers that pick up these signals and feeds them to [airplanes.live](https://airplanes.live), which powers SkyWatch.
+
+---
+
+## Aircraft Icons
+
+Icons sourced from [ADS-B Radar](https://adsb-radar.com/). Matched first by ICAO type code, then by ADS-B emitter category.
+
+### Specific Aircraft Types
 
 | Icon | Aircraft |
 |------|----------|
@@ -32,7 +67,7 @@ Icons are matched first by ICAO type code, then fall back to the ADS-B emitter c
 | <img src="assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/f5.svg" width="40"/> | Northrop F-5 |
 | <img src="assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/f11.svg" width="40"/> | General Dynamics F-111 |
 
-## ADS-B Emitter Category Fallbacks
+### ADS-B Emitter Category Fallbacks
 
 Used when no specific ICAO type match is found.
 
@@ -51,14 +86,3 @@ Used when no specific ICAO type match is found.
 | <img src="assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/b3.svg" width="40"/> | B3 | Parachutist / skydiver |
 | <img src="assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/b4.svg" width="40"/> | B4 | Ultralight / hang-glider / paraglider |
 | <img src="assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/c0.svg" width="40"/> | C0–C3 | Surface vehicle / ground traffic |
-
-## Visual Encoding
-
-| Visual | Meaning |
-|--------|---------|
-| Brighter icon | Higher altitude |
-| Darker icon | Lower altitude / ground |
-| Darker label background | Lower altitude |
-| Max brightness icon | Emergency squawk (7500 · 7600 · 7700) |
-| Dashed ring around icon | Emergency squawk (7500 hijack · 7600 no radio · 7700 Mayday) |
-| HIJACK / NORDO / MAYDAY label | Emergency squawk (7500 · 7600 · 7700) |

@@ -15,7 +15,7 @@ Live aircraft radar within 50 nm.<br />Labels show callsign · type · altitude 
 
 ## Documentation
 
-- [Aircraft Icon Reference](ICONS.md) — all aircraft icons, fallback categories, visual encoding guide, and titlebar icon options
+- [SkyWatch Guide](GUIDE.md) — how to read the display, ADS-B explained, aircraft icons and visual encoding
 
 ## Aircraft Icons
 
