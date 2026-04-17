@@ -36,7 +36,8 @@ function transform(input) {
       total:      input.data.total != null ? input.data.total : planes.length,
       lat:        centerLat,
       lon:        centerLon,
-      fetched_at: input.data.fetched_at_utc
+      fetched_at: input.data.fetched_at_utc,
+      provider:   input.data.provider || 'airplanes.live'
     }
   };
 }
