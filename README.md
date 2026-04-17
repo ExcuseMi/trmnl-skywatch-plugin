@@ -16,7 +16,3 @@ Live aircraft radar within 50 nm.<br />Labels show callsign · type · altitude 
 ## Documentation
 
 - [SkyWatch Guide](GUIDE.md) — how to read the display, ADS-B explained, aircraft icons and visual encoding
-
-## Aircraft Icons
-
-Icons by [ADS-B Radar](https://adsb-radar.com/) — free SVG set used for on-map aircraft rendering.
