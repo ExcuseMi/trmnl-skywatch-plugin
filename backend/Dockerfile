@@ -3,18 +3,15 @@ FROM python:3.13-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y sqlite3 curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create directory for SQLite database
-RUN mkdir -p /data
-
-# Set environment variables
 ENV ENABLE_IP_WHITELIST=false
+ENV REDIS_URL=redis://redis:6379
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8080

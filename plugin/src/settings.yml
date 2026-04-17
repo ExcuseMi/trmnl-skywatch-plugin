@@ -14,44 +14,48 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Real-time aircraft radar on your TRMNL display.<br />Shows planes overhead on a live map with directional icons.<br />Closest aircraft stats shown at a glance.<br />Powered by <strong>airplanes.live</strong>.
+  description: Live aircraft radar within 50 nm.<br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
+  learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md
   category: travel
   help_text: TRMNL X Ready
 - keyname: address
   field_type: string
   name: Location / Address
-  description: Enter your city or address. Leave blank to use Latitude/Longitude instead.
+  description: City or address to centre the radar on.<br />Takes priority over Latitude / Longitude if both are set.
   help_text: e.g. "London, UK" or "Central Park, NY"
-  placeholder: "London, UK"
+  placeholder: London, UK
+  group: Location
   optional: true
 - keyname: lat
   field_type: string
   name: Latitude
-  description: Center latitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
-  help_text: Decimal degrees · e.g. 51.5074 (London) · 40.7128 (New York)
+  description: Centre latitude for the radar view.<br />Only used when no Address is set.<br />Find your coordinates at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
+  help_text: e.g. 51.5074 (London) · 40.7128 (New York)
   placeholder: '51.5074'
+  group: Location
   optional: true
 - keyname: lon
   field_type: string
   name: Longitude
-  description: Center longitude for your radar view. Find yours at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
-  help_text: Decimal degrees · e.g. -0.1278 (London) · -74.006 (New York)
+  description: Centre longitude for the radar view.<br />Only used when no Address is set.
+  help_text: e.g. -0.1278 (London) · -74.0060 (New York)
   placeholder: "-0.1278"
+  group: Location
   optional: true
 - keyname: unit
   field_type: select
   name: Measurement Units
-  description: Unit system used for speed, altitude, and distance.
+  description: Unit system for speed and altitude.<br />Metric — km/h and metres.<br />Imperial — knots and feet.
   options:
-  - Metric (km/h, m, km): metric
-  - Imperial (knots, ft, nm): imperial
-  default: metric
+  - Metric (km/h, m): metric
+  - Imperial (kt, ft): imperial
+  default: imperial
   optional: true
 - keyname: show_ground
   field_type: boolean
   name: Show Ground Traffic
-  description: Include aircraft that are currently on the ground.
+  description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
   optional: true
 name: SkyWatch
