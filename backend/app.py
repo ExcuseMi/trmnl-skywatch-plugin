@@ -236,7 +236,7 @@ async def geocode_address(address: str):
     params = {'q': address, 'format': 'json', 'limit': 1}
     try:
         async with httpx.AsyncClient(timeout=10.0, headers={'User-Agent': USER_AGENT}) as client:
-            response = await client.get(url, params=params, headers=headers)
+            response = await client.get(url, params=params)
             if response.status_code == 200:
                 data = response.json()
                 if data:
