@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About SkyWatch
   field_type: author_bio
-  description: Live aircraft radar within 50 nm.<br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
+  description: Live aircraft radar within 50 nm (~90 km / 55 mi).<br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md
   category: travel
