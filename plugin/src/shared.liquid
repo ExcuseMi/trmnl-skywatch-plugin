@@ -19,7 +19,7 @@
 {% assign instance_id = "inst_" | append_random %}
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}">
-  <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">airplanes.live</span>
+  <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
   <svg class="image image-dither image--fill w--full h--full rounded"
        viewBox="0 0 768 768"
        preserveAspectRatio="xMidYMid slice">
