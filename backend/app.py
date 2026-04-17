@@ -306,10 +306,10 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
     url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
 
     t0 = time.monotonic()
-    last_api_call_time = t0
     async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
         response = await client.get(url)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
+    last_api_call_time = time.monotonic()
 
     if response.status_code == 429:
         retry_after = float(response.headers.get('Retry-After', 10.0))
