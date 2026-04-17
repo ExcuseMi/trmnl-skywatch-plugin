@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 app = Quart(__name__)
 
 REDIS_URL        = os.getenv('REDIS_URL', 'redis://localhost:6379')
-CACHE_TTL        = int(os.getenv('CACHE_TTL_SECONDS', '300'))   # 5 min
+CACHE_TTL        = int(os.getenv('CACHE_TTL_SECONDS', '840'))   # 14 min
 GEO_CACHE_TTL    = 30 * 24 * 3600                               # 30 days
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true'
 IP_REFRESH_HOURS = 24
