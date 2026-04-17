@@ -18,6 +18,7 @@ app = Quart(__name__)
 
 REDIS_URL        = os.getenv('REDIS_URL', 'redis://localhost:6379')
 CACHE_TTL        = int(os.getenv('CACHE_TTL_SECONDS', '840'))   # 14 min
+USER_AGENT       = os.getenv('USER_AGENT', 'TRMNL-Skywatch-Plugin/1.0')
 GEO_CACHE_TTL    = 30 * 24 * 3600                               # 30 days
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true'
 IP_REFRESH_HOURS = 24
@@ -304,7 +305,7 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
 
     t0 = time.monotonic()
     last_api_call_time = t0
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
         response = await client.get(url)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 

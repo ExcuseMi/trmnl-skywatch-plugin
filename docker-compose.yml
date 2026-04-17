@@ -23,6 +23,7 @@ services:
     environment:
       - ENABLE_IP_WHITELIST=${ENABLE_IP_WHITELIST:-false}
       - REDIS_URL=redis://redis:6379
+      - USER_AGENT=${USER_AGENT:-TRMNL-Skywatch-Plugin/1.0}
     depends_on:
       redis:
         condition: service_healthy
