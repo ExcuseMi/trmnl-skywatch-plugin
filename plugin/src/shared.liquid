@@ -107,7 +107,7 @@
 
     function formatAltitude(val) {
       if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
-      var n = Math.round(+val); var s = n >= 1000 ? (Math.round(n/100)/10) + 'k' : n; return '↑ ' + s + (unit === 'imperial' ? ' ft' : ' m');
+      var n = Math.round(+val); var s = n >= 1000 ? (Math.round(n/100)/10) + 'k' : n; return s + (unit === 'imperial' ? ' ft' : ' m');
     }
 
     function formatSpeed(val) {
@@ -438,7 +438,7 @@
           var bgColor = altBgColor(p.alt_baro);
           var pad = 4;
 
-          function addRow(text, y, fontSize, fontWeight, textFill, rowH) {
+          function addRow(text, y, fontSize, fontWeight, textFill) {
             var t = document.createElementNS(ns, 'text');
             t.setAttribute('x', (lx + pad/2).toFixed(0));
             t.setAttribute('y', y.toFixed(0));
@@ -451,9 +451,9 @@
             var w = Math.ceil(t.getComputedTextLength()) + pad;
             var bg = document.createElementNS(ns, 'rect');
             bg.setAttribute('x', lx.toFixed(0));
-            bg.setAttribute('y', (y - rowH + 3).toFixed(0));
+            bg.setAttribute('y', (y - 11).toFixed(0));
             bg.setAttribute('width', w);
-            bg.setAttribute('height', rowH);
+            bg.setAttribute('height', '14');
             bg.setAttribute('fill', bgColor);
             bg.setAttribute('rx', '2');
             layer.insertBefore(bg, t);
@@ -473,12 +473,13 @@
 
           var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
           if (!lbl && !desc && !squawkLabel) return;
+
           var rowY = ly;
-          if (squawkLabel) { rowY += 14; addRow(squawkLabel, rowY, '12', 'bold', '#ffffff', 13); }
-          if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff', 13); }
-          if (desc) { rowY += 14; addRow(desc, rowY, '11', null, '#cccccc', 13); }
+          if (squawkLabel) { rowY += 14; addRow(squawkLabel, rowY, '12', 'bold', '#ffffff'); }
+          if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff'); }
+          if (desc) { rowY += 14; addRow(desc, rowY, '11', null, '#cccccc'); }
           if (routeStr) {
-            rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa', 13);
+            rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa');
             var progress = p.progress != null ? p.progress : null;
             if (progress != null) {
               var barW = measureText(routeStr, '11', null) + pad;
@@ -499,7 +500,7 @@
               rowY += 6;
             }
           }
-          rowY += (routeStr ? 11 : 14); addRow(altSpeedStr, rowY, '11', null, '#ffffff', 13);
+          rowY += (routeStr ? 11 : 14); addRow(altSpeedStr, rowY, '11', null, '#ffffff');
         }
       });
     }
