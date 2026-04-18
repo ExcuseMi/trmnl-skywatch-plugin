@@ -64,7 +64,7 @@ custom_fields:
   description: How to display flight origin → destination on aircraft labels.
   options:
   - Airport codes (AMS → LHR): codes
-  - City names (Amsterdam → London): cities
+  - City names (AMSTERDAM (NL) → LONDON (GB)): cities
   default: codes
   optional: true
 name: SkyWatch Fork

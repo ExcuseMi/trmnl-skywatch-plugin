@@ -410,7 +410,7 @@
           var routeStr = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
-          var maxWidth = Math.max(lbl.length*8+4, desc.length*7+4, altSpeedStr.length*6+4, 20);
+          var maxWidth = Math.max(lbl.length*9+4, desc.length*8+4, altSpeedStr.length*7+4, routeStr.length*7+4, 20);
           var anchor = null;
           for (var i = 0; i < ANCHORS.length; i++) {
             var a = ANCHORS[i];
@@ -433,7 +433,7 @@
           var pad = 4;
 
           function measureText(text, fontSize, bold) {
-            return Math.ceil(text.length * parseInt(fontSize) * (bold ? 0.68 : 0.58));
+            return Math.ceil(text.length * parseInt(fontSize) * (bold ? 0.74 : 0.64));
           }
 
           function addRow(text, y, fontSize, fontWeight, textFill, rowH) {
@@ -485,7 +485,7 @@
               rowY += 6;
             }
           }
-          rowY += 14; addRow(altSpeedStr, rowY, '11', null, '#ffffff', 13);
+          rowY += (routeStr ? 11 : 14); addRow(altSpeedStr, rowY, '11', null, '#ffffff', 13);
         }
       });
     }
