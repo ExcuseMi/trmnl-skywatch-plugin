@@ -107,7 +107,9 @@
 
     function formatAltitude(val) {
       if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
-      var n = Math.round(+val); var s = n >= 1000 ? (Math.round(n/100)/10) + 'k' : n; return s + (unit === 'imperial' ? ' ft' : ' m');
+      var n = Math.round(+val);
+      if (unit === 'imperial') { return n >= 1000 ? (Math.round(n/100)/10) + 'k ft' : n + ' ft'; }
+      return n >= 1000 ? (Math.round(n/100)/10) + ' km' : n + ' m';
     }
 
     function formatSpeed(val) {
@@ -326,7 +328,7 @@
         {ax:1,ay:0},{ax:1,ay:-1},{ax:0,ay:-1},{ax:-1,ay:-1},
         {ax:-1,ay:0},{ax:-1,ay:1},{ax:0,ay:1},{ax:1,ay:1}
       ];
-      var ANCHOR_R = iconHalf + 6;
+      var ANCHOR_R = iconHalf + 16;
 
       function altBgColor(alt) {
         if (alt === 'ground' || alt == null) return '#555555';
@@ -405,9 +407,10 @@
           var lbl = (p.flight || '').trim() || p.r || '';
           var desc = (p.desc || p.t || '').trim();
           var altStr = formatAltitude(p.alt_baro);
-          var speedStr = p.gs != null ? ' · ' + formatSpeed(p.gs) : '';
+          var speedStr = p.gs != null ? ' - ' + formatSpeed(p.gs) : '';
           var altSpeedStr = altStr + speedStr;
           var routeStr = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
+          var pad = 4;
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
           var maxWidth = Math.max(
@@ -434,9 +437,8 @@
           line.setAttribute('x1',edge.x.toFixed(0)); line.setAttribute('y1',edge.y.toFixed(0));
           line.setAttribute('x2',labelCX.toFixed(0)); line.setAttribute('y2',labelCY.toFixed(0));
           line.setAttribute('stroke',lineColor); line.setAttribute('stroke-width','1.5'); line.setAttribute('stroke-dasharray','3 2');
-          layer.appendChild(line);
+          if (outlineLayer) outlineLayer.appendChild(line); else layer.appendChild(line);
           var bgColor = altBgColor(p.alt_baro);
-          var pad = 4;
 
           function addRow(text, y, fontSize, fontWeight, textFill) {
             var t = document.createElementNS(ns, 'text');
@@ -451,9 +453,9 @@
             var w = Math.ceil(t.getComputedTextLength()) + pad;
             var bg = document.createElementNS(ns, 'rect');
             bg.setAttribute('x', lx.toFixed(0));
-            bg.setAttribute('y', (y - 11).toFixed(0));
+            bg.setAttribute('y', (y - 10).toFixed(0));
             bg.setAttribute('width', w);
-            bg.setAttribute('height', '14');
+            bg.setAttribute('height', '13');
             bg.setAttribute('fill', bgColor);
             bg.setAttribute('rx', '2');
             layer.insertBefore(bg, t);
