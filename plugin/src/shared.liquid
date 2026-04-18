@@ -407,11 +407,9 @@
           var altStr = formatAltitude(p.alt_baro);
           var speedStr = p.gs != null ? ' · ' + formatSpeed(p.gs) : '';
           var altSpeedStr = altStr + speedStr;
-          var originCode    = p.route && p.route.origin && (p.route.origin.code || p.route.origin.icao);
-          var destCode      = p.route && p.route.destination && (p.route.destination.code || p.route.destination.icao);
-          var destCountry   = p.route && p.route.destination && p.route.destination.country;
-          var originCountry = p.route && p.route.origin && p.route.origin.country;
-          var routeStr      = (originCode && destCode) ? originCode + (originCountry ? ' · ' + originCountry : '') + ' → ' + destCode + (destCountry ? ' · ' + destCountry : '') : (destCode ? '→ ' + destCode + (destCountry ? ' · ' + destCountry : '') : '');
+          var originCity = p.route && p.route.origin && p.route.origin.municipality;
+          var destCity   = p.route && p.route.destination && p.route.destination.municipality;
+          var routeStr   = (originCity && destCity) ? originCity + ' → ' + destCity : (destCity ? '→ ' + destCity : '');
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
           var maxWidth = Math.max(lbl.length*8+4, desc.length*7+4, altSpeedStr.length*6+4, 20);
