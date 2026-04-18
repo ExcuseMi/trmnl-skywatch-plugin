@@ -1,4 +1,5 @@
 import os
+import re
 import asyncio
 import csv
 import io
@@ -278,10 +279,15 @@ _route_semaphore: asyncio.Semaphore = None
 _adsbdb_backoff_until: float = 0.0
 
 
+def _valid_callsign(cs: str) -> bool:
+    # Airline callsigns: 2-3 alpha prefix + digits, min 4 chars (e.g. BAW1, EZY42VZ)
+    return bool(cs and len(cs) >= 4 and re.match(r'^[A-Z]{2,3}\d', cs))
+
+
 async def fetch_route(callsign: str) -> tuple[dict | None, bool]:
     """Returns (route_or_None, cache_hit)."""
     callsign = callsign.strip()
-    if not callsign:
+    if not callsign or not _valid_callsign(callsign):
         return None, False
 
     key = route_key(callsign)
@@ -324,7 +330,7 @@ async def fetch_route(callsign: str) -> tuple[dict | None, bool]:
                 await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
                 return route, False
         await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(None))
-        if resp.status_code not in (404, 200, 429):
+        if resp.status_code not in (400, 404, 200, 429):
             logger.warning(f"adsbdb route {callsign}: HTTP {resp.status_code}")
     except Exception as e:
         logger.debug(f"Route fetch error {callsign}: {e}")
