@@ -306,10 +306,11 @@ async def fetch_route(callsign: str) -> dict | None:
             if data:
                 def airport_info(a: dict) -> dict:
                     return {
-                        'icao': a.get('icao_code', ''),
-                        'code': a.get('iata_code') or a.get('icao_code', ''),
-                        'name': a.get('name', ''),
+                        'icao':        a.get('icao_code', ''),
+                        'code':        a.get('iata_code') or a.get('icao_code', ''),
+                        'name':        a.get('name', ''),
                         'municipality': a.get('municipality', ''),
+                        'country':     a.get('country_iso_name', ''),  # 2-letter ISO code
                     }
                 route = {
                     'origin':      airport_info(data.get('origin') or {}),
