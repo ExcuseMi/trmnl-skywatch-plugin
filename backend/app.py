@@ -27,6 +27,10 @@ MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 50
 
+OPENSKY_CLIENT_ID     = os.getenv('OPENSKY_CLIENT_ID', '')
+OPENSKY_CLIENT_SECRET = os.getenv('OPENSKY_CLIENT_SECRET', '')
+ROUTE_CACHE_TTL       = 4 * 3600   # routes don't change mid-flight
+
 AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
 OURAIRPORTS_CSV_URL  = 'https://davidmegginson.github.io/ourairports-data/airports.csv'
 OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
@@ -35,6 +39,7 @@ RADIUS_NM            = 50.0       # 50 nautical miles
 NM_PER_DEG_LAT       = 60.0
 
 TRMNL_IPS: set = set()
+_airport_by_icao: dict = {}
 
 redis_client: aioredis.Redis = None
 api_queue: asyncio.Queue     = None
@@ -63,6 +68,19 @@ def cache_key(lat_key: int, lon_key: int, show_ground: bool) -> str:
 
 def geo_key(address: str) -> str:
     return f"skywatch:geo:{address.lower().strip()}"
+
+
+def route_key(callsign: str) -> str:
+    return f"skywatch:route:{callsign.strip().upper()}"
+
+
+def _airport_display(icao: str) -> dict:
+    if not icao:
+        return {}
+    a = _airport_by_icao.get(icao.upper())
+    if not a:
+        return {'code': icao, 'name': ''}
+    return {'code': a.get('iata') or icao, 'name': a.get('name', '')}
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +207,10 @@ async def _refresh_ourairports():
         })
 
     await redis_client.set(OURAIRPORTS_CACHE_KEY, json.dumps(airports))
+    _airport_by_icao.clear()
+    for a in airports:
+        if a.get('icao'):
+            _airport_by_icao[a['icao'].upper()] = a
     logger.info(f"OurAirports: {len(airports)} large/medium airports cached")
 
 
@@ -246,6 +268,106 @@ async def geocode_address(address: str):
     except Exception as e:
         logger.error(f"Geocoding error: {e}")
     return None
+
+
+# ---------------------------------------------------------------------------
+# Route lookup (OpenSky)
+# ---------------------------------------------------------------------------
+
+_route_semaphore: asyncio.Semaphore = None
+_opensky_token: str = ''
+_opensky_token_expiry: float = 0.0
+_opensky_backoff_until: float = 0.0
+_opensky_credits_remaining: int = -1
+
+
+async def _get_opensky_token() -> str:
+    global _opensky_token, _opensky_token_expiry
+    if not OPENSKY_CLIENT_ID:
+        return ''
+    if time.monotonic() < _opensky_token_expiry:
+        return _opensky_token
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
+                data={
+                    'grant_type':    'client_credentials',
+                    'client_id':     OPENSKY_CLIENT_ID,
+                    'client_secret': OPENSKY_CLIENT_SECRET,
+                },
+            )
+            resp.raise_for_status()
+            token_data = resp.json()
+            _opensky_token = token_data['access_token']
+            _opensky_token_expiry = time.monotonic() + token_data.get('expires_in', 3600) - 60
+            return _opensky_token
+    except Exception as e:
+        logger.warning(f"OpenSky token fetch failed: {e}")
+        return ''
+
+
+async def fetch_route(callsign: str) -> dict | None:
+    callsign = callsign.strip()
+    if not callsign:
+        return None
+
+    key = route_key(callsign)
+    raw = await redis_client.get(key)
+    if raw:
+        return json.loads(raw)
+
+    global _opensky_backoff_until, _opensky_credits_remaining
+
+    if time.monotonic() < _opensky_backoff_until:
+        return None
+
+    token = await _get_opensky_token()
+    headers = {'Authorization': f'Bearer {token}'} if token else {}
+    try:
+        async with _route_semaphore:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    'https://opensky-network.org/api/routes',
+                    params={'callsign': callsign},
+                    headers=headers,
+                )
+
+        remaining = resp.headers.get('X-Rate-Limit-Remaining')
+        if remaining is not None:
+            _opensky_credits_remaining = int(remaining)
+            if _opensky_credits_remaining < 50:
+                logger.warning(f"OpenSky credits low: {_opensky_credits_remaining} remaining")
+
+        if resp.status_code == 200:
+            data = resp.json()
+            origin_icao = data.get('origin') or ''
+            dest_icao   = data.get('destination') or ''
+            route = {
+                'origin':      {'icao': origin_icao, **_airport_display(origin_icao)},
+                'destination': {'icao': dest_icao,   **_airport_display(dest_icao)},
+            }
+            await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
+            return route
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get('X-Rate-Limit-Retry-After-Seconds', 3600))
+            _opensky_backoff_until = time.monotonic() + retry_after
+            logger.warning(f"OpenSky credits exhausted, backoff {retry_after}s")
+        elif resp.status_code != 404:
+            logger.warning(f"OpenSky route {callsign}: HTTP {resp.status_code}")
+    except Exception as e:
+        logger.debug(f"Route fetch error {callsign}: {e}")
+    return None
+
+
+async def enrich_with_routes(aircraft: list) -> None:
+    callsigns = [a['flight'] for a in aircraft if a.get('flight')]
+    if not callsigns:
+        return
+    routes = await asyncio.gather(*[fetch_route(cs) for cs in callsigns])
+    for plane, route in zip(aircraft, routes):
+        if route:
+            plane['route'] = route
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +572,7 @@ async def get_planes():
         fetch_airports(lat, lon, lat_key, lon_key),
     )
     if data:
+        await enrich_with_routes(data.get('ac', []))
         data['lat']      = lat
         data['lon']      = lon
         data['airports'] = airports
@@ -476,11 +599,13 @@ async def health():
         pass
 
     return jsonify({
-        'status':       'healthy' if redis_ok else 'degraded',
-        'redis':        redis_ok,
-        'ip_whitelist': ENABLE_IP_WHITELIST,
-        'queue_size':   api_queue.qsize() if api_queue else 0,
-        'inflight':     len(_inflight),
+        'status':                  'healthy' if redis_ok else 'degraded',
+        'redis':                   redis_ok,
+        'ip_whitelist':            ENABLE_IP_WHITELIST,
+        'queue_size':              api_queue.qsize() if api_queue else 0,
+        'inflight':                len(_inflight),
+        'opensky_credits':         _opensky_credits_remaining,
+        'opensky_backoff_until':   _opensky_backoff_until if _opensky_backoff_until > time.monotonic() else None,
     })
 
 
@@ -498,8 +623,9 @@ async def _background_ip_refresh():
 
 @app.before_serving
 async def startup():
-    global api_queue, redis_client, TRMNL_IPS
+    global api_queue, redis_client, TRMNL_IPS, _route_semaphore, _opensky_token, _opensky_token_expiry
 
+    _route_semaphore = asyncio.Semaphore(5)
     redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
     await redis_client.ping()
     logger.info(f"Redis connected: {REDIS_URL}")

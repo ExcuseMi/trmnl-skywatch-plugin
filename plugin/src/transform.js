@@ -19,12 +19,13 @@ function transform(input) {
       t:        (a.t || '').slice(0, 8),
       cat:      a.cat || '',
       desc:     a.desc || '',
-      alt_baro: altitude,
-      gs:       speed,
-      track:    a.track,
-      squawk:   a.squawk || '',
-      lat:      a.lat,
-      lon:      a.lon
+      alt_baro:    altitude,
+      gs:          speed,
+      track:       a.track,
+      squawk:      a.squawk || '',
+      lat:         a.lat,
+      lon:         a.lon,
+      route: a.route || null
     };
   })
   .slice(0, 30);
