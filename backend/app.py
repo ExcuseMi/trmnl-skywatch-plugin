@@ -361,16 +361,31 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
     callsigns = [a.get('flight', '').strip() for a in aircraft]
     if not any(callsigns):
         return
-    async def _noop(): return None, False
-    results = await asyncio.gather(*[fetch_route(cs) if cs else _noop() for cs in callsigns])
 
-    hits = misses = fetched = resolved = 0
-    for i, (plane, (route, cache_hit)) in enumerate(zip(aircraft, results)):
-        if cache_hit:
+    # Single MGET round-trip for all callsigns
+    raw_values = await redis_client.mget(*[route_key(cs) if cs else '' for cs in callsigns])
+
+    routes: list[dict | None] = []
+    hits = 0
+    fetch_indices: list[int] = []
+    for i, (cs, raw) in enumerate(zip(callsigns, raw_values)):
+        if not cs:
+            routes.append(None)
+        elif raw is not None:
+            routes.append(json.loads(raw))
             hits += 1
-        elif callsigns[i]:
-            misses += 1
-            fetched += 1
+        else:
+            routes.append(None)
+            fetch_indices.append(i)
+
+    # Fetch only callsigns not yet in Redis
+    if fetch_indices:
+        fetched = await asyncio.gather(*[fetch_route(callsigns[i]) for i in fetch_indices])
+        for i, (route, _) in zip(fetch_indices, fetched):
+            routes[i] = route
+
+    resolved = 0
+    for plane, route in zip(aircraft, routes):
         if not route:
             continue
         origin = _airport_label(route.get('origin', {}), route_display)
@@ -385,8 +400,8 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
         if origin or dest:
             resolved += 1
 
-    total = hits + misses
-    logger.info(f"routes: {total} aircraft w/ callsign — {hits} cache hits, {fetched} fetched, {resolved} resolved")
+    total_cs = sum(1 for cs in callsigns if cs)
+    logger.info(f"routes: {total_cs} w/ callsign — {hits} cached, {len(fetch_indices)} fetched, {resolved} resolved")
 
 
 # ---------------------------------------------------------------------------
