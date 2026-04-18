@@ -318,8 +318,8 @@ async def fetch_route(icao24: str) -> dict | None:
 
     key = route_key(icao24)
     raw = await redis_client.get(key)
-    if raw:
-        return json.loads(raw)
+    if raw is not None:
+        return json.loads(raw)  # may be None (cached 404)
 
     global _opensky_backoff_until, _opensky_credits_remaining
 
@@ -329,12 +329,13 @@ async def fetch_route(icao24: str) -> dict | None:
     token = await _get_opensky_token()
     headers = {'Authorization': f'Bearer {token}'} if token else {}
     now = int(time.time())
+    window = 43200  # 12h
     try:
         async with _route_semaphore:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(
                     'https://opensky-network.org/api/flights/aircraft',
-                    params={'icao24': icao24, 'begin': now - 10800, 'end': now},
+                    params={'icao24': icao24, 'begin': now - window, 'end': now},
                     headers=headers,
                 )
 
@@ -346,6 +347,7 @@ async def fetch_route(icao24: str) -> dict | None:
 
         if resp.status_code == 200:
             flights = resp.json()
+            logger.info(f"OpenSky {icao24}: {len(flights) if flights else 0} flights in window")
             if flights:
                 latest = flights[-1]
                 origin_icao = latest.get('estDepartureAirport') or ''
@@ -356,14 +358,16 @@ async def fetch_route(icao24: str) -> dict | None:
                 }
                 await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
                 return route
-        if resp.status_code == 429:
+        if resp.status_code == 404:
+            await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(None))
+        elif resp.status_code == 429:
             retry_after = int(resp.headers.get('X-Rate-Limit-Retry-After-Seconds', 3600))
             _opensky_backoff_until = time.monotonic() + retry_after
             logger.warning(f"OpenSky credits exhausted, backoff {retry_after}s")
-        elif resp.status_code != 404:
-            logger.warning(f"OpenSky route {callsign}: HTTP {resp.status_code}")
+        else:
+            logger.warning(f"OpenSky route {icao24}: HTTP {resp.status_code}")
     except Exception as e:
-        logger.debug(f"Route fetch error {callsign}: {e}")
+        logger.debug(f"Route fetch error {icao24}: {e}")
     return None
 
 
