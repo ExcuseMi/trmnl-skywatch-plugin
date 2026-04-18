@@ -274,9 +274,25 @@ async def geocode_address(address: str):
 
 _route_semaphore: asyncio.Semaphore = None
 _adsbdb_backoff_until: float = 0.0
+_route_cache_hits: int = 0
+_route_cache_misses: int = 0
+_route_last_log: float = 0.0
+_ROUTE_LOG_INTERVAL: float = 60.0
+
+
+def _maybe_log_route_stats() -> None:
+    global _route_last_log
+    now = time.monotonic()
+    if now - _route_last_log < _ROUTE_LOG_INTERVAL:
+        return
+    _route_last_log = now
+    total = _route_cache_hits + _route_cache_misses
+    if total:
+        logger.info(f"adsbdb route cache: {_route_cache_hits} hits / {_route_cache_misses} misses (total {total})")
 
 
 async def fetch_route(callsign: str) -> dict | None:
+    global _route_cache_hits, _route_cache_misses
     callsign = callsign.strip()
     if not callsign:
         return None
@@ -284,7 +300,12 @@ async def fetch_route(callsign: str) -> dict | None:
     key = route_key(callsign)
     raw = await redis_client.get(key)
     if raw is not None:
+        _route_cache_hits += 1
+        _maybe_log_route_stats()
         return json.loads(raw)  # may be None (cached 404/miss)
+
+    _route_cache_misses += 1
+    _maybe_log_route_stats()
 
     global _adsbdb_backoff_until
     if time.monotonic() < _adsbdb_backoff_until:
