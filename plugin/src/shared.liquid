@@ -467,7 +467,7 @@
             rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa', 13);
             var progress = p.progress != null ? p.progress : null;
             if (progress != null) {
-              var barW = 60;
+              var barW = measureText(routeStr, '11', false) + pad;
               var barX = lx;
               var barY = rowY + 4;
               var trackBg = document.createElementNS(ns, 'rect');
