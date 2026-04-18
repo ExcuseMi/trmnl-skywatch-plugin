@@ -12,6 +12,8 @@ import redis.asyncio as aioredis
 from quart import Quart, request, jsonify
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 app = Quart(__name__)
@@ -274,42 +276,22 @@ async def geocode_address(address: str):
 
 _route_semaphore: asyncio.Semaphore = None
 _adsbdb_backoff_until: float = 0.0
-_route_cache_hits: int = 0
-_route_cache_misses: int = 0
-_route_last_log: float = 0.0
-_ROUTE_LOG_INTERVAL: float = 60.0
 
 
-def _maybe_log_route_stats() -> None:
-    global _route_last_log
-    now = time.monotonic()
-    if now - _route_last_log < _ROUTE_LOG_INTERVAL:
-        return
-    _route_last_log = now
-    total = _route_cache_hits + _route_cache_misses
-    if total:
-        logger.info(f"adsbdb route cache: {_route_cache_hits} hits / {_route_cache_misses} misses (total {total})")
-
-
-async def fetch_route(callsign: str) -> dict | None:
-    global _route_cache_hits, _route_cache_misses
+async def fetch_route(callsign: str) -> tuple[dict | None, bool]:
+    """Returns (route_or_None, cache_hit)."""
     callsign = callsign.strip()
     if not callsign:
-        return None
+        return None, False
 
     key = route_key(callsign)
     raw = await redis_client.get(key)
     if raw is not None:
-        _route_cache_hits += 1
-        _maybe_log_route_stats()
-        return json.loads(raw)  # may be None (cached 404/miss)
-
-    _route_cache_misses += 1
-    _maybe_log_route_stats()
+        return json.loads(raw), True
 
     global _adsbdb_backoff_until
     if time.monotonic() < _adsbdb_backoff_until:
-        return None
+        return None, False
 
     try:
         async with _route_semaphore:
@@ -320,7 +302,7 @@ async def fetch_route(callsign: str) -> dict | None:
             retry_after = float(resp.headers.get('Retry-After', 60))
             _adsbdb_backoff_until = time.monotonic() + retry_after
             logger.warning(f"adsbdb rate limited, backoff {retry_after}s")
-            return None
+            return None, False
 
         if resp.status_code == 200:
             data = resp.json().get('response', {}).get('flightroute')
@@ -331,7 +313,7 @@ async def fetch_route(callsign: str) -> dict | None:
                         'code':         a.get('iata_code') or a.get('icao_code', ''),
                         'name':         a.get('name', ''),
                         'municipality': a.get('municipality', ''),
-                        'country':      a.get('country_iso_name', ''),  # 2-letter ISO code
+                        'country':      a.get('country_iso_name', ''),
                         'lat':          a.get('latitude'),
                         'lon':          a.get('longitude'),
                     }
@@ -340,13 +322,13 @@ async def fetch_route(callsign: str) -> dict | None:
                     'destination': airport_info(data.get('destination') or {}),
                 }
                 await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
-                return route
+                return route, False
         await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(None))
         if resp.status_code not in (404, 200, 429):
             logger.warning(f"adsbdb route {callsign}: HTTP {resp.status_code}")
     except Exception as e:
         logger.debug(f"Route fetch error {callsign}: {e}")
-    return None
+    return None, False
 
 
 def _route_progress(plane: dict, route: dict) -> float | None:
@@ -379,9 +361,16 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
     callsigns = [a.get('flight', '').strip() for a in aircraft]
     if not any(callsigns):
         return
-    async def _noop(): return None
-    routes = await asyncio.gather(*[fetch_route(cs) if cs else _noop() for cs in callsigns])
-    for plane, route in zip(aircraft, routes):
+    async def _noop(): return None, False
+    results = await asyncio.gather(*[fetch_route(cs) if cs else _noop() for cs in callsigns])
+
+    hits = misses = fetched = resolved = 0
+    for i, (plane, (route, cache_hit)) in enumerate(zip(aircraft, results)):
+        if cache_hit:
+            hits += 1
+        elif callsigns[i]:
+            misses += 1
+            fetched += 1
         if not route:
             continue
         origin = _airport_label(route.get('origin', {}), route_display)
@@ -393,6 +382,11 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
             plane['dest'] = dest
         if progress is not None:
             plane['progress'] = progress
+        if origin or dest:
+            resolved += 1
+
+    total = hits + misses
+    logger.info(f"routes: {total} aircraft w/ callsign — {hits} cache hits, {fetched} fetched, {resolved} resolved")
 
 
 # ---------------------------------------------------------------------------
