@@ -275,6 +275,7 @@ async def geocode_address(address: str):
 # ---------------------------------------------------------------------------
 
 _route_semaphore: asyncio.Semaphore = None
+_opensky_token_lock: asyncio.Lock = None
 _opensky_token: str = ''
 _opensky_token_expiry: float = 0.0
 _opensky_backoff_until: float = 0.0
@@ -287,24 +288,27 @@ async def _get_opensky_token() -> str:
         return ''
     if time.monotonic() < _opensky_token_expiry:
         return _opensky_token
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
-                data={
-                    'grant_type':    'client_credentials',
-                    'client_id':     OPENSKY_CLIENT_ID,
-                    'client_secret': OPENSKY_CLIENT_SECRET,
-                },
-            )
-            resp.raise_for_status()
-            token_data = resp.json()
-            _opensky_token = token_data['access_token']
-            _opensky_token_expiry = time.monotonic() + token_data.get('expires_in', 3600) - 60
+    async with _opensky_token_lock:
+        if time.monotonic() < _opensky_token_expiry:
             return _opensky_token
-    except Exception as e:
-        logger.warning(f"OpenSky token fetch failed: {e}")
-        return ''
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
+                    data={
+                        'grant_type':    'client_credentials',
+                        'client_id':     OPENSKY_CLIENT_ID,
+                        'client_secret': OPENSKY_CLIENT_SECRET,
+                    },
+                )
+                resp.raise_for_status()
+                token_data = resp.json()
+                _opensky_token = token_data['access_token']
+                _opensky_token_expiry = time.monotonic() + token_data.get('expires_in', 3600) - 60
+                return _opensky_token
+        except Exception as e:
+            logger.warning(f"OpenSky token fetch failed: {e}")
+            return ''
 
 
 async def fetch_route(callsign: str) -> dict | None:
@@ -623,9 +627,10 @@ async def _background_ip_refresh():
 
 @app.before_serving
 async def startup():
-    global api_queue, redis_client, TRMNL_IPS, _route_semaphore, _opensky_token, _opensky_token_expiry
+    global api_queue, redis_client, TRMNL_IPS, _route_semaphore, _opensky_token_lock, _opensky_token, _opensky_token_expiry
 
-    _route_semaphore = asyncio.Semaphore(5)
+    _route_semaphore   = asyncio.Semaphore(5)
+    _opensky_token_lock = asyncio.Lock()
     redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
     await redis_client.ping()
     logger.info(f"Redis connected: {REDIS_URL}")
