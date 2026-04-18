@@ -22,10 +22,12 @@ function transform(input) {
       alt_baro:    altitude,
       gs:          speed,
       track:       a.track,
-      squawk:      a.squawk || '',
-      lat:         a.lat,
-      lon:         a.lon,
-      route: a.route || null
+      squawk:   a.squawk || '',
+      lat:      a.lat,
+      lon:      a.lon,
+      ...(a.origin   ? { origin:   a.origin }   : {}),
+      ...(a.dest     ? { dest:     a.dest }     : {}),
+      ...(a.progress != null ? { progress: a.progress } : {})
     };
   })
   .slice(0, 30);

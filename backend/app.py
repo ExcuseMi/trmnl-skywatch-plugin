@@ -306,11 +306,13 @@ async def fetch_route(callsign: str) -> dict | None:
             if data:
                 def airport_info(a: dict) -> dict:
                     return {
-                        'icao':        a.get('icao_code', ''),
-                        'code':        a.get('iata_code') or a.get('icao_code', ''),
-                        'name':        a.get('name', ''),
+                        'icao':         a.get('icao_code', ''),
+                        'code':         a.get('iata_code') or a.get('icao_code', ''),
+                        'name':         a.get('name', ''),
                         'municipality': a.get('municipality', ''),
-                        'country':     a.get('country_iso_name', ''),  # 2-letter ISO code
+                        'country':      a.get('country_iso_name', ''),  # 2-letter ISO code
+                        'lat':          a.get('latitude'),
+                        'lon':          a.get('longitude'),
                     }
                 route = {
                     'origin':      airport_info(data.get('origin') or {}),
@@ -326,14 +328,46 @@ async def fetch_route(callsign: str) -> dict | None:
     return None
 
 
-async def enrich_with_routes(aircraft: list) -> None:
-    callsigns = [a['flight'].strip() for a in aircraft if a.get('flight', '').strip()]
-    if not callsigns:
+def _route_progress(plane: dict, route: dict) -> float | None:
+    try:
+        o = route['origin']
+        d = route['destination']
+        olat, olon = o['lat'], o['lon']
+        dlat, dlon = d['lat'], d['lon']
+        plat, plon = plane['lat'], plane['lon']
+        total = math.sqrt((dlat - olat) ** 2 + (dlon - olon) ** 2)
+        if total < 1e-6:
+            return None
+        covered = math.sqrt((plat - olat) ** 2 + (plon - olon) ** 2)
+        return round(max(0.0, min(1.0, covered / total)), 3)
+    except (KeyError, TypeError):
+        return None
+
+
+def _airport_label(airport: dict, route_display: str) -> str:
+    if route_display == 'cities':
+        return airport.get('municipality', '')
+    return airport.get('code') or airport.get('icao', '')
+
+
+async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> None:
+    callsigns = [a.get('flight', '').strip() for a in aircraft]
+    if not any(callsigns):
         return
-    routes = await asyncio.gather(*[fetch_route(cs) for cs in callsigns])
+    async def _noop(): return None
+    routes = await asyncio.gather(*[fetch_route(cs) if cs else _noop() for cs in callsigns])
     for plane, route in zip(aircraft, routes):
-        if route:
-            plane['route'] = route
+        if not route:
+            continue
+        origin = _airport_label(route.get('origin', {}), route_display)
+        dest   = _airport_label(route.get('destination', {}), route_display)
+        progress = _route_progress(plane, route)
+        if origin:
+            plane['origin'] = origin
+        if dest:
+            plane['dest'] = dest
+        if progress is not None:
+            plane['progress'] = progress
 
 
 # ---------------------------------------------------------------------------
@@ -355,22 +389,27 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
             continue
 
         dist = math.sqrt((p_lat - center_lat) ** 2 + (p_lon - center_lon) ** 2)
-        processed.append({
-            'hex':       a.get('hex', ''),
-            'flight':    (a.get('flight', '')).strip(),
-            'r':         a.get('r', ''),
-            't':         a.get('t', ''),
-            'cat':       a.get('category'),
-            'desc':      a.get('desc', ''),
-            'alt_baro':  alt,
-            'gs':        a.get('gs'),
-            'track':     a.get('track'),
-            'baro_rate': a.get('baro_rate', 0),
-            'squawk':    a.get('squawk', ''),
-            'lat':       p_lat,
-            'lon':       p_lon,
-            '_dist':     dist,
-        })
+        plane = {
+            'lat':      p_lat,
+            'lon':      p_lon,
+            'alt_baro': alt,
+            '_dist':    dist,
+        }
+        for k, v in [
+            ('hex',       a.get('hex', '')),
+            ('flight',    (a.get('flight', '') or '').strip()),
+            ('r',         a.get('r', '')),
+            ('t',         (a.get('t', '') or '').strip()),
+            ('cat',       a.get('category', '')),
+            ('desc',      a.get('desc', '')),
+            ('gs',        a.get('gs')),
+            ('track',     a.get('track')),
+            ('baro_rate', a.get('baro_rate')),
+            ('squawk',    a.get('squawk', '')),
+        ]:
+            if v is not None and v != '' and v != 0:
+                plane[k] = v
+        processed.append(plane)
 
     processed.sort(key=lambda x: x['_dist'])
     closest = processed[:MAX_PLANES]
@@ -519,7 +558,8 @@ async def get_planes():
     lat        = request.args.get('lat', type=float)
     lon        = request.args.get('lon', type=float)
     address    = request.args.get('address', type=str)
-    show_ground = request.args.get('show_ground', 'false').lower() == 'true'
+    show_ground   = request.args.get('show_ground', 'false').lower() == 'true'
+    route_display = request.args.get('route_display', 'codes')
 
     if address:
         geo = await geocode_address(address)
@@ -538,7 +578,7 @@ async def get_planes():
         fetch_airports(lat, lon, lat_key, lon_key),
     )
     if data:
-        await enrich_with_routes(data.get('ac', []))
+        await enrich_with_routes(data.get('ac', []), route_display)
         data['lat']      = lat
         data['lon']      = lon
         data['airports'] = airports

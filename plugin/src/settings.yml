@@ -6,7 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 
 serverless_language: 
-polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}'
+polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}'
 polling_headers: ''
 polling_body: 
 id: 287189
@@ -57,6 +57,15 @@ custom_fields:
   name: Show Ground Traffic
   description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
+  optional: true
+- keyname: route_display
+  field_type: select
+  name: Route Label Style
+  description: How to display flight origin → destination on aircraft labels.
+  options:
+  - Airport codes (AMS → LHR): codes
+  - City names (Amsterdam → London): cities
+  default: codes
   optional: true
 name: SkyWatch Fork
 refresh_interval: 15

@@ -407,9 +407,7 @@
           var altStr = formatAltitude(p.alt_baro);
           var speedStr = p.gs != null ? ' · ' + formatSpeed(p.gs) : '';
           var altSpeedStr = altStr + speedStr;
-          var originCity = p.route && p.route.origin && p.route.origin.municipality;
-          var destCity   = p.route && p.route.destination && p.route.destination.municipality;
-          var routeStr   = (originCity && destCity) ? originCity + ' → ' + destCity : (destCity ? '→ ' + destCity : '');
+          var routeStr = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
           var maxWidth = Math.max(lbl.length*8+4, desc.length*7+4, altSpeedStr.length*6+4, 20);
@@ -465,7 +463,28 @@
           if (squawkLabel) { rowY += 14; addRow(squawkLabel, rowY, '12', 'bold', '#ffffff', 13); }
           if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff', 13); }
           if (desc) { rowY += 14; addRow(desc, rowY, '11', null, '#cccccc', 13); }
-          if (routeStr) { rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa', 13); }
+          if (routeStr) {
+            rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa', 13);
+            var progress = p.progress != null ? p.progress : null;
+            if (progress != null) {
+              var barW = 60;
+              var barX = lx;
+              var barY = rowY + 4;
+              var trackBg = document.createElementNS(ns, 'rect');
+              trackBg.setAttribute('x', barX.toFixed(0)); trackBg.setAttribute('y', barY.toFixed(0));
+              trackBg.setAttribute('width', barW); trackBg.setAttribute('height', '2');
+              trackBg.setAttribute('fill', '#444444'); trackBg.setAttribute('rx', '1');
+              layer.appendChild(trackBg);
+              if (progress > 0) {
+                var fill = document.createElementNS(ns, 'rect');
+                fill.setAttribute('x', barX.toFixed(0)); fill.setAttribute('y', barY.toFixed(0));
+                fill.setAttribute('width', Math.round(barW * progress)); fill.setAttribute('height', '2');
+                fill.setAttribute('fill', '#ffffff'); fill.setAttribute('rx', '1');
+                layer.appendChild(fill);
+              }
+              rowY += 6;
+            }
+          }
           rowY += 14; addRow(altSpeedStr, rowY, '11', null, '#ffffff', 13);
         }
       });
