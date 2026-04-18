@@ -410,7 +410,13 @@
           var routeStr = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
-          var maxWidth = Math.max(lbl.length*9+4, desc.length*8+4, altSpeedStr.length*7+4, routeStr.length*7+4, 20);
+          var maxWidth = Math.max(
+            measureText(lbl, '12', true),
+            measureText(desc, '11', false),
+            measureText(altSpeedStr, '11', false),
+            measureText(routeStr, '11', false),
+            20
+          ) + pad;
           var anchor = null;
           for (var i = 0; i < ANCHORS.length; i++) {
             var a = ANCHORS[i];
