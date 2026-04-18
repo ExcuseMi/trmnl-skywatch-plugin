@@ -17,7 +17,7 @@ Each aircraft appears as an icon pointing in its direction of travel, with a lab
 
 **Brightness** reflects altitude — brighter icons are higher up, darker icons are low or on the ground.
 
-**Airports** are marked with a crosshair symbol and IATA code.
+**Airports** are marked with a crosshair symbol and IATA code. See [AIRPORTS.md](AIRPORTS.md) for the full list of displayed airports with IATA/ICAO codes and locations.
 
 **Emergency squawks** are shown at full brightness with a dashed ring and a HIJACK / NORDO / MAYDAY label:
 
