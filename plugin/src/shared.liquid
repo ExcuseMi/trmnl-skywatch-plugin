@@ -411,10 +411,10 @@
           var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
           var blockH = rowCount * 14;
           var maxWidth = Math.max(
-            measureText(lbl, '12', true),
-            measureText(desc, '11', false),
-            measureText(altSpeedStr, '11', false),
-            measureText(routeStr, '11', false),
+            measureText(lbl, '12', 'bold'),
+            measureText(desc, '11', null),
+            measureText(altSpeedStr, '11', null),
+            measureText(routeStr, '11', null),
             20
           ) + pad;
           var anchor = null;
@@ -438,20 +438,7 @@
           var bgColor = altBgColor(p.alt_baro);
           var pad = 4;
 
-          function measureText(text, fontSize, bold) {
-            return Math.ceil(text.length * parseInt(fontSize) * (bold ? 0.74 : 0.64));
-          }
-
           function addRow(text, y, fontSize, fontWeight, textFill, rowH) {
-            var w = measureText(text, fontSize, !!fontWeight) + pad;
-            var bg = document.createElementNS(ns, 'rect');
-            bg.setAttribute('x', lx.toFixed(0));
-            bg.setAttribute('y', (y - rowH + 3).toFixed(0));
-            bg.setAttribute('width', w);
-            bg.setAttribute('height', rowH);
-            bg.setAttribute('fill', bgColor);
-            bg.setAttribute('rx', '2');
-            layer.appendChild(bg);
             var t = document.createElementNS(ns, 'text');
             t.setAttribute('x', (lx + pad/2).toFixed(0));
             t.setAttribute('y', y.toFixed(0));
@@ -461,6 +448,27 @@
             t.setAttribute('fill', textFill);
             t.textContent = text;
             layer.appendChild(t);
+            var w = Math.ceil(t.getComputedTextLength()) + pad;
+            var bg = document.createElementNS(ns, 'rect');
+            bg.setAttribute('x', lx.toFixed(0));
+            bg.setAttribute('y', (y - rowH + 3).toFixed(0));
+            bg.setAttribute('width', w);
+            bg.setAttribute('height', rowH);
+            bg.setAttribute('fill', bgColor);
+            bg.setAttribute('rx', '2');
+            layer.insertBefore(bg, t);
+          }
+
+          function measureText(text, fontSize, fontWeight) {
+            var t = document.createElementNS(ns, 'text');
+            t.setAttribute('font-size', fontSize);
+            if (fontWeight) t.setAttribute('font-weight', fontWeight);
+            t.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
+            t.textContent = text;
+            layer.appendChild(t);
+            var w = Math.ceil(t.getComputedTextLength());
+            layer.removeChild(t);
+            return w;
           }
 
           var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
@@ -473,7 +481,7 @@
             rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa', 13);
             var progress = p.progress != null ? p.progress : null;
             if (progress != null) {
-              var barW = measureText(routeStr, '11', false) + pad;
+              var barW = measureText(routeStr, '11', null) + pad;
               var barX = lx;
               var barY = rowY + 4;
               var trackBg = document.createElementNS(ns, 'rect');
