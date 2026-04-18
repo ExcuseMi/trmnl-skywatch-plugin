@@ -345,6 +345,8 @@ def _route_progress(plane: dict, route: dict) -> float | None:
 
 
 def _airport_label(airport: dict, route_display: str) -> str:
+    if route_display == 'hidden':
+        return ''
     if route_display == 'cities':
         city    = (airport.get('municipality', '') or '')[:20].upper()
         country = airport.get('country', '')

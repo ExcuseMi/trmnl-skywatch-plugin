@@ -52,12 +52,6 @@ custom_fields:
   - Imperial (kt, ft): imperial
   default: imperial
   optional: true
-- keyname: show_ground
-  field_type: boolean
-  name: Show Ground Traffic
-  description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
-  default: 'false'
-  optional: true
 - keyname: route_display
   field_type: select
   name: Route Label Style
@@ -65,7 +59,14 @@ custom_fields:
   options:
   - Airport codes (AMS → LHR): codes
   - City names (AMSTERDAM (NL) → LONDON (GB)): cities
+  - Hide route label: hidden
   default: codes
+  optional: true
+- keyname: show_ground
+  field_type: boolean
+  name: Show Ground Traffic
+  description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
+  default: 'false'
   optional: true
 name: SkyWatch Fork
 refresh_interval: 15
