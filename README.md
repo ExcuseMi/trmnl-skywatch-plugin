@@ -8,7 +8,7 @@
 ![SkyWatch screenshot](assets/plugin-images/286469_screenshot.png)
 
 ### Description
-Live aircraft radar within 50 nm.<br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/ICONS.md" target="_blank">Icon guide</a>
+Live aircraft radar within 50 nm (~90 km / 55 mi). <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">How to read the display →</a><br /><br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
 
 ---
 <!-- PLUGIN_STATS_END -->
