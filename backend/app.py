@@ -70,8 +70,8 @@ def geo_key(address: str) -> str:
     return f"skywatch:geo:{address.lower().strip()}"
 
 
-def route_key(callsign: str) -> str:
-    return f"skywatch:route:{callsign.strip().upper()}"
+def route_key(icao24: str) -> str:
+    return f"skywatch:route:{icao24.strip().lower()}"
 
 
 def _airport_display(icao: str) -> dict:
@@ -311,12 +311,12 @@ async def _get_opensky_token() -> str:
             return ''
 
 
-async def fetch_route(callsign: str) -> dict | None:
-    callsign = callsign.strip()
-    if not callsign:
+async def fetch_route(icao24: str) -> dict | None:
+    icao24 = icao24.strip().lower()
+    if not icao24:
         return None
 
-    key = route_key(callsign)
+    key = route_key(icao24)
     raw = await redis_client.get(key)
     if raw:
         return json.loads(raw)
@@ -328,12 +328,13 @@ async def fetch_route(callsign: str) -> dict | None:
 
     token = await _get_opensky_token()
     headers = {'Authorization': f'Bearer {token}'} if token else {}
+    now = int(time.time())
     try:
         async with _route_semaphore:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(
-                    'https://opensky-network.org/api/routes',
-                    params={'callsign': callsign},
+                    'https://opensky-network.org/api/flights/aircraft',
+                    params={'icao24': icao24, 'begin': now - 10800, 'end': now},
                     headers=headers,
                 )
 
@@ -344,15 +345,17 @@ async def fetch_route(callsign: str) -> dict | None:
                 logger.warning(f"OpenSky credits low: {_opensky_credits_remaining} remaining")
 
         if resp.status_code == 200:
-            data = resp.json()
-            origin_icao = data.get('origin') or ''
-            dest_icao   = data.get('destination') or ''
-            route = {
-                'origin':      {'icao': origin_icao, **_airport_display(origin_icao)},
-                'destination': {'icao': dest_icao,   **_airport_display(dest_icao)},
-            }
-            await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
-            return route
+            flights = resp.json()
+            if flights:
+                latest = flights[-1]
+                origin_icao = latest.get('estDepartureAirport') or ''
+                dest_icao   = latest.get('estArrivalAirport') or ''
+                route = {
+                    'origin':      {'icao': origin_icao, **_airport_display(origin_icao)},
+                    'destination': {'icao': dest_icao,   **_airport_display(dest_icao)},
+                }
+                await redis_client.setex(key, ROUTE_CACHE_TTL, json.dumps(route))
+                return route
         if resp.status_code == 429:
             retry_after = int(resp.headers.get('X-Rate-Limit-Retry-After-Seconds', 3600))
             _opensky_backoff_until = time.monotonic() + retry_after
@@ -365,10 +368,10 @@ async def fetch_route(callsign: str) -> dict | None:
 
 
 async def enrich_with_routes(aircraft: list) -> None:
-    callsigns = [a['flight'] for a in aircraft if a.get('flight')]
-    if not callsigns:
+    hexes = [a['hex'] for a in aircraft if a.get('hex')]
+    if not hexes:
         return
-    routes = await asyncio.gather(*[fetch_route(cs) for cs in callsigns])
+    routes = await asyncio.gather(*[fetch_route(h) for h in hexes])
     for plane, route in zip(aircraft, routes):
         if route:
             plane['route'] = route
