@@ -8,7 +8,11 @@
 ![SkyWatch screenshot](assets/plugin-images/286469_screenshot.png)
 
 ### Description
-Live aircraft radar within 50 nm (~90 km / 55 mi). <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">How to read the display →</a><br /><br />Labels show callsign · type · altitude · speed. Brightness indicates altitude.<br />Major airports marked. Emergency squawks flagged automatically.<br /><br />Aircraft broadcast their position via ADS-B transponders at 1090 MHz. A global network of <a href="https://airplanes.live/get-started/">volunteers with ground receivers</a> picks up these signals and feeds them to <a href="https://airplanes.live" target="_blank">airplanes.live</a>, which powers this display.<br /><br />Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
+Live aircraft radar within 50 nm (~90 km / 55 mi), updated every 15 minutes. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">How to read the display →</a>
+<br /><br /><strong>Labels</strong><br /> Callsign · aircraft type · altitude · speed. Brightness reflects altitude. Emergency squawks flagged automatically.
+<br /><br /><strong>Routes</strong><br /> Origin → destination labels powered by <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a>. Progress bar shows position along the route.
+<br /><br /><strong>Airports</strong><br /> Large and medium airports marked with crosshair and IATA code. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/AIRPORTS.md" target="_blank">Full airport list →</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">Display guide →</a>
+<br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a> · Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
 
 ---
 <!-- PLUGIN_STATS_END -->
