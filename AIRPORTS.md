@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-19.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-20.
 
-**4565 airports** across 236 countries.
+**4566 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -2164,6 +2164,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | LHE | OPLA | Allama Iqbal International Airport | Lahore | PK |
 | LHG | YLRD | Lightning Ridge Airport |  | AU |
 | LHK | ZHGH | Guangzhou MR Air Base / Guanghua Airport | Xiangyang (Laohekou) | CN |
+| LHL | UBLC | Lachin International Airport | Lachin | AZ |
 | LHN | SNLN | Linhares Municipal Airport | Linhares | BR |
 | LHR | EGLL | London Heathrow Airport | London | GB |
 | LHS | SAVH | Las Heras Airport | Las Heras | AR |
