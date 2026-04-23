@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-22.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-23.
 
 **4566 airports** across 236 countries.
 
@@ -1734,7 +1734,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ISO | KISO | Kinston Regional Jetport At Stallings Field | Kinston | US |
 | ISP | KISP | Long Island MacArthur Airport | Islip | US |
 | IST | LTFM | İstanbul Airport | Istanbul | TR |
-| ISU | ORSU | Sulaymaniyah International Airport | Sulaymaniyah | IQ |
+| ISU | ORSJ | Jalal Talabani International Airport | Sulaymaniyah | IQ |
 | ITA | SBIC | Itacoatiara Airport | Itacoatiara | BR |
 | ITB | SBIH | Itaituba Airport | Itaituba | BR |
 | ITH | KITH | Ithaca Tompkins Regional Airport | Ithaca | US |
