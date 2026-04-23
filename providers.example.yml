@@ -1,0 +1,20 @@
+# Providers are tried in order — first off-cooldown provider wins.
+# airplanes.live is primary; adsb.lol and adsb.fi are fallbacks.
+
+providers:
+  - name: airplanes.live
+    url: "https://api.airplanes.live/v2/point/{lat}/{lon}/{radius}"
+    ac_key: ac
+    cooldown_ms: 10000
+  - name: adsb.lol
+    url: "https://api.adsb.lol/v2/point/{lat}/{lon}/{radius}"
+    ac_key: ac
+    cooldown_ms: 1000
+  - name: adsb.fi
+    url: "https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{radius}"
+    ac_key: aircraft
+    cooldown_ms: 1000
+  - name: adsb.one
+    url: "https://api.adsb.one/v2/point/{lat}/{lon}/{radius}"
+    ac_key: ac
+    cooldown_ms: 1000

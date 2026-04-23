@@ -18,6 +18,8 @@ services:
       dockerfile: Dockerfile
     container_name: skywatch-proxy
     env_file: .env
+    volumes:
+      - ./providers.yml:/app/providers.yml:ro
     ports:
       - "${PORT:-8080}:8080"
     environment:

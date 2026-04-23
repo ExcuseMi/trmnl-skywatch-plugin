@@ -19,8 +19,7 @@ custom_fields:
     <br /><br /><strong>Labels</strong><br /> Callsign · aircraft type · altitude · speed. Brightness reflects altitude. Emergency squawks flagged automatically.
     <br /><br /><strong>Routes</strong><br /> Origin → destination labels powered by <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a>. Progress bar shows position along the route.
     <br /><br /><strong>Airports</strong><br /> Large and medium airports marked with crosshair and IATA code. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/AIRPORTS.md" target="_blank">Full airport list →</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">Display guide →</a>
-    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a> · Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
-  github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
+    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a>, <a href="https://adsb.fi" target="_blank">adsb.fi</a>, and <a href="https://adsb.one" target="_blank">adsb.one</a> · Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>  github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md
   category: travel
   help_text: TRMNL X Ready

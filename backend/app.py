@@ -8,7 +8,9 @@ import time
 import json
 import logging
 import math
+import yaml
 from datetime import datetime, timezone
+from pathlib import Path
 import redis.asyncio as aioredis
 from quart import Quart, request, jsonify
 
@@ -21,7 +23,6 @@ app = Quart(__name__)
 
 REDIS_URL        = os.getenv('REDIS_URL', 'redis://localhost:6379')
 CACHE_TTL        = int(os.getenv('CACHE_TTL_SECONDS', '840'))   # 14 min
-COOLDOWN_SECONDS = float(os.getenv('COOLDOWN_SECONDS', '10'))
 USER_AGENT       = os.getenv('USER_AGENT', 'TRMNL-Skywatch-Plugin/1.0')
 GEO_CACHE_TTL    = 30 * 24 * 3600                               # 30 days
 ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true'
@@ -30,25 +31,48 @@ MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 50
 
-ROUTE_CACHE_TTL = 4 * 3600   # routes don't change mid-flight
-
 AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
+ROUTE_CACHE_TTL      = 4 * 3600    # routes don't change mid-flight
 OURAIRPORTS_CSV_URL  = 'https://davidmegginson.github.io/ourairports-data/airports.csv'
 OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
-RADIUS_DEG           = 1.5        # ~165 km bounding box pre-filter before precise distance check
-RADIUS_NM            = 50.0       # 50 nautical miles
+RADIUS_NM            = float(os.getenv('RADIUS_NM', '50'))
+RADIUS_DEG           = RADIUS_NM / 60.0 * 1.1  # bounding box pre-filter with margin
 NM_PER_DEG_LAT       = 60.0
 
 TRMNL_IPS: set = set()
-_airport_by_icao: dict = {}
 
 redis_client: aioredis.Redis = None
 api_queue: asyncio.Queue     = None
-last_api_call_time: float    = 0.0
 _backoff_until: float        = 0.0
 _inflight: dict              = {}   # (lat_key, lon_key, show_ground) -> Future
+_providers: list             = []
+_provider_last_call: dict    = {}   # provider name -> monotonic timestamp
+_route_semaphore: asyncio.Semaphore = None
+_adsbdb_backoff_until: float        = 0.0
 
 STATS_KEY = 'skywatch:stats'
+
+# ---------------------------------------------------------------------------
+# Providers
+# ---------------------------------------------------------------------------
+
+def _load_providers() -> list:
+    path = Path(__file__).parent / 'providers.yml'
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    providers = data.get('providers', [])
+    logger.info(f"Loaded {len(providers)} providers: {[p['name'] for p in providers]}")
+    return providers
+
+
+def select_provider() -> dict:
+    """Return the highest-priority provider (list order) that is off cooldown."""
+    now = time.monotonic()
+    for p in _providers:
+        last = _provider_last_call.get(p['name'], 0.0)
+        if now - last >= p['cooldown_ms'] / 1000.0:
+            return p
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -69,19 +93,6 @@ def cache_key(lat_key: int, lon_key: int, show_ground: bool) -> str:
 
 def geo_key(address: str) -> str:
     return f"skywatch:geo:{address.lower().strip()}"
-
-
-def route_key(icao24: str) -> str:
-    return f"skywatch:route:{icao24.strip().lower()}"
-
-
-def _airport_display(icao: str) -> dict:
-    if not icao:
-        return {}
-    a = _airport_by_icao.get(icao.upper())
-    if not a:
-        return {'code': icao, 'name': ''}
-    return {'code': a.get('iata') or icao, 'name': a.get('name', '')}
 
 
 # ---------------------------------------------------------------------------
@@ -117,18 +128,26 @@ async def _background_stats_logger():
         await asyncio.sleep(3600)
         raw = await redis_client.hgetall(STATS_KEY)
         s = {k: int(v) for k, v in raw.items()}
-        total  = s.get('requests', 0)
-        hits   = s.get('cache_hits', 0)
-        misses = s.get('cache_misses', 0)
-        dedup  = s.get('inflight_hits', 0)
-        calls  = s.get('api_calls', 0)
-        errors = s.get('api_errors', 0)
+
+        total    = s.get('requests', 0)
+        hits     = s.get('cache_hits', 0)
+        misses   = s.get('cache_misses', 0)
+        dedup    = s.get('inflight_hits', 0)
+        errors   = s.get('api_errors', 0)
         hit_rate = f"{hits/total*100:.1f}%" if total else "n/a"
+
         logger.info(
-            f"STATS | requests={total} cache_hits={hits} misses={misses} "
-            f"inflight_dedup={dedup} api_calls={calls} api_errors={errors} "
-            f"hit_rate={hit_rate}"
+            f"STATS | requests={total} cache_hits={hits}({hit_rate}) misses={misses} "
+            f"inflight_dedup={dedup} api_errors={errors}"
         )
+
+        # Per-provider breakdown
+        for p in _providers:
+            name  = p['name']
+            calls = s.get(f"calls:{name}", 0)
+            rl    = s.get(f"rate_limited:{name}", 0)
+            errs  = s.get(f"errors:{name}", 0)
+            logger.info(f"  {name}: calls={calls} rate_limited={rl} errors={errs}")
 
 
 # ---------------------------------------------------------------------------
@@ -208,10 +227,6 @@ async def _refresh_ourairports():
         })
 
     await redis_client.set(OURAIRPORTS_CACHE_KEY, json.dumps(airports))
-    _airport_by_icao.clear()
-    for a in airports:
-        if a.get('icao'):
-            _airport_by_icao[a['icao'].upper()] = a
     logger.info(f"OurAirports: {len(airports)} large/medium airports cached")
 
 
@@ -272,11 +287,202 @@ async def geocode_address(address: str):
 
 
 # ---------------------------------------------------------------------------
+# Payload helpers
+# ---------------------------------------------------------------------------
+
+def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_ground: bool, ac_key: str = 'ac') -> dict:
+    ac_list = raw_data.get(ac_key, [])
+    processed = []
+
+    for a in ac_list:
+        p_lat = a.get('lat')
+        p_lon = a.get('lon')
+        alt   = a.get('alt_baro')
+
+        if p_lat is None or p_lon is None:
+            continue
+        if not show_ground and alt == 'ground':
+            continue
+
+        dist = math.sqrt((p_lat - center_lat) ** 2 + (p_lon - center_lon) ** 2)
+        processed.append({
+            'hex':       a.get('hex', ''),
+            'flight':    (a.get('flight', '')).strip(),
+            'r':         a.get('r', ''),
+            't':         a.get('t', ''),
+            'cat':       a.get('category'),
+            'desc':      a.get('desc', ''),
+            'alt_baro':  alt,
+            'gs':        a.get('gs'),
+            'track':     a.get('track'),
+            'baro_rate': a.get('baro_rate', 0),
+            'squawk':    a.get('squawk', ''),
+            'lat':       p_lat,
+            'lon':       p_lon,
+            '_dist':     dist,
+        })
+
+    processed.sort(key=lambda x: x['_dist'])
+    closest = processed[:MAX_PLANES]
+    for p in closest:
+        del p['_dist']
+
+    return {
+        'ac':    closest,
+        'total': raw_data.get('total', len(processed)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# API queue worker
+# ---------------------------------------------------------------------------
+
+async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
+    global _backoff_until
+
+    provider = select_provider()
+    if provider is None:
+        raise Exception("All providers on cooldown")
+
+    lat, lon = tile_center(lat_key, lon_key)
+    url = provider['url'].format(lat=lat, lon=lon, radius=int(RADIUS_NM))
+    _provider_last_call[provider['name']] = time.monotonic()
+
+    t0 = time.monotonic()
+    async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
+        response = await client.get(url)
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+    if response.status_code == 429:
+        retry_after = float(response.headers.get('Retry-After', provider['cooldown_ms'] / 1000.0))
+        _provider_last_call[provider['name']] = time.monotonic() + retry_after - provider['cooldown_ms'] / 1000.0
+        _backoff_until = time.monotonic() + 1.0
+        await increment_stat(f"rate_limited:{provider['name']}")
+        logger.warning(f"RATE LIMITED: {provider['name']} retry_after={retry_after}s tile={lat_key},{lon_key}")
+        raise Exception(f"429 rate limited on {provider['name']}")
+
+    response.raise_for_status()
+    raw_data = response.json()
+
+    ac_count = len(raw_data.get(provider.get('ac_key', 'ac'), []))
+    await increment_stat(f"calls:{provider['name']}")
+    logger.info(f"API: {provider['name']} tile={lat_key},{lon_key} ac={ac_count} elapsed={elapsed_ms}ms")
+
+    reduced = reduce_payload(raw_data, lat, lon, show_ground, ac_key=provider.get('ac_key', 'ac'))
+    reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
+    reduced['provider'] = provider['name']
+
+    await set_cache(lat_key, lon_key, show_ground, reduced)
+    return reduced
+
+
+async def api_worker():
+    global _backoff_until
+
+    while True:
+        lat_key, lon_key, show_ground, fut = await api_queue.get()
+        inflight_key = (lat_key, lon_key, show_ground)
+        try:
+            if fut.done():
+                continue
+
+            # Another queued entry may have already populated the cache
+            cached = await get_from_cache(lat_key, lon_key, show_ground)
+            if cached is not None:
+                logger.info(f"WORKER CACHE HIT (dedup): {lat_key},{lon_key}")
+                if not fut.done():
+                    fut.set_result(cached)
+                continue
+
+            now        = time.monotonic()
+            sleep_time = max(0.0, _backoff_until - now)
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+
+            # If all providers still on cooldown, wait for the soonest one
+            while select_provider() is None:
+                min_wait = min(
+                    p['cooldown_ms'] / 1000.0 - (now - _provider_last_call.get(p['name'], 0.0))
+                    for p in _providers
+                )
+                logger.info(f"All providers on cooldown, waiting {min_wait:.1f}s")
+                await asyncio.sleep(max(0.05, min_wait))
+
+            data = await _do_api_call(lat_key, lon_key, show_ground)
+            if not fut.done():
+                fut.set_result(data)
+
+        except Exception as e:
+            logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
+            await increment_stat('api_errors')
+            # Track which provider errored if name is in the message
+            for p in _providers:
+                if p['name'] in str(e):
+                    await increment_stat(f"errors:{p['name']}")
+                    break
+            if not fut.done():
+                stale = await get_from_cache(lat_key, lon_key, show_ground)
+                fut.set_result(stale)
+        finally:
+            _inflight.pop(inflight_key, None)
+            api_queue.task_done()
+
+
+# ---------------------------------------------------------------------------
+# fetch_planes — cache → deduplicate → queue
+# ---------------------------------------------------------------------------
+
+async def fetch_planes(lat: float, lon: float, show_ground: bool):
+    lat_key, lon_key = tile_key(lat, lon)
+    inflight_key = (lat_key, lon_key, show_ground)
+
+    cached = await get_from_cache(lat_key, lon_key, show_ground)
+    if cached is not None:
+        logger.info(f"CACHE HIT: {lat_key},{lon_key} ground={show_ground}")
+        await increment_stat('cache_hits')
+        return cached
+
+    logger.info(f"CACHE MISS: {lat_key},{lon_key} ground={show_ground}")
+    await increment_stat('cache_misses')
+
+    # Attach to an already-queued future for the same tile
+    if inflight_key in _inflight:
+        logger.info(f"IN-FLIGHT HIT: {lat_key},{lon_key}")
+        await increment_stat('inflight_hits')
+        try:
+            return await asyncio.wait_for(asyncio.shield(_inflight[inflight_key]), timeout=QUEUE_TIMEOUT)
+        except asyncio.TimeoutError:
+            pass
+        except Exception:
+            pass
+
+    if api_queue.qsize() >= MAX_QUEUE_SIZE:
+        logger.warning(f"Queue full, returning stale cache for {lat_key},{lon_key}")
+        return cached  # may be None; caller handles it
+
+    loop = asyncio.get_event_loop()
+    fut: asyncio.Future = loop.create_future()
+    _inflight[inflight_key] = fut
+    await api_queue.put((lat_key, lon_key, show_ground, fut))
+
+    try:
+        return await asyncio.wait_for(asyncio.shield(fut), timeout=QUEUE_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.warning(f"Queue timeout, returning stale cache for {lat_key},{lon_key}")
+        stale = await get_from_cache(lat_key, lon_key, show_ground)
+        return stale
+    except Exception as e:
+        logger.error(f"fetch_planes error: {e}")
+        stale = await get_from_cache(lat_key, lon_key, show_ground)
+        return stale
+
+
+# ---------------------------------------------------------------------------
 # Route lookup (adsbdb.com)
 # ---------------------------------------------------------------------------
 
-_route_semaphore: asyncio.Semaphore = None
-_adsbdb_backoff_until: float = 0.0
+def route_key(callsign: str) -> str:
+    return f"skywatch:route:{callsign.strip().lower()}"
 
 
 def _valid_callsign(cs: str) -> bool:
@@ -394,8 +600,8 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
     for plane, route in zip(aircraft, routes):
         if not route:
             continue
-        origin = _airport_label(route.get('origin', {}), route_display)
-        dest   = _airport_label(route.get('destination', {}), route_display)
+        origin   = _airport_label(route.get('origin', {}), route_display)
+        dest     = _airport_label(route.get('destination', {}), route_display)
         progress = _route_progress(plane, route)
         if origin:
             plane['origin'] = origin
@@ -411,183 +617,7 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
 
 
 # ---------------------------------------------------------------------------
-# Payload helpers
-# ---------------------------------------------------------------------------
-
-def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_ground: bool) -> dict:
-    ac_list = raw_data.get('ac', [])
-    processed = []
-
-    for a in ac_list:
-        p_lat = a.get('lat')
-        p_lon = a.get('lon')
-        alt   = a.get('alt_baro')
-
-        if p_lat is None or p_lon is None:
-            continue
-        if not show_ground and alt == 'ground':
-            continue
-
-        dist = math.sqrt((p_lat - center_lat) ** 2 + (p_lon - center_lon) ** 2)
-        plane = {
-            'lat':      p_lat,
-            'lon':      p_lon,
-            'alt_baro': alt,
-            '_dist':    dist,
-        }
-        for k, v in [
-            ('hex',       a.get('hex', '')),
-            ('flight',    (a.get('flight', '') or '').strip()),
-            ('r',         a.get('r', '')),
-            ('t',         (a.get('t', '') or '').strip()),
-            ('cat',       a.get('category', '')),
-            ('desc',      a.get('desc', '')),
-            ('gs',        a.get('gs')),
-            ('track',     a.get('track')),
-            ('baro_rate', a.get('baro_rate')),
-            ('squawk',    a.get('squawk', '')),
-        ]:
-            if v is not None and v != '' and v != 0:
-                plane[k] = v
-        processed.append(plane)
-
-    processed.sort(key=lambda x: x['_dist'])
-    closest = processed[:MAX_PLANES]
-    for p in closest:
-        del p['_dist']
-
-    return {
-        'ac':    closest,
-        'total': raw_data.get('total', len(processed)),
-    }
-
-
-# ---------------------------------------------------------------------------
-# API queue worker
-# ---------------------------------------------------------------------------
-
-async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
-    global last_api_call_time, _backoff_until
-
-    lat, lon = tile_center(lat_key, lon_key)
-    url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/50"
-
-    t0 = time.monotonic()
-    async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
-        response = await client.get(url)
-    elapsed_ms = int((time.monotonic() - t0) * 1000)
-    last_api_call_time = time.monotonic()
-
-    if response.status_code == 429:
-        retry_after = float(response.headers.get('Retry-After', 10.0))
-        logger.warning(f"429 rate limited tile={lat_key},{lon_key} retry_after={retry_after}s")
-        await increment_stat('api_rate_limited')
-        _backoff_until = time.monotonic() + retry_after
-        raise Exception(f"429 rate limited for tile {lat_key},{lon_key}")
-
-    response.raise_for_status()
-    raw_data = response.json()
-
-    await increment_stat('api_calls')
-    ac_count = len(raw_data.get('ac', []))
-    logger.info(f"API CALL: tile={lat_key},{lon_key} ac={ac_count} status={response.status_code} elapsed={elapsed_ms}ms")
-
-    reduced = reduce_payload(raw_data, lat, lon, show_ground)
-    reduced['fetched_at_utc'] = datetime.now(timezone.utc).isoformat()
-
-    await set_cache(lat_key, lon_key, show_ground, reduced)
-    return reduced
-
-
-async def api_worker():
-    global last_api_call_time, _backoff_until
-
-    while True:
-        lat_key, lon_key, show_ground, fut = await api_queue.get()
-        inflight_key = (lat_key, lon_key, show_ground)
-        try:
-            if fut.done():
-                continue
-
-            # Another queued entry may have already populated the cache
-            cached = await get_from_cache(lat_key, lon_key, show_ground)
-            if cached is not None:
-                logger.info(f"WORKER CACHE HIT (dedup): {lat_key},{lon_key}")
-                if not fut.done():
-                    fut.set_result(cached)
-                continue
-
-            now        = time.monotonic()
-            sleep_time = max(0.0, _backoff_until - now, COOLDOWN_SECONDS - (now - last_api_call_time))
-            if sleep_time > 0:
-                await asyncio.sleep(sleep_time)
-
-            data = await _do_api_call(lat_key, lon_key, show_ground)
-            if not fut.done():
-                fut.set_result(data)
-
-        except Exception as e:
-            logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
-            await increment_stat('api_errors')
-            if not fut.done():
-                stale = await get_from_cache(lat_key, lon_key, show_ground)
-                fut.set_result(stale)
-        finally:
-            _inflight.pop(inflight_key, None)
-            api_queue.task_done()
-
-
-# ---------------------------------------------------------------------------
-# fetch_planes — cache → deduplicate → queue
-# ---------------------------------------------------------------------------
-
-async def fetch_planes(lat: float, lon: float, show_ground: bool):
-    lat_key, lon_key = tile_key(lat, lon)
-    inflight_key = (lat_key, lon_key, show_ground)
-
-    cached = await get_from_cache(lat_key, lon_key, show_ground)
-    if cached is not None:
-        logger.info(f"CACHE HIT: {lat_key},{lon_key} ground={show_ground}")
-        await increment_stat('cache_hits')
-        return cached
-
-    logger.info(f"CACHE MISS: {lat_key},{lon_key} ground={show_ground}")
-    await increment_stat('cache_misses')
-
-    # Attach to an already-queued future for the same tile
-    if inflight_key in _inflight:
-        logger.info(f"IN-FLIGHT HIT: {lat_key},{lon_key}")
-        await increment_stat('inflight_hits')
-        try:
-            return await asyncio.wait_for(asyncio.shield(_inflight[inflight_key]), timeout=QUEUE_TIMEOUT)
-        except asyncio.TimeoutError:
-            pass
-        except Exception:
-            pass
-
-    if api_queue.qsize() >= MAX_QUEUE_SIZE:
-        logger.warning(f"Queue full, returning stale cache for {lat_key},{lon_key}")
-        return cached  # may be None; caller handles it
-
-    loop = asyncio.get_event_loop()
-    fut: asyncio.Future = loop.create_future()
-    _inflight[inflight_key] = fut
-    await api_queue.put((lat_key, lon_key, show_ground, fut))
-
-    try:
-        return await asyncio.wait_for(asyncio.shield(fut), timeout=QUEUE_TIMEOUT)
-    except asyncio.TimeoutError:
-        logger.warning(f"Queue timeout, returning stale cache for {lat_key},{lon_key}")
-        stale = await get_from_cache(lat_key, lon_key, show_ground)
-        return stale
-    except Exception as e:
-        logger.error(f"fetch_planes error: {e}")
-        stale = await get_from_cache(lat_key, lon_key, show_ground)
-        return stale
-
-
-# ---------------------------------------------------------------------------
-# Routes
+# HTTP handlers
 # ---------------------------------------------------------------------------
 
 @app.route('/')
@@ -595,9 +625,9 @@ async def get_planes():
     if not check_ip_whitelist():
         return jsonify({'error': 'Access denied'}), 403
 
-    lat        = request.args.get('lat', type=float)
-    lon        = request.args.get('lon', type=float)
-    address    = request.args.get('address', type=str)
+    lat           = request.args.get('lat', type=float)
+    lon           = request.args.get('lon', type=float)
+    address       = request.args.get('address', type=str)
     show_ground   = request.args.get('show_ground', 'false').lower() == 'true'
     route_display = request.args.get('route_display', 'codes')
 
@@ -645,11 +675,11 @@ async def health():
         pass
 
     return jsonify({
-        'status':                  'healthy' if redis_ok else 'degraded',
-        'redis':                   redis_ok,
-        'ip_whitelist':            ENABLE_IP_WHITELIST,
-        'queue_size':              api_queue.qsize() if api_queue else 0,
-        'inflight':                len(_inflight),
+        'status':       'healthy' if redis_ok else 'degraded',
+        'redis':        redis_ok,
+        'ip_whitelist': ENABLE_IP_WHITELIST,
+        'queue_size':   api_queue.qsize() if api_queue else 0,
+        'inflight':     len(_inflight),
     })
 
 
@@ -667,9 +697,11 @@ async def _background_ip_refresh():
 
 @app.before_serving
 async def startup():
-    global api_queue, redis_client, TRMNL_IPS, _route_semaphore
+    global api_queue, redis_client, TRMNL_IPS, _providers, _route_semaphore
 
-    _route_semaphore = asyncio.Semaphore(5)
+    _providers = _load_providers()
+    _route_semaphore = asyncio.Semaphore(5)  # max 5 concurrent adsbdb requests
+
     redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
     await redis_client.ping()
     logger.info(f"Redis connected: {REDIS_URL}")
