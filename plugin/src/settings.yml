@@ -1,6 +1,6 @@
 ---
 strategy: polling
-no_screen_padding: 'yes'
+no_screen_padding: 'no'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
