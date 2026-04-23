@@ -4,11 +4,11 @@ no_screen_padding: 'no'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
-framework_version: 
-serverless_language: 
+framework_version: 3.0.3
+serverless_language: ''
 polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}'
 polling_headers: ''
-polling_body: 
+polling_body: ''
 id: 286469
 custom_fields:
 - keyname: author_info
@@ -21,7 +21,7 @@ custom_fields:
     <br /><br /><strong>Airports</strong><br /> Large and medium airports marked with crosshair and IATA code. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/AIRPORTS.md" target="_blank">Full airport list →</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">Display guide →</a>
     <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a>, <a href="https://adsb.fi" target="_blank">adsb.fi</a>, and <a href="https://adsb.one" target="_blank">adsb.one</a> · Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>  github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md
-  category: travel
+  category: travel,environment
   help_text: TRMNL X Ready
 - keyname: address
   field_type: string
