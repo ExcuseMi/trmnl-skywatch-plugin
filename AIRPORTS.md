@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-23.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-24.
 
 **4566 airports** across 236 countries.
 
@@ -2138,7 +2138,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | LEH | LFOH | Le Havre-Octeville Airport | Le Havre | FR |
 | LEI | LEAM | Almería Airport | Almería | ES |
 | LEJ | EDDP | Leipzig/Halle Airport | Schkeuditz | DE |
-| LEN | LELN | León Int'l Airport | La Virgen Del Camino | ES |
+| LEN | LELN | León Airport | La Virgen del Camino | ES |
 | LER | YLST | Leinster Airport |  | AU |
 | LET | SKLT | Alfredo Vásquez Cobo International Airport | Leticia | CO |
 | LEU | LESU | Pirineus - la Seu d'Urgel Airport | La Seu d'Urgell Pyrenees and Andorra | ES |
