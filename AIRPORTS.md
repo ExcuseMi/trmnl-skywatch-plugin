@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-25.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-26.
 
-**4566 airports** across 236 countries.
+**4567 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -448,6 +448,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BMM | FOOB | Bitam Airport | Bitam | GA |
 | BMU | WADB | Sultan Muhammad Salahuddin Airport | Bima | ID |
 | BMV | VVBM | Buon Ma Thuot Airport | Buon Ma Thuot | VN |
+| BMW | DATM | Bordj Badji Mokhtar Airport | Bordj Badji Mokhtar | DZ |
 | BNA | KBNA | Nashville International Airport | Nashville | US |
 | BND | OIKB | Bandar Abbas International Airport | Bandar Abbas | IR |
 | BNE | YBBN | Brisbane International Airport | Brisbane | AU |
@@ -3766,7 +3767,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | TIK | KTIK | Tinker Air Force Base | Oklahoma City | US |
 | TIM | WAYY | Mozes Kilangin Airport | Timika | ID |
 | TIN | DAOF | Tindouf Airport | Tindouf | DZ |
-| TIQ | PGWT | Tinian International Airport | Tinian Island | MP |
+| TIQ | PGWT | Francisco Manglona Borja / Tinian International Airport | Tinian Island | MP |
 | TIR | VOTP | Tirupati International Airport | Tirupati | IN |
 | TIU | NZTU | Timaru Airport |  | NZ |
 | TIV | LYTV | Tivat Airport | Tivat | ME |
