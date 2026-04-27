@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-26.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-27.
 
-**4567 airports** across 236 countries.
+**4565 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -925,7 +925,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | DGA | MZPB | Dangriga Airport | Dangriga | BZ |
 | DGE | YMDG | Mudgee Airport | Mudgee | AU |
 | DGO | MMDO | General Guadalupe Victoria International Airport | Durango | MX |
-| DGP | EVDA | Daugavpils International Airport | Daugavpils | LV |
 | DGT | RPVD | Sibulan Airport | Dumaguete City | PH |
 | DHA | OEDR | King Abdulaziz Air Base | Dhahran | SA |
 | DHF | OMAM | Al Dhafra Air Base |  | AE |
@@ -3186,7 +3185,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | QNS | SBCO | Canoas Air Force Base | Porto Alegre | BR |
 | QOW | DNIM | Sam Mbakwe International Cargo Airport | Owerri | NG |
 | QPG | WSAP | Paya Lebar Air Base | Paya Lebar | SG |
-| QPS | SBYS | Campo Fontenelle | Pirassununga | BR |
 | QRA | FAGM | Rand Airport | Johannesburg | ZA |
 | QRM | YNRM | Narromine Airport |  | AU |
 | QRO | MMQT | Querétaro Intercontinental Airport | Querétaro | MX |
