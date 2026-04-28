@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-27.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-28.
 
-**4565 airports** across 236 countries.
+**4562 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -3178,9 +3178,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | QBC | CYBD | Bella Coola Airport | Bella Coola | CA |
 | QCY | EGXC | RAF Coningsby | Lincoln, Lincolnshire | GB |
 | QGU | RJNG | Gifu Airport | Gifu | JP |
-| QGY | LHPR | Győr-Pér Airport | Győr | HU |
 | QHR | HAHM | Harar Meda Airport | Debre Zeyit | ET |
-| QLG | EDML | Landshut Airfield | Landshut | DE |
 | QMJ | OIAI | Shahid Asiyaee Airport | Masjed Soleyman | IR |
 | QNS | SBCO | Canoas Air Force Base | Porto Alegre | BR |
 | QOW | DNIM | Sam Mbakwe International Cargo Airport | Owerri | NG |
@@ -4085,7 +4083,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VLL | LEVD | Valladolid Airport | Valladolid | ES |
 | VLM | SLVM | Teniente Coronel Rafael Pabón Airport | Villamontes | BO |
 | VLN | SVVA | Arturo Michelena International Airport | Valencia | VE |
-| VLO | AL-0019 | (Duplicate)Vlora International Airport | Vlorë | AL |
 | VLR | SCLL | Vallenar Airport | Vallenar | CL |
 | VLV | SVVL | Dr. Antonio Nicolás Briceño Airport | Valera | VE |
 | VLY | EGOV | Anglesey Airport | Angelsey | GB |
