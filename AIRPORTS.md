@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-28.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-29.
 
-**4562 airports** across 236 countries.
+**4563 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -3956,6 +3956,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | UIO | SEQM | Mariscal Sucre International Airport | Quito | EC |
 | UIP | LFRQ | Quimper-Cornouaille Airport | Quimper/Pluguffan | FR |
 | UKB | RJBE | Kobe Airport | Kobe | JP |
+| UKE | VEUK | Utkela Airport | Bhawanipatna | IN |
 | UKI | KUKI | Ukiah Municipal Airport | Ukiah | US |
 | UKK | UASK | Oskemen International Airport | Ust-Kamenogorsk (Oskemen) | KZ |
 | UKS | UKFB | Sevastopol International Airport / Belbek Air Base | Sevastopol | UA |
