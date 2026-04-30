@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-29.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-04-30.
 
 **4563 airports** across 236 countries.
 
@@ -4150,7 +4150,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | WEH | ZSWH | Weihai Dashuibo Airport | Weihai | CN |
 | WEI | YBWP | Weipa Airport | Weipa | AU |
 | WFI | FMSF | Fianarantsoa Airport | Fianarantsoa | MG |
-| WFR | AT98 | (Duplicate)Wolf's Fang Runway | Queen Maud Island | AQ |
+| WFR | AT98 | [Duplicate] Wolf's Fang Runway | Queen Maud Island | AQ |
 | WGA | YSWG | Wagga Wagga Airport | Forest Hill | AU |
 | WGE | YWLG | Walgett Airport |  | AU |
 | WGN | ZGSY | Shaoyang Wugang Airport | Shaoyang (Wugang) | CN |
@@ -4200,7 +4200,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | WRL | KWRL | Worland Municipal Airport | Worland | US |
 | WRO | EPWR | Copernicus Wrocław Airport | Wrocław | PL |
 | WRT | EGNO | Warton Aerodrome | Warton | GB |
-| WSI | YSWS | (Duplicate)Western Sydney International Airport | Sydney | AU |
+| WSI | YSWS | [Duplicate] Western Sydney International Airport | Sydney | AU |
 | WST | KWST | Westerly State Airport | Westerly | US |
 | WSZ | NZWS | Westport Airport | Westport | NZ |
 | WTB | YBWW | Toowoomba Wellcamp Airport | Toowoomba | AU |
