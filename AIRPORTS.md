@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-01.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-02.
 
 **4563 airports** across 236 countries.
 
@@ -3305,7 +3305,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ROV | URRP | Platov International Airport | Rostov-on-Don | RU |
 | ROW | KROW | Roswell Air Center Airport | Roswell | US |
 | ROZ | LERT | Rota Naval Station Airport | Rota | ES |
-| RPM | YNGU | Ngukurr Airport |  | AU |
+| RPM | YNGU | Ngukurr Airport | Roper River | AU |
 | RPN | LLIB | Rosh Pina Airport | Rosh Pina | IL |
 | RPR | VERP | Swami Vivekananda Airport | Raipur | IN |
 | RQA | ZWRQ | Ruoqiang Loulan Airport | Ruoqiang Town | CN |
