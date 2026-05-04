@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-03.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-04.
 
-**4563 airports** across 236 countries.
+**4562 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -3002,7 +3002,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PIA | KPIA | General Wayne A. Downing Peoria International Airport | Peoria | US |
 | PIB | KPIB | Hattiesburg Laurel Regional Airport | Moselle | US |
 | PIE | KPIE | St. Petersburg Clearwater International Airport | Pinellas Park | US |
-| PIF | RCSQ | Pingtung Air Force Base North | Pingtung | TW |
 | PIH | KPIH | Pocatello Regional Airport | Pocatello | US |
 | PIK | EGPK | Glasgow Prestwick Airport | Prestwick, South Ayrshire | GB |
 | PIL | SGPI | Aeródromo Don Carlos Miguel Gimenez | Pilar | PY |
@@ -4234,7 +4233,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | XIC | ZUXC | Xichang Qingshan Airport | Liangshan (Xichang) | CN |
 | XIJ | OKAJ | Ahmed Al Jaber Air Base | Ahmed Al Jaber AB | KW |
 | XIL | ZBXH | Xilinhot Airport | Xilinhot | CN |
-| XIY | ZLXY | Xi'an Xianyang International Airport | Xianyang (Weicheng) | CN |
+| XIY | ZLXY | Xi'an Xianyang International Airport | Xi'an | CN |
 | XJD | OTBH | Al Udeid Air Base | Ar Rayyan | QA |
 | XJM | OPMA | Mangla Airport | Mangla | PK |
 | XKS | CYAQ | Kasabonika Airport | Kasabonika | CA |
