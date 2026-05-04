@@ -29,7 +29,7 @@ ENABLE_IP_WHITELIST = os.getenv('ENABLE_IP_WHITELIST', 'false').lower() == 'true
 IP_REFRESH_HOURS = 24
 MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
-MAX_PLANES       = 50
+MAX_PLANES       = 30
 
 AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
 ROUTE_CACHE_TTL      = 4 * 3600    # routes don't change mid-flight
