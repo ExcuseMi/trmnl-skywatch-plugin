@@ -36,8 +36,19 @@ ROUTE_CACHE_TTL      = 4 * 3600    # routes don't change mid-flight
 OURAIRPORTS_CSV_URL  = 'https://davidmegginson.github.io/ourairports-data/airports.csv'
 OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
 RADIUS_NM            = float(os.getenv('RADIUS_NM', '50'))
+FETCH_RADIUS_NM      = RADIUS_NM + 25.0
 RADIUS_DEG           = RADIUS_NM / 60.0 * 1.1  # bounding box pre-filter with margin
 NM_PER_DEG_LAT       = 60.0
+MAX_CACHE_PLANES     = 250
+
+def haversine_nm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distance between two points in nautical miles using Haversine formula."""
+    R = 3440.065  # Radius of Earth in nautical miles
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 TRMNL_IPS: set = set()
 
@@ -237,7 +248,7 @@ async def _background_ourairports():
         await asyncio.sleep(AIRPORT_CACHE_TTL)
 
 
-async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> list:
+async def fetch_airports(lat_key: int, lon_key: int) -> list:
     key = airport_cache_key(lat_key, lon_key)
     raw = await redis_client.get(key)
     if raw:
@@ -247,16 +258,14 @@ async def fetch_airports(lat: float, lon: float, lat_key: int, lon_key: int) -> 
     if not all_airports:
         return []
 
-    cos_lat = math.cos(math.radians(lat))
+    t_lat, t_lon = tile_center(lat_key, lon_key)
     nearby = []
     for a in all_airports:
-        dlat = a['lat'] - lat
-        dlon = (a['lon'] - lon) * cos_lat
-        if math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG_LAT <= RADIUS_NM:
+        if haversine_nm(t_lat, t_lon, a['lat'], a['lon']) <= FETCH_RADIUS_NM:
             nearby.append(a)
 
     await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(nearby))
-    logger.info(f"Airports for tile {lat_key},{lon_key}: {len(nearby)} within {RADIUS_NM}nm")
+    logger.info(f"Airports for tile {lat_key},{lon_key}: {len(nearby)} within {FETCH_RADIUS_NM}nm")
     return nearby
 
 
@@ -304,7 +313,10 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
         if not show_ground and alt == 'ground':
             continue
 
-        dist = math.sqrt((p_lat - center_lat) ** 2 + (p_lon - center_lon) ** 2)
+        dist = haversine_nm(p_lat, p_lon, center_lat, center_lon)
+        if dist > FETCH_RADIUS_NM:
+            continue
+
         processed.append({
             'hex':       a.get('hex', ''),
             'flight':    (a.get('flight', '')).strip(),
@@ -323,7 +335,7 @@ def reduce_payload(raw_data: dict, center_lat: float, center_lon: float, show_gr
         })
 
     processed.sort(key=lambda x: x['_dist'])
-    closest = processed[:MAX_PLANES]
+    closest = processed[:MAX_CACHE_PLANES]
     for p in closest:
         del p['_dist']
 
@@ -345,7 +357,7 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
         raise Exception("All providers on cooldown")
 
     lat, lon = tile_center(lat_key, lon_key)
-    url = provider['url'].format(lat=lat, lon=lon, radius=int(RADIUS_NM))
+    url = provider['url'].format(lat=lat, lon=lon, radius=int(FETCH_RADIUS_NM))
     _provider_last_call[provider['name']] = time.monotonic()
 
     t0 = time.monotonic()
@@ -643,26 +655,60 @@ async def get_planes():
 
     await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
-    data, airports = await asyncio.gather(
+    raw_data, tile_airports = await asyncio.gather(
         fetch_planes(lat, lon, show_ground),
-        fetch_airports(lat, lon, lat_key, lon_key),
+        fetch_airports(lat_key, lon_key),
     )
-    if data:
-        await enrich_with_routes(data.get('ac', []), route_display)
-        data['lat']      = lat
-        data['lon']      = lon
-        data['airports'] = airports
+
+    if raw_data:
+        # Precision filter aircraft to user's exact location
+        user_ac = []
+        for p in raw_data.get('ac', []):
+            dist = haversine_nm(lat, lon, p['lat'], p['lon'])
+            if dist <= RADIUS_NM:
+                p['_dist'] = dist
+                user_ac.append(p)
+
+        user_ac.sort(key=lambda x: x['_dist'])
+        for p in user_ac:
+            del p['_dist']
+
+        # Slice to MAX_PLANES for the final response
+        data = {
+            'ac':    user_ac[:MAX_PLANES],
+            'total': len(user_ac),
+            'lat':   lat,
+            'lon':   lon,
+            'provider': raw_data.get('provider'),
+            'fetched_at_utc': raw_data.get('fetched_at_utc')
+        }
+
+        # Precision filter airports
+        data['airports'] = [
+            a for a in tile_airports
+            if haversine_nm(lat, lon, a['lat'], a['lon']) <= RADIUS_NM
+        ]
+
+        await enrich_with_routes(data['ac'], route_display)
         return jsonify({'data': data})
+
     return jsonify({'error': 'Failed to fetch data'}), 500
 
 
 @app.route('/debug/airports')
 async def debug_airports():
-    lat = request.args.get('lat', type=float, default=51.5074)
-    lon = request.args.get('lon', type=float, default=-0.1278)
+    lat = request.args.get('lat', type=float, default=34.0)
+    lon = request.args.get('lon', type=float, default=-118.0)
     lat_key, lon_key = tile_key(lat, lon)
-    airports = await fetch_airports(lat, lon, lat_key, lon_key)
-    return jsonify({'tile': [lat_key, lon_key], 'count': len(airports), 'airports': airports})
+    airports = await fetch_airports(lat_key, lon_key)
+    filtered = [a for a in airports if haversine_nm(lat, lon, a['lat'], a['lon']) <= RADIUS_NM]
+    return jsonify({
+        'user': [lat, lon],
+        'tile': [lat_key, lon_key],
+        'total_in_tile': len(airports),
+        'count_near_user': len(filtered),
+        'airports': filtered
+    })
 
 
 @app.route('/health')
