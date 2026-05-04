@@ -19,7 +19,7 @@ custom_fields:
     <br /><br /><strong>Labels</strong><br /> Callsign · aircraft type · altitude · speed. Brightness reflects altitude. Emergency squawks flagged automatically.
     <br /><br /><strong>Routes</strong><br /> Origin → destination labels powered by <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a>. Progress bar shows position along the route.
     <br /><br /><strong>Airports</strong><br /> Large and medium airports marked with crosshair and IATA code. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/AIRPORTS.md" target="_blank">Full airport list →</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">Display guide →</a>
-    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a>, <a href="https://adsb.fi" target="_blank">adsb.fi</a>, and <a href="https://adsb.one" target="_blank">adsb.one</a> · Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
+    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a> and <a href="https://adsb.fi" target="_blank">adsb.fi</a>· Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md
   category: travel,environment
@@ -72,6 +72,56 @@ custom_fields:
   name: Show Ground Traffic
   description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
+  optional: true
+- keyname: tile_style
+  field_type: select
+  name: Map Style
+  description: <strong>Free (CartoDB)</strong> — no account needed. Light or dark follows your display setting.<br /><br /> <strong>Stamen styles</strong> — high-contrast monochrome tiles optimised for e-ink. A free <a href="https://client.stadiamaps.com/signup/" target="_blank">Stadia Maps</a> API key is required (free account, 200,000 tile credits/month included).
+  help_text: <a href="https://docs.stadiamaps.com/themes/" target="_blank">Preview all map styles →</a>
+  options:
+  - 'Free: CartoDB Dark': cartodb_dark
+  - 'Free: CartoDB Light': cartodb_light
+  - 'Stamen: Toner (B&W)': stamen_toner
+  - 'Stamen: Toner Lite': stamen_toner_lite
+  - 'Stamen: Toner Dark': stamen_toner_dark
+  - 'Stamen: Toner Blacklite': stamen_toner_blacklite
+  - 'Stamen: Toner Background (no labels)': stamen_toner_background
+  - 'Stamen: Terrain': stamen_terrain
+  - 'Stamen: Watercolor': stamen_watercolor
+  default: cartodb_dark
+  optional: true
+  conditional_validation:
+  - when: cartodb_dark
+    hidden:
+    - stadia_api_key
+  - when: cartodb_light
+    hidden:
+    - stadia_api_key
+  - when: stamen_toner
+    required:
+    - stadia_api_key
+  - when: stamen_toner_lite
+    required:
+    - stadia_api_key
+  - when: stamen_toner_dark
+    required:
+    - stadia_api_key
+  - when: stamen_toner_blacklite
+    required:
+    - stadia_api_key
+  - when: stamen_toner_background
+    required:
+    - stadia_api_key
+  - when: stamen_terrain
+    required:
+    - stadia_api_key
+  - when: stamen_watercolor
+    required:
+    - stadia_api_key
+- keyname: stadia_api_key
+  field_type: password
+  name: Stadia Maps API Key
+  description: Required for Stamen styles.<br /><br />Free account — get your key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a><br />200,000 tile credits/month included.
   optional: true
 name: SkyWatch
 refresh_interval: 15

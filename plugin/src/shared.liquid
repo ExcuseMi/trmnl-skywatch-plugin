@@ -47,7 +47,8 @@
   var total      = {{ data.total | default: 0 }};
   var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
   var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
-  var mapStyle   = 'cartodb_dark';
+  var tileStyle  = '{{ trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" }}';
+  var stadiaKey  = '{{ trmnl.plugin_settings.custom_fields_values.stadia_api_key }}';
   var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
   var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
   var view       = {{ view | default: 1 }};
@@ -133,10 +134,10 @@
           patt.setAttribute('x', px);  patt.setAttribute('y', py);
           patt.setAttribute('width', T); patt.setAttribute('height', T);
           var img = document.createElementNS(ns, 'image');
-          var useDark = darkMode || mapStyle === 'cartodb_dark';
-          var url = useDark
-            ? ('https://a.basemaps.cartocdn.com/dark_all/'  + z + '/' + tx + '/' + ty + '.png')
-            : ('https://a.basemaps.cartocdn.com/light_all/' + z + '/' + tx + '/' + ty + '.png');
+          var url = tileStyle === 'cartodb_dark' || tileStyle === 'cartodb_light'
+            ? ('https://a.basemaps.cartocdn.com/' + (tileStyle === 'cartodb_dark' ? 'dark_all' : 'light_all') + '/' + z + '/' + tx + '/' + ty + '.png')
+            : ('https://tiles.stadiamaps.com/tiles/' + tileStyle + '/' + z + '/' + tx + '/' + ty + '.png'
+                + (stadiaKey ? '?api_key=' + stadiaKey : ''));
           img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
           img.setAttribute('width', T); img.setAttribute('height', T);
           patt.appendChild(img);
@@ -154,7 +155,7 @@
       var g = container.querySelector('#sky-center-' + instanceId);
       if (!g) return;
       var pos = ll2px(centerLat, centerLon);
-      var useDark = darkMode || mapStyle === 'cartodb_dark';
+      var useDark = darkMode || tileStyle === 'cartodb_dark';
       var fillColor = useDark ? '#ffffff' : '#000000';
 
       var path = document.createElementNS(ns, 'path');
@@ -220,6 +221,7 @@
         var sym = document.createElementNS(ns, 'symbol');
         sym.setAttribute('id', 'icon-' + key + '-' + instanceId);
         sym.setAttribute('viewBox', icon.v);
+        sym.setAttribute('overflow', 'visible');
         var paths = icon.paths || [{ d: icon.d, f: icon.f }];
         paths.forEach(function(pd) {
           var g = document.createElementNS(ns, 'g');
@@ -275,7 +277,7 @@
       var layer = container.querySelector('#sky-planes-' + instanceId);
       if (!layer) return;
       var sc = view >= 3 ? 1.1 : 1.6;
-      var useDark = darkMode || mapStyle === 'cartodb_dark';
+      var useDark = darkMode || tileStyle === 'cartodb_dark';
       var planeColor = useDark ? '#ffffff' : '#000000';
       var lineColor = useDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
       var iconHalf = 12 * sc;
@@ -340,19 +342,12 @@
       }
 
       function altPlaneColor(alt) {
-        if (alt === 'ground' || alt == null) return useDark ? '#777777' : '#888888';
+        if (alt === 'ground' || alt == null) return '#999999';
         var ft = unit === 'imperial' ? +alt : +alt / 0.3048;
-        if (useDark) {
-          if (ft < 5000)  return '#aaaaaa';
-          if (ft < 15000) return '#cccccc';
-          if (ft < 30000) return '#eeeeee';
-          return '#ffffff';
-        } else {
-          if (ft < 5000)  return '#555555';
-          if (ft < 15000) return '#333333';
-          if (ft < 30000) return '#111111';
-          return '#000000';
-        }
+        if (ft < 5000)  return '#aaaaaa';
+        if (ft < 15000) return '#cccccc';
+        if (ft < 30000) return '#eeeeee';
+        return '#ffffff';
       }
 
       var SQUAWK_LABELS = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
@@ -398,7 +393,7 @@
         use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+instanceId);
         use.setAttribute('width','24'); use.setAttribute('height','24');
         use.setAttribute('x','-12'); use.setAttribute('y','-12');
-        use.setAttribute('fill', SQUAWK_LABELS[p.squawk] ? (useDark ? '#ffffff' : '#000000') : altPlaneColor(p.alt_baro));
+        use.setAttribute('fill', SQUAWK_LABELS[p.squawk] ? '#ffffff' : altPlaneColor(p.alt_baro));
         use.setAttribute('stroke', 'none');
         g.appendChild(use);
         layer.appendChild(g);
@@ -510,7 +505,7 @@
     function renderAirports() {
       var layer = container.querySelector('#sky-airports-' + instanceId);
       if (!layer || !airports || airports.length === 0) return;
-      var useDark = darkMode || mapStyle === 'cartodb_dark';
+      var useDark = darkMode || tileStyle === 'cartodb_dark';
       airports.forEach(function(a) {
         if (a.lat == null || a.lon == null) return;
         var pos = ll2px(a.lat, a.lon);
