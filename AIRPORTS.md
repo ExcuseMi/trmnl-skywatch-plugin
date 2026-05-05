@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-04.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-05.
 
 **4562 airports** across 236 countries.
 
@@ -404,7 +404,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BJC | KBJC | Rocky Mountain Metropolitan Airport | Denver | US |
 | BJF | ENBS | Båtsfjord Airport | Båtsfjord | NO |
 | BJI | KBJI | Bemidji Regional Airport | Bemidji | US |
-| BJL | GBYD | Banjul International Airport | Yundum | GM |
+| BJL | GBYD | Banjul International Airport | Banjul (Yundum) | GM |
 | BJM | HBBA | Bujumbura Melchior Ndadaye International Airport | Bujumbura | BI |
 | BJO | SLBJ | Bermejo Airport | Bermejo | BO |
 | BJR | HABD | Bahir Dar Airport | Bahir Dar | ET |
