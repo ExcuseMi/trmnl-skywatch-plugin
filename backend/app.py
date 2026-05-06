@@ -361,7 +361,7 @@ async def _do_api_call(lat_key: int, lon_key: int, show_ground: bool) -> dict:
     _provider_last_call[provider['name']] = time.monotonic()
 
     t0 = time.monotonic()
-    async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
+    async with httpx.AsyncClient(timeout=4.0, headers={'User-Agent': USER_AGENT}) as client:
         response = await client.get(url)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
@@ -753,7 +753,8 @@ async def startup():
     logger.info(f"Redis connected: {REDIS_URL}")
 
     api_queue = asyncio.Queue()
-    asyncio.ensure_future(api_worker())
+    for _ in range(3):
+        asyncio.ensure_future(api_worker())
     asyncio.ensure_future(_background_ourairports())
     asyncio.ensure_future(_background_stats_logger())
 
