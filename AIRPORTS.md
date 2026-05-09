@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-08.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-09.
 
-**4562 airports** across 236 countries.
+**4563 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -2471,6 +2471,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MMD | ROMD | Minamidaito Airport | Minamidaito | JP |
 | MME | EGNV | Teesside International Airport | Darlington, Durham | GB |
 | MMG | YMOG | Mount Magnet Airport |  | AU |
+| MMH | KMMH | Mammoth Yosemite Airport | Mammoth Lakes | US |
 | MMJ | RJAF | Shinshu-Matsumoto Airport | Matsumoto | JP |
 | MMK | ULMM | Emperor Nicholas II Murmansk Airport | Murmansk | RU |
 | MMO | GVMA | Maio Airport | Vila do Maio | CV |
@@ -2720,7 +2721,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | NOI | RU-0089 | Krymsk Air Base | Krymsk | RU |
 | NOJ | USRO | Noyabrsk Airport | Noyabrsk | RU |
 | NOP | LTCM | Sinop Airport | Sinop | TR |
-| NOS | FMNN | Nosy Be-Fascene International Airport | Nosy Be | MG |
+| NOS | FMNN | Nosy Be International Airport | Nosy Be | MG |
 | NOU | NWWW | La Tontouta International Airport | Nouméa (La Tontouta) | NC |
 | NOV | FNHU | Albano Machado Airport | Huambo | AO |
 | NOZ | UNWW | Spichenkovo Airport | Novokuznetsk | RU |
