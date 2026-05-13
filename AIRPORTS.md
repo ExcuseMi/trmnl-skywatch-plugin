@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-12.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-13.
 
 **4563 airports** across 236 countries.
 
@@ -2704,7 +2704,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | NLO | FZAB | Ndolo Airport | N'dolo | CD |
 | NLT | ZWNL | Xinyuan Nalati Airport | Xinyuan | CN |
 | NLU | MMSM | Felipe Ángeles International Airport | Mexico City | MX |
-| NMA | UTFN | Namangan International Airport | Namangan | UZ |
+| NMA | UZFN | Namangan International Airport | Namangan | UZ |
 | NMB | VADN | Daman Airport | Daman | IN |
 | NMC | MYEN | Normans Cay Airport | Normans Cay | BS |
 | NMF | VRDA | Maafaru International Airport | Noonu Atoll | MV |
