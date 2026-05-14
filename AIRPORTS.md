@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-13.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-14.
 
 **4563 airports** across 236 countries.
 
@@ -3946,7 +3946,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | UET | OPQT | Quetta International Airport | Quetta | PK |
 | UFA | UWUU | Ufa International Airport | Ufa | RU |
 | UGA | ZMBN | Bulgan Airport | Bulgan | MN |
-| UGC | UTNU | Urgench International Airport | Urgench | UZ |
+| UGC | UZNU | Urgench International Airport | Urgench | UZ |
 | UGO | FNUG | Uige Airport | Uige | AO |
 | UGU | WAYB | Bilorai Airport | Bilogai | ID |
 | UHE | LKKU | Kunovice Airport | Uherské Hradiště | CZ |
