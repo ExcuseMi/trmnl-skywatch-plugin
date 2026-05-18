@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-17.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-18.
 
 **4563 airports** across 236 countries.
 
