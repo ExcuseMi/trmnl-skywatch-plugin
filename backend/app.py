@@ -31,6 +31,8 @@ MAX_QUEUE_SIZE   = 20
 QUEUE_TIMEOUT    = 5.0
 MAX_PLANES       = 30
 
+STATS_STARTED_AT_KEY = 'skywatch:stats:started_at'
+
 AIRPORT_CACHE_TTL    = 24 * 3600   # airports barely change
 ROUTE_CACHE_TTL      = 4 * 3600    # routes don't change mid-flight
 OURAIRPORTS_CSV_URL  = 'https://davidmegginson.github.io/ourairports-data/airports.csv'
@@ -134,25 +136,46 @@ async def increment_stat(field: str, amount: int = 1):
 
 
 async def _background_stats_logger():
-    """Log a stats summary every hour."""
+    """Log a stats summary every hour, including period and rates."""
     while True:
         await asyncio.sleep(3600)
+        now = datetime.now(timezone.utc)
         raw = await redis_client.hgetall(STATS_KEY)
-        s = {k: int(v) for k, v in raw.items()}
+        s   = {k: int(v) for k, v in raw.items()}
 
-        total    = s.get('requests', 0)
-        hits     = s.get('cache_hits', 0)
-        misses   = s.get('cache_misses', 0)
-        dedup    = s.get('inflight_hits', 0)
-        errors   = s.get('api_errors', 0)
-        hit_rate = f"{hits/total*100:.1f}%" if total else "n/a"
+        total  = s.get('requests', 0)
+        hits   = s.get('cache_hits', 0)
+        misses = s.get('cache_misses', 0)
+        dedup  = s.get('inflight_hits', 0)
+        errors = s.get('api_errors', 0)
+
+        hit_pct = f"{hits/total*100:.1f}%" if total else "n/a"
+        err_pct = f"{errors/total*100:.2f}%" if total else "n/a"
+
+        started_str = await redis_client.get(STATS_STARTED_AT_KEY)
+        if started_str:
+            started     = datetime.fromisoformat(started_str)
+            period_secs = max(1, (now - started).total_seconds())
+            period_days = period_secs / 86400
+            period_hrs  = period_secs / 3600
+            req_day     = int(total / period_days)
+            req_hr      = int(total / period_hrs)
+            upstream    = sum(s.get(f"calls:{p['name']}", 0) for p in _providers)
+            up_day      = int(upstream / period_days)
+            up_hr       = int(upstream / period_hrs)
+            period_tag  = f"since {started_str[:16]}Z ({period_days:.1f}d)"
+        else:
+            req_day = req_hr = up_day = up_hr = 0
+            period_tag = "period unknown"
 
         logger.info(
-            f"STATS | requests={total} cache_hits={hits}({hit_rate}) misses={misses} "
-            f"inflight_dedup={dedup} api_errors={errors}"
+            f"STATS [{period_tag}] | requests={total} cache_hits={hits}({hit_pct}) "
+            f"misses={misses} inflight_dedup={dedup} api_errors={errors}({err_pct})"
         )
-
-        # Per-provider breakdown
+        logger.info(
+            f"  rates: req/day={req_day} req/hr={req_hr} "
+            f"upstream/day={up_day} upstream/hr={up_hr}"
+        )
         for p in _providers:
             name  = p['name']
             calls = s.get(f"calls:{name}", 0)
@@ -757,6 +780,9 @@ async def startup():
         asyncio.ensure_future(api_worker())
     asyncio.ensure_future(_background_ourairports())
     asyncio.ensure_future(_background_stats_logger())
+
+    if not await redis_client.get(STATS_STARTED_AT_KEY):
+        await redis_client.set(STATS_STARTED_AT_KEY, datetime.now(timezone.utc).isoformat())
 
     if ENABLE_IP_WHITELIST:
         TRMNL_IPS = await fetch_trmnl_ips()
