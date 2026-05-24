@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-23.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-24.
 
 **4564 airports** across 236 countries.
 
@@ -4085,7 +4085,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VLM | SLVM | Teniente Coronel Rafael Pabón Airport | Villamontes | BO |
 | VLN | SVVA | Arturo Michelena International Airport | Valencia | VE |
 | VLR | SCLL | Vallenar Airport | Vallenar | CL |
-| VLU | RU-10001 | Velikiye Luki Airport [CLOSED] | Velikiye Luki | RU |
+| VLU | RU-10001 | Velikiye Luki Airport | Velikiye Luki | RU |
 | VLV | SVVL | Dr. Antonio Nicolás Briceño Airport | Valera | VE |
 | VLY | EGOV | Anglesey Airport | Angelsey | GB |
 | VME | SAOR | Villa Reynolds Airport | Villa Mercedes | AR |
