@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-24.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-05-25.
 
 **4564 airports** across 236 countries.
 
@@ -1946,7 +1946,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | KJB | VOKU | Kurnool Airport | Orvakal | IN |
 | KJH | ZUKJ | Kaili Huangping Airport | Kaili  (Huangping) | CN |
 | KJI | ZWKN | Burqin Kanas Airport | Burqin | CN |
-| KJK | EBKT | Flanders International Airport Kortrijk-Wevelgem | Wevelgem | BE |
+| KJK | EBKT | Kortrijk-Wevelgem International Airport | Wevelgem | BE |
 | KJT | WICA | Kertajati International Airport | Kertajati | ID |
 | KKC | VTUK | Khon Kaen Airport | Khon Kaen | TH |
 | KKE | NZKK | Kerikeri Airport | Kerikeri | NZ |
