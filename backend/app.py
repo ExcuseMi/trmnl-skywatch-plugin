@@ -436,6 +436,7 @@ async def api_worker():
 
             # If all providers still on cooldown, wait for the soonest one
             while select_provider() is None:
+                now = time.monotonic()
                 min_wait = min(
                     p['cooldown_ms'] / 1000.0 - (now - _provider_last_call.get(p['name'], 0.0))
                     for p in _providers
@@ -448,7 +449,7 @@ async def api_worker():
                 fut.set_result(data)
 
         except Exception as e:
-            logger.error(f"API worker error for {lat_key},{lon_key}: {e}")
+            logger.error(f"API worker error for {lat_key},{lon_key}: {type(e).__name__}: {e}", exc_info=True)
             await increment_stat('api_errors')
             # Track which provider errored if name is in the message
             for p in _providers:
