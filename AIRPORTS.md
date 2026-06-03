@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-02.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-03.
 
 **4564 airports** across 236 countries.
 
@@ -4117,7 +4117,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VRL | LPVR | Vila Real Airport | Vila Real | PT |
 | VRN | LIPX | Verona Villafranca Valerio Catullo Airport | Caselle (VR) | IT |
 | VRO | MUKW | Kawama Airport | Santa Marta | CU |
-| VRU | FAVB | Vryburg Airport | Vyrburg | ZA |
+| VRU | FAVB | Vryburg Airport | Vryburg | ZA |
 | VSA | MMVA | Carlos Rovirosa Pérez International Airport | Villahermosa | MX |
 | VSE | LPVZ | Aerodromo Goncalves Lobato (Viseu Airport) | Viseu | PT |
 | VST | ESOW | Stockholm Västerås Airport | Stockholm / Västerås | SE |
