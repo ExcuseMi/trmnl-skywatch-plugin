@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-03.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-04.
 
 **4564 airports** across 236 countries.
 
@@ -1538,7 +1538,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | HLT | YHML | Hamilton Airport |  | AU |
 | HLZ | NZHN | Hamilton International Airport | Hamilton | NZ |
 | HMA | USHH | Khanty Mansiysk Airport | Khanty-Mansiysk | RU |
-| HMB | HESG | Sohag International Airport | Suhaj | EG |
+| HMB | HESG | Suhaj International Airport | Suhaj | EG |
 | HME | DAUH | Hassi Messaoud-Oued Irara Krim Belkacem Airport | Hassi Messaoud | DZ |
 | HMI | ZWHM | Hami Airport | Hami | CN |
 | HMJ | UKLH | Khmelnytskyi Airport | Khmelnytskyi | UA |
