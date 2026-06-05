@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-04.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-05.
 
 **4564 airports** across 236 countries.
 
@@ -1079,7 +1079,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | EHU | ZHEC | Ezhou Huahu International Airport | Ezhou | CN |
 | EIB | EDGE | Eisenach-Kindel Airport | Hörselberg-Hainich | DE |
 | EIE | UNII | Yeniseysk Airport | Yeniseysk | RU |
-| EIK | RU-10077 | Yeysk Airport | Yeysk | RU |
+| EIK | URKE | Yeysk Airport | Yeysk | RU |
 | EIL | PAEI | Eielson Air Force Base | Fairbanks | US |
 | EIN | EHEH | Eindhoven Airport | Eindhoven | NL |
 | EIS | TUPJ | Terrance B. Lettsome International Airport | Beef Island | VG |
