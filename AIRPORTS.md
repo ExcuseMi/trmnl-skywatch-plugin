@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-08.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-09.
 
-**4564 airports** across 236 countries.
+**4563 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -1652,7 +1652,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | IDR | VAID | Devi Ahilya Bai Holkar International Airport | Indore | IN |
 | IEG | EPZG | Zielona Góra-Babimost Airport | Nowe Kramsko | PL |
 | IEJ | RORE | Iejima Airport | Ie | JP |
-| IEV | UKKK | Ihor Sikorsky Kyiv International Airport (Zhuliany) | Kyiv | UA |
 | IFJ | BIIS | Ísafjörður Airport | Ísafjörður | IS |
 | IFN | OIFM | Isfahan Shahid Beheshti International Airport | Isfahan | IR |
 | IFO | UKLI | Ivano-Frankivsk International Airport | Ivano-Frankivsk | UA |
