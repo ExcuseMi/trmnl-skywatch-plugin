@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-10.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-11.
 
-**4564 airports** across 236 countries.
+**4563 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -624,7 +624,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | CBQ | DNCA | Margaret Ekpo International Airport | Calabar | NG |
 | CBR | YSCB | Canberra Airport | Canberra | AU |
 | CBT | FNCT | Catumbela Airport | Catumbela | AO |
-| CBU | DE-0936 | EDCD | Cottbus | DE |
 | CBV | MGCB | Coban Airport | Coban | GT |
 | CCC | MUCC | Jardines Del Rey Airport | Cayo Coco | CU |
 | CCE | HECP | Capital International Airport | New Cairo | EG |
