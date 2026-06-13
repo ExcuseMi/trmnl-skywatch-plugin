@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-12.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-13.
 
 **4563 airports** across 236 countries.
 
@@ -2650,7 +2650,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | NCL | EGNT | Newcastle International Airport | Newcastle upon Tyne, Tyne and Wear | GB |
 | NCO | KOQU | Quonset State Airport | North Kingstown | US |
 | NCS | FANC | Newcastle Airport | Newcastle | ZA |
-| NCU | UTNN | Nukus International Airport | Nukus | UZ |
+| NCU | UZNN | Nukus International Airport | Nukus | UZ |
 | NCY | LFLP | Annecy Meythet airport | Annecy | FR |
 | NDB | GQPP | Nouadhibou International Airport | Nouadhibou | MR |
 | NDC | VOND | Nanded Airport | Nanded | IN |
@@ -3802,7 +3802,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | TMB | KTMB | Miami Executive Airport | Miami | US |
 | TME | SKTM | Gustavo Vargas Airport | Tame | CO |
 | TMH | WAKT | Tanah Merah Airport | Tanah Merah | ID |
-| TMJ | UTST | Termez Airport | Termez | UZ |
+| TMJ | UZST | Termez Airport | Termez | UZ |
 | TML | DGLE | Yakubu Tali International Airport | Tamale | GH |
 | TMM | FMMT | Toamasina Ambalamanasy Airport | Toamasina | MG |
 | TMO | SVTM | Tumeremo Airport |  | VE |
