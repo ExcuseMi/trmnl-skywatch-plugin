@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-14.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-15.
 
-**4563 airports** across 236 countries.
+**4562 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -847,7 +847,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | CVO | KCVO | Corvallis Municipal Airport | Corvallis | US |
 | CVQ | YCAR | Carnarvon Airport | Carnarvon | AU |
 | CVS | KCVS | Cannon Air Force Base | Clovis | US |
-| CVT | EGBE | Coventry Airport | Coventry, West Midlands | GB |
 | CWA | KCWA | Central Wisconsin Airport | Mosinee | US |
 | CWB | SBCT | Curitiba-Afonso Pena International Airport | Curitiba | BR |
 | CWC | UKLN | Chernivtsi International Airport | Chernivtsi | UA |
