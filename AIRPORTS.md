@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-17.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-06-18.
 
 **4562 airports** across 236 countries.
 
@@ -2486,7 +2486,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MNL | RPLL | Ninoy Aquino International Airport | Manila (Pasay) | PH |
 | MNR | FLMG | Mongu Airport | Mongu | ZM |
 | MNX | SBMY | Manicoré Airport | Manicoré | BR |
-| MNZ | KHEF | Manassas Regional Airport/Harry P. Davis Field | Manassas | US |
+| MNZ | KHEF | Washington Manassas Harry P. Davis Field | Manassas | US |
 | MOA | MUMO | Orestes Acosta Airport | Moa | CU |
 | MOB | KMOB | Mobile Regional Airport | Mobile | US |
 | MOC | SBMK | Mário Ribeiro Airport | Montes Claros | BR |
@@ -2786,7 +2786,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | OAG | YORG | Orange Airport | Orange | AU |
 | OAI | OAIX | Bagram Airfield | Bagram | AF |
 | OAJ | KOAJ | Albert J Ellis Airport | Richlands | US |
-| OAK | KOAK | San Francisco Bay Oakland International Airport | Oakland | US |
+| OAK | KOAK | Oakland San Francisco Bay Airport | Oakland | US |
 | OAM | NZOU | Oamaru Airport |  | NZ |
 | OAX | MMOX | Xoxocotlán International Airport | Oaxaca | MX |
 | OBF | EDMO | Oberpfaffenhofen Airport | Weßling | DE |
