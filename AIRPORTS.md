@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-01.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-02.
 
 **4562 airports** across 236 countries.
 
@@ -2938,7 +2938,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PBF | KPBF | Pine Bluff Regional Airport, Grider Field | Pine Bluff | US |
 | PBG | KPBG | Plattsburgh International Airport | Plattsburgh | US |
 | PBH | VQPR | Paro International Airport | Paro | BT |
-| PBI | KPBI | Palm Beach International Airport | West Palm Beach | US |
+| PBI | KPBI | President Donald J. Trump International Airport | West Palm Beach | US |
 | PBL | SVPC | General Bartolome Salom International Airport | Puerto Cabello | VE |
 | PBM | SMJP | Johan Adolf Pengel International Airport | Paramaribo | SR |
 | PBN | FNPA | Porto Amboim Airport | Port Amboim | AO |
