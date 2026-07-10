@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-09.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-10.
 
 **4562 airports** across 236 countries.
 
@@ -2938,7 +2938,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PBF | KPBF | Pine Bluff Regional Airport, Grider Field | Pine Bluff | US |
 | PBG | KPBG | Plattsburgh International Airport | Plattsburgh | US |
 | PBH | VQPR | Paro International Airport | Paro | BT |
-| PBI | KPBI | President Donald J. Trump International Airport | West Palm Beach | US |
+| PBI | KDJT | President Donald J Trump International Airport | West Palm Beach | US |
 | PBL | SVPC | General Bartolome Salom International Airport | Puerto Cabello | VE |
 | PBM | SMJP | Johan Adolf Pengel International Airport | Paramaribo | SR |
 | PBN | FNPA | Porto Amboim Airport | Port Amboim | AO |
@@ -4199,7 +4199,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | WRL | KWRL | Worland Municipal Airport | Worland | US |
 | WRO | EPWR | Copernicus Wrocław Airport | Wrocław | PL |
 | WRT | EGNO | Warton Aerodrome | Warton | GB |
-| WSI | YSWS | [Duplicate] Western Sydney International Airport | Sydney | AU |
+| WSI | YSWS | Nancy Bird Walton, Western Sydney International Airport | Sydney | AU |
 | WST | KWST | Westerly State Airport | Westerly | US |
 | WSZ | NZWS | Westport Airport | Westport | NZ |
 | WTB | YBWW | Toowoomba Wellcamp Airport | Toowoomba | AU |
