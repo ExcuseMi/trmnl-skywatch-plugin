@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-10.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-11.
 
 **4562 airports** across 236 countries.
 
@@ -1362,7 +1362,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | GMB | HAGM | Gambela Airport | Gambela | ET |
 | GME | UMGG | Gomel Airport | Gomel | BY |
 | GMO | DNGO | Gombe Lawanti International Airport | Gombe | NG |
-| GMP | RKSS | Gimpo International Airport | Seoul | KR |
+| GMP | RKSS | Seoul Gimpo International Airport | Seoul | KR |
 | GMQ | ZLGL | Golog Maqên Airport | Golog (Maqên) | CN |
 | GMR | NTGJ | Totegegie Airport |  | PF |
 | GMU | KGMU | Greenville Downtown Airport | Greenville | US |
@@ -2938,7 +2938,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PBF | KPBF | Pine Bluff Regional Airport, Grider Field | Pine Bluff | US |
 | PBG | KPBG | Plattsburgh International Airport | Plattsburgh | US |
 | PBH | VQPR | Paro International Airport | Paro | BT |
-| PBI | KDJT | President Donald J Trump International Airport | West Palm Beach | US |
+| PBI | KDJT | President Donald J. Trump International Airport | West Palm Beach | US |
 | PBL | SVPC | General Bartolome Salom International Airport | Puerto Cabello | VE |
 | PBM | SMJP | Johan Adolf Pengel International Airport | Paramaribo | SR |
 | PBN | FNPA | Porto Amboim Airport | Port Amboim | AO |
