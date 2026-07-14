@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-13.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-14.
 
 **4562 airports** across 236 countries.
 
@@ -4199,7 +4199,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | WRL | KWRL | Worland Municipal Airport | Worland | US |
 | WRO | EPWR | Copernicus Wrocław Airport | Wrocław | PL |
 | WRT | EGNO | Warton Aerodrome | Warton | GB |
-| WSI | YSWS | Nancy Bird Walton, Western Sydney International Airport | Sydney | AU |
+| WSI | YSWS | Western Sydney International (Nancy-Bird Walton) Airport | Sydney | AU |
 | WST | KWST | Westerly State Airport | Westerly | US |
 | WSZ | NZWS | Westport Airport | Westport | NZ |
 | WTB | YBWW | Toowoomba Wellcamp Airport | Toowoomba | AU |
