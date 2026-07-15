@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-14.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-15.
 
-**4562 airports** across 236 countries.
+**4563 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -2244,6 +2244,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | LSC | SCSE | La Florida Airport | La Serena-Coquimbo | CL |
 | LSE | KLSE | La Crosse Regional Airport | La Crosse | US |
 | LSF | KLSF | Lawson Army Air Field | Fort Benning | US |
+| LSG | CN-0249 | Leshan Airport | Leshan (Wutongqiao) | CN |
 | LSH | VYLS | Lashio Airport | Lashio | MM |
 | LSI | EGPB | Sumburgh Airport | Lerwick, Shetland | GB |
 | LSL | MRLC | Los Chiles Airport | Los Chiles | CR |
