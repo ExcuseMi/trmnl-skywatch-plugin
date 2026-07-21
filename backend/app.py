@@ -672,10 +672,10 @@ async def get_planes():
         if geo:
             lat, lon = geo['lat'], geo['lon']
         else:
-            return jsonify({'error': 'Location not found'}), 400
+            return jsonify({'error': 'Location not found'})
 
     if lat is None or lon is None:
-        return jsonify({'error': 'Missing lat/lon or address'}), 400
+        return jsonify({'error': 'Missing lat/lon or address'})
 
     await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
@@ -716,7 +716,7 @@ async def get_planes():
         await enrich_with_routes(data['ac'], route_display)
         return jsonify({'data': data})
 
-    return jsonify({'error': 'Failed to fetch data'}), 500
+    return jsonify({'error': 'Failed to fetch data'})
 
 
 @app.route('/debug/airports')

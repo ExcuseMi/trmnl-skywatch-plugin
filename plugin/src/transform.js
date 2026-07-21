@@ -1,8 +1,9 @@
 function transform(input) {
-  var ac = (input && input.data && Array.isArray(input.data.ac)) ? input.data.ac : [];
+  var d = (input && input.data) || {};
+  var ac = Array.isArray(d.ac) ? d.ac : [];
 
-  var centerLat = parseFloat(input.data?.lat || 51.5074);
-  var centerLon = parseFloat(input.data?.lon || -0.1278);
+  var centerLat = parseFloat(d.lat || 51.5074);
+  var centerLon = parseFloat(d.lon || -0.1278);
   var units = input.trmnl.plugin_settings.custom_fields_values?.unit || 'metric';
 
   var planes = ac.map(function(a) {
@@ -35,12 +36,12 @@ function transform(input) {
   return {
     data: {
       planes:     planes,
-      airports:   Array.isArray(input.data.airports) ? input.data.airports : [],
-      total:      input.data.total != null ? input.data.total : planes.length,
+      airports:   Array.isArray(d.airports) ? d.airports : [],
+      total:      d.total != null ? d.total : planes.length,
       lat:        centerLat,
       lon:        centerLon,
-      fetched_at: input.data.fetched_at_utc,
-      provider:   input.data.provider || 'airplanes.live'
+      fetched_at: d.fetched_at_utc,
+      provider:   d.provider || 'airplanes.live'
     }
   };
 }
