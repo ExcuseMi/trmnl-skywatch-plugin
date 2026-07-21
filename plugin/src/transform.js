@@ -1,9 +1,9 @@
 function transform(input) {
-  var ac = (input && Array.isArray(input.data.ac)) ? input.data.ac : [];
+  var ac = (input && input.data && Array.isArray(input.data.ac)) ? input.data.ac : [];
 
   var centerLat = parseFloat(input.data.lat || 51.5074);
   var centerLon = parseFloat(input.data.lon || -0.1278);
-  var units = input.trmnl.plugin_settings.custom_fields_values.unit || 'metric';
+  var units = input.trmnl.plugin_settings.custom_fields_values?.unit || 'metric';
 
   var planes = ac.map(function(a) {
     var altitude = a.alt_baro;

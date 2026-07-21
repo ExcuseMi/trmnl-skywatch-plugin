@@ -5,11 +5,31 @@ dark_mode: 'yes'
 static_data: ''
 polling_verb: get
 framework_version: 3.0.3
-serverless_language: ''
+serverless_language: node
 polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}'
 polling_headers: ''
 polling_body: ''
 id: 286469
+oauth_enabled: 'false'
+oauth_pkce_enabled: 'no'
+oauth_authorize_url: ''
+oauth_token_url: ''
+oauth_scopes: ''
+oauth_scope_separator: ''
+oauth_refresh_url: ''
+oauth_auth_params: ''
+oauth_token_headers: ''
+oauth_token_site: ''
+oauth_token_params: ''
+oauth_token_request_auth_method: ''
+oauth_body_format: ''
+oauth_token_response_metadata: ''
+oauth_authorization_method: ''
+oauth_refresh_params: ''
+oauth_token_field_name: ''
+oauth_expiry_field_name: ''
+oauth_expiry_strategy: ''
+oauth_fixed_expiry_ms: ''
 custom_fields:
 - keyname: author_info
   name: About SkyWatch
