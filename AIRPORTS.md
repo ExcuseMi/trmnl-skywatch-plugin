@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-24.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-25.
 
-**4563 airports** across 236 countries.
+**4562 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -1436,7 +1436,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | GVA | LSGG | Geneva International Airport | Geneva | CH |
 | GVN | UHKM | Sovetskaya Gavan (Maygatka) Airport | Sovetskaya Gavan | RU |
 | GVR | SBGV | Coronel Altino Machado Airport | Governador Valadares | BR |
-| GVX | ESSK | Gävle Sandviken Airport | Gävle / Sandviken | SE |
 | GWD | OPGW | New Gwadar International Airport | Gurandani | PK |
 | GWE | FVTL | Josiah Tungamirai Air Force Base | Gweru | ZW |
 | GWL | VIGR | Gwalior Airport | Gwalior | IN |
