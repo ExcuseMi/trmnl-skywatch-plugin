@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-27.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-28.
 
-**4562 airports** across 236 countries.
+**4561 airports** across 236 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -51,7 +51,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ACX | ZUYI | Xingyi Wanfenglin Airport | Xingyi | CN |
 | ACY | KACY | Atlantic City International Airport | Atlantic City | US |
 | ACZ | OIZB | Zabol Airport | Zabol | IR |
-| ADA | LTAF | Adana Şakirpaşa Airport | Seyhan | TR |
 | ADB | LTBJ | Adnan Menderes International Airport | Gaziemir | TR |
 | ADD | HAAB | Addis Ababa Bole International Airport | Addis Ababa | ET |
 | ADE | OYAA | Aden International Airport | Aden | YE |
