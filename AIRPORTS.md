@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-07-31.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-01.
 
-**4561 airports** across 236 countries.
+**4560 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -4148,7 +4148,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | WEH | ZSWH | Weihai Dashuibo Airport | Weihai | CN |
 | WEI | YBWP | Weipa Airport | Weipa | AU |
 | WFI | FMSF | Fianarantsoa Airport | Fianarantsoa | MG |
-| WFR | AT98 | [Duplicate] Wolf's Fang Runway | Queen Maud Island | AQ |
 | WGA | YSWG | Wagga Wagga Airport | Forest Hill | AU |
 | WGE | YWLG | Walgett Airport |  | AU |
 | WGN | ZGSY | Shaoyang Wugang Airport | Shaoyang (Wugang) | CN |
