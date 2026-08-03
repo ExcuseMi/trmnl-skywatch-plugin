@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-02.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-03.
 
 **4560 airports** across 235 countries.
 
@@ -1054,7 +1054,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ECN | LCEN | Ercan International Airport | Tymbou (Kirklar) | CY |
 | ECP | KECP | Northwest Florida Beaches International Airport | Panama City Beach | US |
 | EDF | PAED | Elmendorf Air Force Base | Anchorage | US |
-| EDI | EGPH | Edinburgh Airport | Edinburgh | GB |
+| EDI | EGPH | Edinburgh Airport | Ingliston, Edinburgh | GB |
 | EDL | HKEL | Eldoret International Airport | Eldoret | KE |
 | EDM | LFRI | La Roche-sur-Yon Les Ajoncs Airport | La Roche-sur-Yon | FR |
 | EDO | LTFD | Balıkesir Koca Seyit Airport | Edremit | TR |
