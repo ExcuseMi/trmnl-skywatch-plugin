@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-07.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-08.
 
 **4560 airports** across 235 countries.
 
@@ -3341,7 +3341,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | RWL | KRWL | Rawlins Municipal Airport/Harvey Field | Rawlins | US |
 | RWN | UKLR | Rivne International Airport | Rivne | UA |
 | RXS | RPVR | Roxas Airport | Roxas City | PH |
-| RYB | UUBK | Staroselye Airport | Rybinsk | RU |
+| RYB | XUBK | Staroselye Airport | Rybinsk | RU |
 | RYK | OPRK | Shaikh Zaid Airport | Rahim Yar Khan | PK |
 | RYN | LFCY | Royan-Médis Airport | Royan/Médis | FR |
 | RZA | SAWU | Santa Cruz Airport | Puerto Santa Cruz | AR |
