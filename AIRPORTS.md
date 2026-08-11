@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-10.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-11.
 
 **4560 airports** across 235 countries.
 
@@ -4517,7 +4517,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ZAM | RPMZ | Zamboanga International Airport | Zamboanga | PH |
 | ZAO | LFCC | Cahors Lalbenque airport | Cahors | FR |
 | ZAR | DNZA | Zaria Airport | Zaria | NG |
-| ZAT | CN-0421 | Zhaotong Zhaoyang Airport （Not fully opened) | Zhaotong | CN |
+| ZAT | CN-0421 | Zhaotong Zhaoyang Airport | Zhaotong | CN |
 | ZAZ | LEZG | Zaragoza Airport | Zaragoza | ES |
 | ZBF | CZBF | Bathurst Airport | South Tetagouche | CA |
 | ZBM | CZBM | Bromont (Roland Désourdy) Airport | Bromont | CA |
