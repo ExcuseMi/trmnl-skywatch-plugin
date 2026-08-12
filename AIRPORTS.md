@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-11.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-12.
 
-**4560 airports** across 235 countries.
+**4561 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -245,6 +245,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | AVL | KAVL | Asheville Regional Airport | Asheville | US |
 | AVN | LFMV | Avignon Caumont airport | Avignon | FR |
 | AVP | KAVP | Wilkes-Barre/Scranton International Airport | Wilkes-Barre/Scranton | US |
+| AVR | VAAM | Amravati  Airport | Amravati | IN |
 | AVV | YMAV | Melbourne Avalon International Airport | Geelong/Melbourne | AU |
 | AWA | HALA | Hawassa International Airport | Hawassa | ET |
 | AWK | PWAK | Wake Island Airfield | Wake Island | UM |
@@ -2381,7 +2382,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MEI | KMEI | Key Field / Meridian Regional Airport | Meridian | US |
 | MEK | GMFM | Bassatine Airport | Meknes | MA |
 | MEL | YMML | Melbourne Airport | Melbourne | AU |
-| MEM | KMEM | Memphis International Airport | Memphis | US |
+| MEM | KMEM | Frederick W. Smith International Airport | Memphis | US |
 | MEN | LFNB | Mende-Brenoux Airfield | Mende/Brénoux | FR |
 | MEQ | WITC | Cut Nyak Dhien Airport | Kuala Pesisir | ID |
 | MER | KMER | Castle Airport | Merced | US |
