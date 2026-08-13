@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-12.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-13.
 
-**4561 airports** across 235 countries.
+**4562 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -1309,7 +1309,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | GDX | UHMM | Sokol Airport | Magadan | RU |
 | GDZ | URKG | Gelendzhik Airport | Gelendzhik | RU |
 | GEA | NWWM | Nouméa Magenta Airport | Nouméa | NC |
-| GEC | LCGK | Lefkoniko Airport / Geçitkale Air Base | Lefkoniko (Geçitkale) | CY |
+| GEC | LCGK | Geçitkale Airbase | Lefkoniko (Geçitkale) | CY |
 | GEG | KGEG | Spokane International Airport | Spokane | US |
 | GEL | SBNM | Santo Ângelo Airport | Santo Ângelo | BR |
 | GEM | FGMY | President Obiang Nguema International Airport | Mengomeyén | GQ |
@@ -4028,6 +4028,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VAN | LTCI | Van Ferit Melen Airport | Van | TR |
 | VAQ | UNIW | Vanavara Airport | Vanavara | RU |
 | VAR | LBWN | Varna Airport | Varna | BG |
+| VAS | LTAR | Sivas Nuri Demirağ Airport | Sivas | TR |
 | VAV | NFTV | Vava'u International Airport | Vava'u Island | TO |
 | VAW | ENSS | Vardø Airport, Svartnes | Vardø | NO |
 | VBG | KVBG | Vandenberg Space Force Base | Lompoc | US |
