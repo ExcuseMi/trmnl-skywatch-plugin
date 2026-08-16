@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-15.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-16.
 
 **4562 airports** across 235 countries.
 
@@ -3457,7 +3457,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | SIR | LSGS | Sion Airport | Sion | CH |
 | SIS | FASS | Sishen Airport | Sishen | ZA |
 | SIT | PASI | Sitka Rocky Gutierrez Airport | Sitka | US |
-| SJC | KSJC | Norman Y. Mineta San Jose International Airport | San Jose | US |
+| SJC | KSJC | Mineta San Jose International Airport | San Jose | US |
 | SJD | MMSD | Los Cabos International Airport | San José del Cabo | MX |
 | SJE | SKSJ | Jorge E. Gonzalez Torres Airport | San José Del Guaviare | CO |
 | SJI | RPUH | San Jose Airport | San Jose | PH |
@@ -3639,7 +3639,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | SXM | TNCM | Princess Juliana International Airport | Sint Maarten | SX |
 | SXN | FBSN | Sua Pan Airport | Sowa | BW |
 | SXQ | PASX | Soldotna Airport | Soldotna | US |
-| SXR | VISR | Sheikh ul Alam International Airport | Srinagar | IN |
+| SXR | VISR | Srinagar International Airport | Srinagar | IN |
 | SXV | VOSM | Salem Airport | Salem | IN |
 | SXZ | LTCL | Siirt Airport | Siirt | TR |
 | SYA | PASY | Eareckson Air Station | Shemya | US |
