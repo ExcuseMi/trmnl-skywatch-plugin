@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-16.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-17.
 
 **4562 airports** across 235 countries.
 
@@ -4125,7 +4125,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VTM | LLNV | Nevatim Air Base | Beersheba | IL |
 | VTN | KVTN | Miller Field | Valentine | US |
 | VTU | MUVT | Hermanos Ameijeiras Airport | Las Tunas | CU |
-| VTZ | VOVZ | Visakhapatnam International Airport | Visakhapatnam | IN |
+| VTZ | VOVI | Alluri Sitarama Raju International Airport (Vizag) | Visakhapatnam | IN |
 | VUP | SKVP | Alfonso López Pumarejo Airport | Valledupar | CO |
 | VUS | ULWU | Velikiy Ustyug Airport | Velikiy Ustyug | RU |
 | VVC | SKVV | Vanguardia Airport | Villavicencio | CO |
