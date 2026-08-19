@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-18.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-19.
 
 **4562 airports** across 235 countries.
 
@@ -948,6 +948,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | DJG | DAAJ | Tiska Djanet Airport | Djanet | DZ |
 | DJJ | WAJJ | Dortheys Hiyo Eluay International Airport | Sentani | ID |
 | DJO | DIDL | Daloa Airport |  | CI |
+| DJT | KDJT | President Donald J. Trump International Airport | West Palm Beach | US |
 | DKA | DNKT | Umaru Musa Yar'adua Airport | Katsina | NG |
 | DKR | GOOY | Léopold Sédar Senghor International Airport | Dakar | SN |
 | DKS | UODD | Dikson Airport | Dikson | RU |
@@ -2938,7 +2939,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PBF | KPBF | Pine Bluff Regional Airport, Grider Field | Pine Bluff | US |
 | PBG | KPBG | Plattsburgh International Airport | Plattsburgh | US |
 | PBH | VQPR | Paro International Airport | Paro | BT |
-| PBI | KDJT | President Donald J. Trump International Airport | West Palm Beach | US |
 | PBL | SVPC | General Bartolome Salom International Airport | Puerto Cabello | VE |
 | PBM | SMJP | Johan Adolf Pengel International Airport | Paramaribo | SR |
 | PBN | FNPA | Porto Amboim Airport | Port Amboim | AO |
