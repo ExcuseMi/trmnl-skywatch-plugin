@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-19.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-20.
 
-**4562 airports** across 235 countries.
+**4565 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -1651,6 +1651,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | IDR | VAID | Devi Ahilya Bai Holkar International Airport | Indore | IN |
 | IEG | EPZG | Zielona Góra-Babimost Airport | Nowe Kramsko | PL |
 | IEJ | RORE | Iejima Airport | Ie | JP |
+| IEV | UKKK | Igor Sikorsky Kyiv International Airport (Zhuliany) | Kyiv | UA |
 | IFJ | BIIS | Ísafjörður Airport | Ísafjörður | IS |
 | IFN | OIFM | Isfahan Shahid Beheshti International Airport | Isfahan | IR |
 | IFO | UKLI | Ivano-Frankivsk International Airport | Ivano-Frankivsk | UA |
@@ -2703,6 +2704,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | NLO | FZAB | Ndolo Airport | N'dolo | CD |
 | NLT | ZWNL | Xinyuan Nalati Airport | Xinyuan | CN |
 | NLU | MMSM | Felipe Ángeles International Airport | Mexico City | MX |
+| NLV | UKON | Mykolaiv International Airport [CLOSED] | Mykolaiv | UA |
 | NMA | UZFN | Namangan International Airport | Namangan | UZ |
 | NMB | VADN | Daman Airport | Daman | IN |
 | NMC | MYEN | Normans Cay Airport | Normans Cay | BS |
@@ -2803,7 +2805,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ODB | LEBA | Córdoba Airport | Córdoba | ES |
 | ODE | EKOD | Odense Hans Christian Andersen Airport | Odense | DK |
 | ODH | EGVO | RAF Odiham | Hook, Hampshire | GB |
-| ODS | UKOO | Odesa International Airport | Odesa | UA |
 | OEC | WPOC | Oecusse Route of the Sandalwood International Airport | Oecussi-Ambeno | TL |
 | OER | ESNO | Örnsköldsvik Airport | Örnsköldsvik | SE |
 | OFF | KOFF | Offutt Air Force Base | Omaha | US |
@@ -3034,6 +3035,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PLQ | EYPA | Palanga International Airport | Palanga | LT |
 | PLS | MBPV | Providenciales International Airport | Providenciales | TC |
 | PLU | SBBH | Pampulha - Carlos Drummond de Andrade Airport | Belo Horizonte | BR |
+| PLV | UKHP | Suprunovka Airport | Poltava | UA |
 | PLW | WAFF | Mutiara - SIS Al-Jufrie Airport | Palu | ID |
 | PLX | UASS | Semei International Airport | Semey | KZ |
 | PLZ | FAPE | Chief Dawid Stuurman International Airport | Gqeberha (Port Elizabeth) | ZA |
@@ -4557,6 +4559,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ZSJ | CZSJ | Sandy Lake Airport | Sandy Lake | CA |
 | ZST | CZST | Stewart Airport | Stewart | CA |
 | ZTH | LGZA | Zakynthos International Airport Dionysios Solomos | Zakynthos | GR |
+| ZTR | UKKV | Zhytomyr Airport | Zhytomyr | UA |
 | ZTU | UBBY | Zaqatala International Airport | Zaqatala | AZ |
 | ZUC | CZUC | Ignace Municipal Airport | Ignace | CA |
 | ZUH | ZGSD | Zhuhai Jinwan Airport | Zhuhai (Jinwan) | CN |
