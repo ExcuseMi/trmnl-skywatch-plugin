@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-20.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-21.
 
-**4565 airports** across 235 countries.
+**4566 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -2805,6 +2805,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ODB | LEBA | Córdoba Airport | Córdoba | ES |
 | ODE | EKOD | Odense Hans Christian Andersen Airport | Odense | DK |
 | ODH | EGVO | RAF Odiham | Hook, Hampshire | GB |
+| ODS | UKOO | Odesa International Airport | Odesa | UA |
 | OEC | WPOC | Oecusse Route of the Sandalwood International Airport | Oecussi-Ambeno | TL |
 | OER | ESNO | Örnsköldsvik Airport | Örnsköldsvik | SE |
 | OFF | KOFF | Offutt Air Force Base | Omaha | US |
