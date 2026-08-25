@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-24.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-25.
 
 **4566 airports** across 235 countries.
 
@@ -1337,7 +1337,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | GHV | LRBV | Brașov-Ghimbav International Airport | Brașov (Ghimbav) | RO |
 | GIB | LXGB | Gibraltar Airport | Gibraltar | GI |
 | GID | HBBE | Gitega Airport | Gitega | BI |
-| GIG | SBGL | Rio Galeão – Tom Jobim International Airport | Rio De Janeiro | BR |
+| GIG | SBGL | Rio de Janeiro Galeão – Tom Jobim International Airport | Rio De Janeiro | BR |
 | GIL | OPGT | Gilgit Airport | Gilgit | PK |
 | GIR | SKGI | Santiago Vila Airport | Girardot | CO |
 | GIS | NZGS | Gisborne Airport | Gisborne | NZ |
