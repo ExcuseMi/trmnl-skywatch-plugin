@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-27.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-28.
 
-**4566 airports** across 235 countries.
+**4569 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -362,6 +362,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BGA | SKBG | Palonegro Airport | Bucaramanga | CO |
 | BGC | LPBG | Bragança Airport | Bragança | PT |
 | BGF | FEFF | Bangui M'Poko International Airport | Bangui | CF |
+| BGG | LTCU | Bingöl Airport | Bingöl | TR |
 | BGI | TBPB | Grantley Adams International Airport | Bridgetown | BB |
 | BGM | KBGM | Greater Binghamton/Edwin A Link field | Binghamton | US |
 | BGN | UESG | Belaya Gora Airport | Belaya Gora | RU |
@@ -2080,6 +2081,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | KZI | LGKZ | Kozani National Airport Filippos | Kozani | GR |
 | KZN | UWKD | Kazan International Airport | Kazan | RU |
 | KZO | UAOO | Korkyt Ata International Airport | Kyzylorda | KZ |
+| KZR | LTBZ | Zafer Airport | Altıntaş | TR |
 | LAA | KLAA | Southeast Colorado Regional Airport | Lamar | US |
 | LAD | FNLU | Quatro de Fevereiro International Airport | Luanda | AO |
 | LAE | AYNZ | Nadzab Tomodachi International Airport | Lae | PG |
@@ -2518,7 +2520,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MQP | FAKN | Kruger Mpumalanga International Airport | Mbombela | ZA |
 | MQQ | FTTD | Moundou Airport | Moundou | TD |
 | MQS | TVSM | Mustique Airport | Lovell | VC |
-| MQT | KSAW | Marquette/Sawyer International Airport | Gwinn | US |
+| MQT | KSAW | Marquette Sawyer Regional Airport | Gwinn | US |
 | MQU | SKQU | Mariquita Airport | Mariquita | CO |
 | MQX | HAMK | Mekele Alula Aba Nega Airport | Mekele | ET |
 | MQY | KMQY | Smyrna Airport | Smyrna | US |
@@ -2614,6 +2616,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MYY | WBGR | Miri Airport | Miri | MY |
 | MZB | FQMP | Mocímboa da Praia Airport | Mocímboa da Praia | MZ |
 | MZG | RCQC | Penghu Magong Airport | Huxi | TW |
+| MZH | LTAP | Amasya Merzifon Airport | Amasya | TR |
 | MZI | GAMB | Mopti Airport | Sévaré | ML |
 | MZL | SKMZ | La Nubia Airport | Manizales | CO |
 | MZO | MUMZ | Sierra Maestra International Airport | Manzanillo | CU |
