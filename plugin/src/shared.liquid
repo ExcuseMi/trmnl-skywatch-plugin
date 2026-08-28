@@ -17,9 +17,16 @@
 {% else %}
 
 {% assign instance_id = "inst_" | append_random %}
+{% assign tile_style = trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" %}
+{% if tile_style == "cartodb_dark" or tile_style == "cartodb_light" %}
+  {% assign map_attribution = "© OSM · © CARTO" %}
+{% else %}
+  {% assign map_attribution = "© OSM · © Stadia Maps" %}
+{% endif %}
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}">
   <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
+  <span class="label label--inverted label--small" style="position:absolute;bottom:8px;right:8px;z-index:10;">{{ map_attribution }}</span>
   <svg class="image image-dither image--fill w--full h--full rounded"
        viewBox="0 0 768 768"
        preserveAspectRatio="xMidYMid slice">
