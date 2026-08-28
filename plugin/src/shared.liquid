@@ -135,7 +135,7 @@
           patt.setAttribute('width', T); patt.setAttribute('height', T);
           var img = document.createElementNS(ns, 'image');
           var url = tileStyle === 'cartodb_dark' || tileStyle === 'cartodb_light'
-            ? ('https://a.basemaps.cartocdn.com/' + (tileStyle === 'cartodb_dark' ? 'dark_all' : 'light_all') + '/' + z + '/' + tx + '/' + ty + '.png')
+            ? ('https://trmnl.bettens.dev/carto/tile/' + (tileStyle === 'cartodb_dark' ? 'dark_all' : 'light_all') + '/' + z + '/' + tx + '/' + ty + '.png')
             : ('https://tiles.stadiamaps.com/tiles/' + tileStyle + '/' + z + '/' + tx + '/' + ty + '.png'
                 + (stadiaKey ? '?api_key=' + stadiaKey : ''));
           img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
