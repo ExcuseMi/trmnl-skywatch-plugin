@@ -157,5 +157,5 @@ custom_fields:
   description: Required for Stamen styles.<br /><br />Free account — get your key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a><br />200,000 tile credits/month included.
   optional: true
 name: SkyWatch
-description: ''
+description: Real-time planes on a live map
 refresh_interval: 15
