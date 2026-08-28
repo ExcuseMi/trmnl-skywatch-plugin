@@ -48,6 +48,7 @@
   var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
   var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
   var tileStyle  = '{{ trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" }}';
+  var zoomSetting = '{{ trmnl.plugin_settings.custom_fields_values.map_zoom | default: "auto" }}';
   var stadiaKey  = '{{ trmnl.plugin_settings.custom_fields_values.stadia_api_key }}';
   var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
   var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
@@ -77,7 +78,7 @@
     return 6;
   }
 
-  z = calculateOptimalZoom();
+  z = zoomSetting === 'auto' ? calculateOptimalZoom() : parseInt(zoomSetting, 10);
 
   function init() {
     var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');

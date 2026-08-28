@@ -93,6 +93,22 @@ custom_fields:
   description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
   optional: true
+- keyname: map_zoom
+  field_type: select
+  name: Map Zoom
+  description: How far to zoom the map. Auto fits the view to the nearest aircraft automatically — pick a fixed level to override.
+  options:
+  - Auto (recommended): auto
+  - 5 — Widest: '5'
+  - 6 — Wide: '6'
+  - 7 — Wide: '7'
+  - 8 — Medium: '8'
+  - 9 — Medium: '9'
+  - 10 — Close: '10'
+  - 11 — Close: '11'
+  - 12 — Closest: '12'
+  default: auto
+  optional: true
 - keyname: tile_style
   field_type: select
   name: Map Style
