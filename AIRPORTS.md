@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-29.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-08-30.
 
 **4570 airports** across 235 countries.
 
@@ -1396,7 +1396,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | GPS | SEGS | Seymour Galapagos Ecological Airport | Isla Baltra | EC |
 | GPT | KGPT | Gulfport Biloxi International Airport | Gulfport | US |
 | GRB | KGRB | Austin Straubel International Airport | Green Bay | US |
-| GRF | KGRF | Gray Army Air Field | Fort Lewis/Tacoma | US |
+| GRF | KGRF | Gray Army Air Field | Joint Base Lewis McChord | US |
 | GRI | KGRI | Central Nebraska Regional Airport | Grand Island | US |
 | GRJ | FAGG | George Airport | George | ZA |
 | GRK | KGRK | Killeen Regional Airport / Robert Gray Army Airfield | Fort Cavazos | US |
