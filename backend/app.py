@@ -40,6 +40,8 @@ OURAIRPORTS_CACHE_KEY = 'skywatch:ourairports'
 RADIUS_NM            = float(os.getenv('RADIUS_NM', '50'))
 FETCH_RADIUS_NM      = RADIUS_NM + 25.0
 RADIUS_DEG           = RADIUS_NM / 60.0 * 1.1  # bounding box pre-filter with margin
+AIRPORT_RADIUS_NM       = float(os.getenv('AIRPORT_RADIUS_NM', str(RADIUS_NM)))  # independent of plane search radius
+AIRPORT_FETCH_RADIUS_NM = AIRPORT_RADIUS_NM + 25.0  # same tile-center margin as FETCH_RADIUS_NM
 NM_PER_DEG_LAT       = 60.0
 MAX_CACHE_PLANES     = 250
 
@@ -284,11 +286,11 @@ async def fetch_airports(lat_key: int, lon_key: int) -> list:
     t_lat, t_lon = tile_center(lat_key, lon_key)
     nearby = []
     for a in all_airports:
-        if haversine_nm(t_lat, t_lon, a['lat'], a['lon']) <= FETCH_RADIUS_NM:
+        if haversine_nm(t_lat, t_lon, a['lat'], a['lon']) <= AIRPORT_FETCH_RADIUS_NM:
             nearby.append(a)
 
     await redis_client.setex(key, AIRPORT_CACHE_TTL, json.dumps(nearby))
-    logger.info(f"Airports for tile {lat_key},{lon_key}: {len(nearby)} within {FETCH_RADIUS_NM}nm")
+    logger.info(f"Airports for tile {lat_key},{lon_key}: {len(nearby)} within {AIRPORT_FETCH_RADIUS_NM}nm")
     return nearby
 
 
@@ -710,7 +712,7 @@ async def get_planes():
         # Precision filter airports
         data['airports'] = [
             a for a in tile_airports
-            if haversine_nm(lat, lon, a['lat'], a['lon']) <= RADIUS_NM
+            if haversine_nm(lat, lon, a['lat'], a['lon']) <= AIRPORT_RADIUS_NM
         ]
 
         await enrich_with_routes(data['ac'], route_display)
@@ -725,7 +727,7 @@ async def debug_airports():
     lon = request.args.get('lon', type=float, default=-118.0)
     lat_key, lon_key = tile_key(lat, lon)
     airports = await fetch_airports(lat_key, lon_key)
-    filtered = [a for a in airports if haversine_nm(lat, lon, a['lat'], a['lon']) <= RADIUS_NM]
+    filtered = [a for a in airports if haversine_nm(lat, lon, a['lat'], a['lon']) <= AIRPORT_RADIUS_NM]
     return jsonify({
         'user': [lat, lon],
         'tile': [lat_key, lon_key],
