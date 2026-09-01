@@ -10,78 +10,276 @@ custom_fields: {}
 variables:
   trmnl:
     system:
-      timestamp_utc: 1744000000
+      timestamp_utc: 1788293803
     plugin_settings:
       instance_name: "SkyWatch"
       strategy: polling
-      dark_mode: 'no'
-      no_screen_padding: 'no'
+      dark_mode: 'yes'
+      no_screen_padding: 'yes'
       polling_headers: ''
       polling_url: ''
       custom_fields_values:
-        lat: '51.5074'
-        lon: '-0.1278'
-        map_style: 'cartodb'
-        dist_unit: 'nm'
-  planes:
-    - hex: '400f44'
-      flight: 'BAW112'
-      r: 'G-XLEH'
-      t: 'A388'
-      alt_baro: 3500
-      gs: 210
-      track: 295
-      baro_rate: -768
-      lat: 51.48
-      lon: -0.44
-    - hex: '4ca8e9'
-      flight: 'RYR4202'
-      r: 'EI-DLX'
-      t: 'B738'
-      alt_baro: 28000
-      gs: 382
-      track: 85
-      baro_rate: 1024
-      lat: 51.72
-      lon: 0.28
-    - hex: '3c4583'
-      flight: 'DLH441'
-      r: 'D-ABCE'
-      t: 'A320'
-      alt_baro: 35000
-      gs: 448
-      track: 220
-      baro_rate: 0
-      lat: 51.30
-      lon: -0.35
-    - hex: '406e03'
-      flight: 'EZY8431'
-      r: 'G-EZTV'
-      t: 'A319'
-      alt_baro: 12000
-      gs: 306
-      track: 140
-      baro_rate: -1792
-      lat: 51.60
-      lon: 0.12
-    - hex: '407606'
-      flight: 'TOM3WB'
-      r: 'G-TAWF'
-      t: 'B738'
-      alt_baro: 5200
-      gs: 242
-      track: 50
-      baro_rate: 320
-      lat: 51.42
-      lon: -0.15
-    - hex: '4009c4'
-      flight: 'VIR26'
-      r: 'G-VBZZ'
-      t: 'A35K'
-      alt_baro: 38000
-      gs: 520
-      track: 280
-      baro_rate: 0
-      lat: 51.55
-      lon: 0.45
-  total: 6
+        lat: ''
+        lon: ''
+        unit: imperial
+        address: Sint-Lodewijk
+        map_zoom: auto
+        show_ground: 'false'
+        route_display: codes
+  data:
+    lat: 50.8221175
+    lon: 3.3748872
+    provider: 'airplanes.live'
+    fetched_at_utc: "2026-09-01T20:16:32.803417+00:00"
+    airports:
+      - lat: 51.190667
+        lon: 4.463153
+        iata: ANR
+        icao: EBAW
+        name: Antwerp International Airport (Deurne)
+      - lat: 50.901402
+        lon: 4.48444
+        iata: BRU
+        icao: EBBR
+        name: Brussels Airport
+      - lat: 50.461963
+        lon: 4.459562
+        iata: CRL
+        icao: EBCI
+        name: Brussels South Charleroi Airport
+      - lat: 50.818878
+        lon: 3.209551
+        iata: KJK
+        icao: EBKT
+        name: Kortrijk-Wevelgem International Airport
+      - lat: 51.1998
+        lon: 2.874673
+        iata: OST
+        icao: EBOS
+        name: Ostend-Bruges International Airport
+      - lat: 50.566564
+        lon: 3.102429
+        iata: LIL
+        icao: LFQQ
+        name: Lille Airport
+      - lat: 50.618401
+        lon: 2.64224
+        iata: HZB
+        icao: LFQT
+        name: Merville-Calonne Airport
+    ac:
+      - r: JA09WJ
+        t: A35K
+        gs: 528.4
+        cat: A5
+        lat: 50.914415
+        lon: 3.581772
+        desc: Airbus A350-1000
+        dest: HND
+        track: 102.46
+        flight: JAL44D
+        origin: LHR
+        squawk: "4644"
+        alt_baro: 34650
+        progress: 0.029
+      - r: "9H-QBK"
+        t: B738
+        gs: 490.2
+        cat: A3
+        lat: 51.026321
+        lon: 3.324181
+        desc: Boeing 737-800
+        dest: VCE
+        track: 109.17
+        flight: RYR73EJ
+        origin: MAN
+        squawk: "0507"
+        alt_baro: 39000
+        progress: 0.365
+      - r: D-ATCC
+        t: A321
+        gs: 504.2
+        cat: A3
+        lat: 50.952309
+        lon: 3.035965
+        desc: Airbus A321
+        dest: FRA
+        track: 104.12
+        flight: CFG2RC
+        origin: CDG
+        squawk: "4646"
+        alt_baro: 35000
+        progress: 0.327
+      - r: EC-NJU
+        t: A20N
+        gs: 411.8
+        cat: A3
+        lat: 50.843656
+        lon: 3.877945
+        desc: Airbus A320neo
+        dest: BRU
+        track: 41.16
+        flight: IBE0603
+        origin: MAD
+        squawk: "1000"
+        alt_baro: 12975
+        progress: 0.969
+      - r: PH-AXF
+        t: A21N
+        gs: 473
+        cat: A3
+        lat: 50.532394
+        lon: 2.974115
+        desc: Airbus A321neo
+        dest: AMS
+        track: 31.34
+        flight: KLM1508
+        origin: ALC
+        squawk: "1000"
+        alt_baro: 30875
+        progress: 0.85
+      - r: EC-KJD
+        t: A320
+        gs: 331.4
+        cat: A3
+        lat: 50.66922
+        lon: 3.967293
+        desc: Airbus A320
+        dest: BCN
+        track: 222.06
+        flight: VLG8989
+        origin: BRU
+        squawk: "1000"
+        alt_baro: 14375
+        progress: 0.057
+      - r: OO-TMF
+        t: B38M
+        gs: 322.1
+        cat: A3
+        lat: 51.134171
+        lon: 3.856647
+        desc: Boeing 737 MAX 8
+        dest: HER
+        track: 302.7
+        flight: JAF2HN
+        origin: OST
+        squawk: "1000"
+        alt_baro: 11175
+        progress: 0.036
+      - r: G-TTNI
+        t: A20N
+        gs: 485.1
+        cat: A3
+        lat: 50.796731
+        lon: 4.102478
+        desc: Airbus A320neo
+        dest: INN
+        track: 104.32
+        flight: BAW764
+        origin: LHR
+        squawk: "2022"
+        alt_baro: 36975
+        progress: 0.368
+      - r: EC-HUI
+        t: A321
+        gs: 476.5
+        cat: A3
+        lat: 50.573141
+        lon: 4.017062
+        desc: Airbus A321
+        dest: MAD
+        track: 211.79
+        flight: IBE07RP
+        origin: DUS
+        squawk: "1000"
+        alt_baro: 25350
+        progress: 0.19
+      - r: EI-DHA
+        t: B738
+        gs: 300
+        cat: A3
+        lat: 50.647252
+        lon: 4.197594
+        desc: Boeing 737-800
+        dest: CRL
+        track: 89.62
+        flight: RYR846F
+        origin: ZAZ
+        squawk: "1000"
+        alt_baro: 8650
+        progress: 1
+      - r: OO-SKS
+        t: C56X
+        gs: 60.7
+        cat: A1
+        lat: 51.185349
+        lon: 4.086685
+        desc: Cessna 560XL Citation XLS
+        track: 287.24
+        flight: OOSKS
+        squawk: "2000"
+        alt_baro: 2075
+      - r: OO-MSA
+        t: DA62
+        gs: 119.4
+        cat: A1
+        lat: 51.060124
+        lon: 2.458115
+        desc: Diamond DA-62
+        track: 63.65
+        flight: OOMSA
+        squawk: "2000"
+        alt_baro: 1800
+      - r: PH-HBM
+        t: B738
+        gs: 359.4
+        cat: A3
+        lat: 51.400452
+        lon: 3.976086
+        desc: Boeing 737-800
+        dest: RTM
+        track: 37.54
+        flight: TRA79L
+        origin: GRO
+        squawk: "1000"
+        alt_baro: 13100
+        progress: 0.939
+      - r: LX-JVC
+        t: PC24
+        gs: null
+        cat: A2
+        lat: 50.466064
+        lon: 4.474255
+        desc: Pilatus PC-24
+        track: null
+        flight: PGC39D
+        squawk: ""
+        alt_baro: 475
+      - r: SE-RPJ
+        t: B738
+        gs: 418.7
+        cat: A3
+        lat: 51.418064
+        lon: 4.213104
+        desc: Boeing 737-800
+        dest: ALC
+        track: 200.56
+        flight: NSZ5341
+        origin: AES
+        squawk: "3524"
+        alt_baro: 36000
+        progress: 0.449
+      - r: G-GDFC
+        t: B738
+        gs: 406.6
+        cat: A3
+        lat: 50.989271
+        lon: 4.620667
+        desc: Boeing 737-800
+        dest: STN
+        track: 301.42
+        flight: EXS151Z
+        origin: KGS
+        squawk: "3573"
+        alt_baro: 38000
+        progress: 0.863

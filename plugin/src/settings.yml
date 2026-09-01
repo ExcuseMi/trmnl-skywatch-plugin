@@ -4,7 +4,7 @@ no_screen_padding: 'yes'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
-framework_version: 3.0.3
+framework_version: 3.3.1
 serverless_language: node
 polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}'
 polling_headers: ''
@@ -50,7 +50,6 @@ custom_fields:
   description: City or address to centre the radar on.<br />Takes priority over Latitude / Longitude if both are set.
   help_text: e.g. "London, UK" or "Central Park, NY"
   placeholder: London, UK
-  group: Location
   optional: true
 - keyname: lat
   field_type: string
@@ -58,7 +57,6 @@ custom_fields:
   description: Centre latitude for the radar view.<br />Only used when no Address is set.<br />Find your coordinates at <a href="https://www.latlong.net" target="_blank">latlong.net</a>.
   help_text: e.g. 51.5074 (London) · 40.7128 (New York)
   placeholder: '51.5074'
-  group: Location
   optional: true
 - keyname: lon
   field_type: string
@@ -66,7 +64,6 @@ custom_fields:
   description: Centre longitude for the radar view.<br />Only used when no Address is set.
   help_text: e.g. -0.1278 (London) · -74.0060 (New York)
   placeholder: "-0.1278"
-  group: Location
   optional: true
 - keyname: unit
   field_type: select
@@ -105,56 +102,6 @@ custom_fields:
   - 11 (Close): '11'
   - 12 (Closest): '12'
   default: auto
-  optional: true
-- keyname: tile_style
-  field_type: select
-  name: Map Style
-  description: <strong>Free (CartoDB)</strong> — no account needed. Light or dark follows your display setting.<br /><br /> <strong>Stamen styles</strong> — high-contrast monochrome tiles optimised for e-ink. A free <a href="https://client.stadiamaps.com/signup/" target="_blank">Stadia Maps</a> API key is required (free account, 200,000 tile credits/month included).
-  help_text: <a href="https://docs.stadiamaps.com/themes/" target="_blank">Preview all map styles →</a>
-  options:
-  - 'Free: CartoDB Dark': cartodb_dark
-  - 'Free: CartoDB Light': cartodb_light
-  - 'Stamen: Toner (B&W)': stamen_toner
-  - 'Stamen: Toner Lite': stamen_toner_lite
-  - 'Stamen: Toner Dark': stamen_toner_dark
-  - 'Stamen: Toner Blacklite': stamen_toner_blacklite
-  - 'Stamen: Toner Background (no labels)': stamen_toner_background
-  - 'Stamen: Terrain': stamen_terrain
-  - 'Stamen: Watercolor': stamen_watercolor
-  default: cartodb_dark
-  optional: true
-  conditional_validation:
-  - when: cartodb_dark
-    hidden:
-    - stadia_api_key
-  - when: cartodb_light
-    hidden:
-    - stadia_api_key
-  - when: stamen_toner
-    required:
-    - stadia_api_key
-  - when: stamen_toner_lite
-    required:
-    - stadia_api_key
-  - when: stamen_toner_dark
-    required:
-    - stadia_api_key
-  - when: stamen_toner_blacklite
-    required:
-    - stadia_api_key
-  - when: stamen_toner_background
-    required:
-    - stadia_api_key
-  - when: stamen_terrain
-    required:
-    - stadia_api_key
-  - when: stamen_watercolor
-    required:
-    - stadia_api_key
-- keyname: stadia_api_key
-  field_type: password
-  name: Stadia Maps API Key
-  description: Required for Stamen styles.<br /><br />Free account — get your key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a><br />200,000 tile credits/month included.
   optional: true
 name: SkyWatch
 description: Real-time planes on a live map

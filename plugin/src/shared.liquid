@@ -17,26 +17,22 @@
 {% else %}
 
 {% assign instance_id = "inst_" | append_random %}
-{% assign tile_style = trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" %}
-{% if tile_style == "cartodb_dark" or tile_style == "cartodb_light" %}
-  {% assign map_attribution = "© OSM · © CARTO" %}
-{% else %}
-  {% assign map_attribution = "© OSM · © Stadia Maps" %}
-{% endif %}
+
+<script src="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.js"></script>
+<link href="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.css" rel="stylesheet">
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}" style="position:relative;">
   <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
-  <span class="label label--inverted label--small" style="position:absolute;top:8px;left:8px;z-index:10;">{{ map_attribution }}</span>
-  <svg class="image image-dither image--fill w--full h--full rounded"
-       viewBox="0 0 768 768"
-       preserveAspectRatio="xMidYMid slice">
+  <div id="sky-map-{{ instance_id }}" class="map" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;"></div>
+  <div id="sky-airport-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;"></div>
+  <svg id="sky-overlay-{{ instance_id }}" class="w--full h--full rounded" style="position:absolute;top:0;left:0;z-index:5;" preserveAspectRatio="none">
     <defs id="sky-defs-{{ instance_id }}"></defs>
-    <g id="sky-tiles-{{ instance_id }}"></g>
     <g id="sky-airports-{{ instance_id }}"></g>
     <g id="sky-center-{{ instance_id }}"></g>
     <g id="sky-outlines-{{ instance_id }}"></g>
     <g id="sky-planes-{{ instance_id }}"></g>
   </svg>
+  <div id="sky-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;"></div>
 </div>
 
 <div class="title_bar">
@@ -54,64 +50,42 @@
   var total      = {{ data.total | default: 0 }};
   var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
   var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
-  var tileStyle  = '{{ trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" }}';
   var zoomSetting = '{{ trmnl.plugin_settings.custom_fields_values.map_zoom | default: "auto" }}';
-  var stadiaKey  = '{{ trmnl.plugin_settings.custom_fields_values.stadia_api_key }}';
   var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
   var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
   var view       = {{ view | default: 1 }};
 
-  var S = 768, T = 256;
-  var z = 10;
-
-  function calculateOptimalZoom() {
-    if (!planes || planes.length === 0) return 10;
-    var dists = planes
-      .filter(function(p) { return p.lat != null && p.lon != null; })
-      .map(function(p) {
-        return Math.sqrt(Math.pow(p.lat - centerLat, 2) + Math.pow(p.lon - centerLon, 2));
-      })
-      .sort(function(a, b) { return a - b; });
-
-    if (dists.length === 0) return 10;
-    // Use farthest of up to 8 closest planes, plus 20% padding
-    var target = dists[Math.min(7, dists.length - 1)] * 1.2;
-    // Thresholds: plane should land within 75% of screen edge
-    // half-widths: z10=0.527°, z9=1.055°, z8=2.109°, z7=4.219°, z6=8.438°
-    if (target < 0.40) return 10;
-    if (target < 0.79) return 9;
-    if (target < 1.58) return 8;
-    if (target < 3.16) return 7;
-    return 6;
+  function whenMapsReady(cb) {
+    var tries = 0;
+    (function attempt() {
+      if (window.TRMNLMaps && window.maplibregl) return cb();
+      if (++tries > 200) return;
+      setTimeout(attempt, 50);
+    })();
   }
-
-  z = zoomSetting === 'auto' ? calculateOptimalZoom() : parseInt(zoomSetting, 10);
 
   function init() {
     var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
     if (!container) return;
+    var mapEl = container.querySelector('#sky-map-' + instanceId);
+    var overlay = container.querySelector('#sky-overlay-' + instanceId);
+    var cardsLayer = container.querySelector('#sky-cards-' + instanceId);
+    var airportCardsLayer = container.querySelector('#sky-airport-cards-' + instanceId);
+    if (!mapEl || !overlay || !cardsLayer || !airportCardsLayer) return;
 
     var ns = 'http://www.w3.org/2000/svg';
+    var W = mapEl.clientWidth || 768;
+    var H = mapEl.clientHeight || 768;
+    overlay.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
-    function ll2tf(lat, lon) {
-      var n  = Math.pow(2, z);
-      var lr = lat * Math.PI / 180;
-      return {
-        x: (lon + 180) / 360 * n,
-        y: (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n
-      };
-    }
+    var titleEl = document.querySelector('.title_bar .title');
+    var labelFont = titleEl ? getComputedStyle(titleEl).fontFamily : 'var(--title-bar-font-family), "NicoClean", monospace';
 
-    var ct = ll2tf(centerLat, centerLon);
-    var cx = Math.round(ct.x);
-    var cy = Math.round(ct.y);
+    var map = null;
 
     function ll2px(lat, lon) {
-      var t = ll2tf(lat, lon);
-      return {
-        x: (t.x - ct.x) * T + S / 2,
-        y: (t.y - ct.y) * T + S / 2
-      };
+      var p = map.project([lon, lat]);
+      return { x: p.x, y: p.y };
     }
 
     function formatAltitude(val) {
@@ -126,44 +100,11 @@
       return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' kt' : ' km/h');
     }
 
-    function renderTiles() {
-      var ml   = container.querySelector('#sky-tiles-' + instanceId);
-      var defs = container.querySelector('#sky-defs-' + instanceId);
-      if (!ml || !defs) return;
-      for (var dy = -2; dy <= 1; dy++) {
-        for (var dx = -2; dx <= 1; dx++) {
-          var tx = cx + dx, ty = cy + dy;
-          var px = (tx - ct.x) * T + S / 2;
-          var py = (ty - ct.y) * T + S / 2;
-          var pid = 'sk_' + instanceId + '_' + tx + '_' + ty;
-          var patt = document.createElementNS(ns, 'pattern');
-          patt.setAttribute('id', pid);
-          patt.setAttribute('patternUnits', 'userSpaceOnUse');
-          patt.setAttribute('x', px);  patt.setAttribute('y', py);
-          patt.setAttribute('width', T); patt.setAttribute('height', T);
-          var img = document.createElementNS(ns, 'image');
-          var url = tileStyle === 'cartodb_dark' || tileStyle === 'cartodb_light'
-            ? ('https://trmnl.bettens.dev/carto/tile/' + (tileStyle === 'cartodb_dark' ? 'dark_all' : 'light_all') + '/' + z + '/' + tx + '/' + ty + '.png')
-            : ('https://tiles.stadiamaps.com/tiles/' + tileStyle + '/' + z + '/' + tx + '/' + ty + '.png'
-                + (stadiaKey ? '?api_key=' + stadiaKey : ''));
-          img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
-          img.setAttribute('width', T); img.setAttribute('height', T);
-          patt.appendChild(img);
-          defs.appendChild(patt);
-          var rect = document.createElementNS(ns, 'rect');
-          rect.setAttribute('x', px);   rect.setAttribute('y', py);
-          rect.setAttribute('width', T); rect.setAttribute('height', T);
-          rect.setAttribute('fill', 'url(#' + pid + ')');
-          ml.appendChild(rect);
-        }
-      }
-    }
-
     function renderCenter() {
       var g = container.querySelector('#sky-center-' + instanceId);
       if (!g) return;
       var pos = ll2px(centerLat, centerLon);
-      var useDark = darkMode || tileStyle === 'cartodb_dark';
+      var useDark = darkMode;
       var fillColor = useDark ? '#ffffff' : '#000000';
 
       var path = document.createElementNS(ns, 'path');
@@ -285,7 +226,7 @@
       var layer = container.querySelector('#sky-planes-' + instanceId);
       if (!layer) return;
       var sc = view >= 3 ? 1.1 : 1.6;
-      var useDark = darkMode || tileStyle === 'cartodb_dark';
+      var useDark = darkMode;
       var planeColor = useDark ? '#ffffff' : '#000000';
       var lineColor = useDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
       var iconHalf = 12 * sc;
@@ -299,7 +240,7 @@
         })
         .forEach(function(p) {
           var pos = ll2px(p.lat, p.lon);
-          if (pos.x < -30 || pos.x > S+30 || pos.y < -30 || pos.y > S+30) return;
+          if (pos.x < -30 || pos.x > W+30 || pos.y < -30 || pos.y > H+30) return;
           var crowded = visible.some(function(v) {
             return Math.abs(v.x - pos.x) < iconHalf && Math.abs(v.y - pos.y) < iconHalf;
           });
@@ -360,24 +301,16 @@
 
       var SQUAWK_LABELS = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
 
-      // Pass 2a: outlines — rendered below all fills so overlapping planes stay distinct
+      // Outline + fill are drawn together per plane (not in two global passes) so a
+      // later plane's silhouette cuts a clean edge into an earlier, overlapping one
+      // instead of every fill sitting above every outline regardless of proximity.
       var outlineLayer = container.querySelector('#sky-outlines-' + instanceId);
       visible.forEach(function(v) {
         var p = v.p, pos = { x: v.x, y: v.y };
         var track = p.track != null ? p.track : 0;
         var iconKey = getIconKey(p);
-        var og = document.createElementNS(ns, 'g');
-        og.setAttribute('transform', 'translate('+pos.x.toFixed(0)+','+pos.y.toFixed(0)+') rotate('+track+') scale('+sc+')');
-        var ou = document.createElementNS(ns, 'use');
-        ou.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+instanceId);
-        ou.setAttribute('width','24'); ou.setAttribute('height','24');
-        ou.setAttribute('x','-12'); ou.setAttribute('y','-12');
-        ou.setAttribute('fill', 'none');
-        ou.setAttribute('stroke', '#000000');
-        ou.setAttribute('stroke-width', '2.5');
-        og.appendChild(ou);
-        if (outlineLayer) outlineLayer.appendChild(og);
-        if (SQUAWK_LABELS[v.p.squawk]) {
+
+        if (SQUAWK_LABELS[p.squawk]) {
           var ring = document.createElementNS(ns, 'circle');
           ring.setAttribute('cx', pos.x.toFixed(0));
           ring.setAttribute('cy', pos.y.toFixed(0));
@@ -388,15 +321,17 @@
           ring.setAttribute('stroke-dasharray', '4 3');
           if (outlineLayer) outlineLayer.appendChild(ring);
         }
-      });
 
-      // Pass 2b: fills and labels on top
-      visible.forEach(function(v) {
-        var p = v.p, pos = { x: v.x, y: v.y };
-        var track = p.track != null ? p.track : 0;
-        var iconKey = getIconKey(p);
         var g = document.createElementNS(ns, 'g');
         g.setAttribute('transform', 'translate('+pos.x.toFixed(0)+','+pos.y.toFixed(0)+') rotate('+track+') scale('+sc+')');
+        var ou = document.createElementNS(ns, 'use');
+        ou.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+instanceId);
+        ou.setAttribute('width','24'); ou.setAttribute('height','24');
+        ou.setAttribute('x','-12'); ou.setAttribute('y','-12');
+        ou.setAttribute('fill', 'none');
+        ou.setAttribute('stroke', '#000000');
+        ou.setAttribute('stroke-width', '2.5');
+        g.appendChild(ou);
         var use = document.createElementNS(ns, 'use');
         use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+instanceId);
         use.setAttribute('width','24'); use.setAttribute('height','24');
@@ -413,99 +348,65 @@
           var speedStr = p.gs != null ? ' - ' + formatSpeed(p.gs) : '';
           var altSpeedStr = altStr + speedStr;
           var routeStr = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
-          var pad = 4;
-          var rowCount = (lbl ? 1 : 0) + (desc ? 1 : 0) + (routeStr ? 1 : 0) + 1;
-          var blockH = rowCount * 14;
-          var maxWidth = Math.max(
-            measureText(lbl, '12', 'bold'),
-            measureText(desc, '11', null),
-            measureText(altSpeedStr, '11', null),
-            measureText(routeStr, '11', null),
-            20
-          ) + pad;
+          var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
+          if (!lbl && !desc && !squawkLabel && !routeStr) return;
+
+          var bgColor = altBgColor(p.alt_baro);
+          var card = document.createElement('div');
+          card.style.cssText = 'position:absolute;left:-9999px;top:0;background:' + bgColor +
+            ';border:1px solid rgba(255,255,255,0.35);border-radius:5px;padding:2px 5px;font-family:' + labelFont + ';white-space:nowrap;';
+
+          function addRow(text, fontWeight, textColor) {
+            var d = document.createElement('div');
+            d.textContent = text;
+            d.style.fontSize = '12px';
+            d.style.lineHeight = '14px';
+            if (fontWeight) d.style.fontWeight = fontWeight;
+            d.style.color = textColor;
+            card.appendChild(d);
+          }
+
+          if (squawkLabel) addRow(squawkLabel, 'bold', '#ffffff');
+          if (lbl) addRow(lbl, 'bold', '#ffffff');
+          if (desc) addRow(desc, null, '#cccccc');
+          if (routeStr) {
+            addRow(routeStr, null, '#aaaaaa');
+            if (p.progress != null) {
+              var barTrack = document.createElement('div');
+              barTrack.style.cssText = 'height:2px;background:#444444;border-radius:1px;margin:3px 0 2px;';
+              if (p.progress > 0) {
+                var barFill = document.createElement('div');
+                barFill.style.cssText = 'height:2px;background:#ffffff;border-radius:1px;width:' + Math.round(p.progress * 100) + '%;';
+                barTrack.appendChild(barFill);
+              }
+              card.appendChild(barTrack);
+            }
+          }
+          addRow(altSpeedStr, null, '#ffffff');
+
+          cardsLayer.appendChild(card);
+          var cw = card.offsetWidth, ch = card.offsetHeight;
+
           var anchor = null;
           for (var i = 0; i < ANCHORS.length; i++) {
             var a = ANCHORS[i];
-            var lx = pos.x + a.ax*ANCHOR_R - (a.ax < 0 ? maxWidth : (a.ax === 0 ? maxWidth/2 : 0));
-            var ly = pos.y + a.ay*ANCHOR_R - (a.ay < 0 ? blockH : (a.ay === 0 ? blockH/2 : 0));
-            var r = { x: lx, y: ly, w: maxWidth, h: blockH };
+            var lx = pos.x + a.ax*ANCHOR_R - (a.ax < 0 ? cw : (a.ax === 0 ? cw/2 : 0));
+            var ly = pos.y + a.ay*ANCHOR_R - (a.ay < 0 ? ch : (a.ay === 0 ? ch/2 : 0));
+            var r = { x: lx, y: ly, w: cw, h: ch };
             if (!overlaps(r)) { anchor = { x: lx, y: ly, r: r }; break; }
           }
-          if (!anchor) return;
+          if (!anchor) { cardsLayer.removeChild(card); return; }
           placedRects.push(anchor.r);
-          var lx = anchor.x, ly = anchor.y;
-          var labelCX = lx+maxWidth/2, labelCY = ly+(lbl?14:0)+7;
+          card.style.left = anchor.x.toFixed(1) + 'px';
+          card.style.top = anchor.y.toFixed(1) + 'px';
+
+          var labelCX = anchor.x + cw/2, labelCY = anchor.y + ch/2;
           var edge = planeEdgePoint(pos.x, pos.y, track, labelCX, labelCY);
           var line = document.createElementNS(ns, 'line');
           line.setAttribute('x1',edge.x.toFixed(0)); line.setAttribute('y1',edge.y.toFixed(0));
           line.setAttribute('x2',labelCX.toFixed(0)); line.setAttribute('y2',labelCY.toFixed(0));
-          line.setAttribute('stroke',lineColor); line.setAttribute('stroke-width','1.5'); line.setAttribute('stroke-dasharray','3 2');
+          line.setAttribute('stroke',lineColor); line.setAttribute('stroke-width','2.5'); line.setAttribute('stroke-dasharray','3 2');
           if (outlineLayer) outlineLayer.appendChild(line); else layer.appendChild(line);
-          var bgColor = altBgColor(p.alt_baro);
-
-          function addRow(text, y, fontSize, fontWeight, textFill) {
-            var t = document.createElementNS(ns, 'text');
-            t.setAttribute('x', (lx + pad/2).toFixed(0));
-            t.setAttribute('y', y.toFixed(0));
-            t.setAttribute('font-size', fontSize);
-            if (fontWeight) t.setAttribute('font-weight', fontWeight);
-            t.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-            t.setAttribute('fill', textFill);
-            t.textContent = text;
-            layer.appendChild(t);
-            var w = Math.ceil(t.getComputedTextLength()) + pad;
-            var bg = document.createElementNS(ns, 'rect');
-            bg.setAttribute('x', lx.toFixed(0));
-            bg.setAttribute('y', (y - 10).toFixed(0));
-            bg.setAttribute('width', w);
-            bg.setAttribute('height', '13');
-            bg.setAttribute('fill', bgColor);
-            bg.setAttribute('rx', '2');
-            layer.insertBefore(bg, t);
-          }
-
-          function measureText(text, fontSize, fontWeight) {
-            var t = document.createElementNS(ns, 'text');
-            t.setAttribute('font-size', fontSize);
-            if (fontWeight) t.setAttribute('font-weight', fontWeight);
-            t.setAttribute('font-family', 'var(--title-bar-font-family), var(--title-font-family), "NicoClean", monospace');
-            t.textContent = text;
-            layer.appendChild(t);
-            var w = Math.ceil(t.getComputedTextLength());
-            layer.removeChild(t);
-            return w;
-          }
-
-          var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
-          if (!lbl && !desc && !squawkLabel) return;
-
-          var rowY = ly;
-          if (squawkLabel) { rowY += 14; addRow(squawkLabel, rowY, '12', 'bold', '#ffffff'); }
-          if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff'); }
-          if (desc) { rowY += 14; addRow(desc, rowY, '11', null, '#cccccc'); }
-          if (routeStr) {
-            rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa');
-            var progress = p.progress != null ? p.progress : null;
-            if (progress != null) {
-              var barW = measureText(routeStr, '11', null) + pad;
-              var barX = lx;
-              var barY = rowY + 4;
-              var trackBg = document.createElementNS(ns, 'rect');
-              trackBg.setAttribute('x', barX.toFixed(0)); trackBg.setAttribute('y', barY.toFixed(0));
-              trackBg.setAttribute('width', barW); trackBg.setAttribute('height', '2');
-              trackBg.setAttribute('fill', '#444444'); trackBg.setAttribute('rx', '1');
-              layer.appendChild(trackBg);
-              if (progress > 0) {
-                var fill = document.createElementNS(ns, 'rect');
-                fill.setAttribute('x', barX.toFixed(0)); fill.setAttribute('y', barY.toFixed(0));
-                fill.setAttribute('width', Math.round(barW * progress)); fill.setAttribute('height', '2');
-                fill.setAttribute('fill', '#ffffff'); fill.setAttribute('rx', '1');
-                layer.appendChild(fill);
-              }
-              rowY += 6;
-            }
-          }
-          rowY += (routeStr ? 11 : 14); addRow(altSpeedStr, rowY, '11', null, '#ffffff');
         }
       });
     }
@@ -513,15 +414,25 @@
     function renderAirports() {
       var layer = container.querySelector('#sky-airports-' + instanceId);
       if (!layer || !airports || airports.length === 0) return;
-      var useDark = darkMode || tileStyle === 'cartodb_dark';
+      var useDark = darkMode;
+      var placedAirportRects = [];
+      function overlapsAirport(r) {
+        var pad = 3;
+        return placedAirportRects.some(function(e) {
+          return r.x < e.x+e.w+pad && r.x+r.w+pad > e.x && r.y < e.y+e.h+pad && r.y+r.h+pad > e.y;
+        });
+      }
+      var homePx = ll2px(centerLat, centerLon);
+
       airports.forEach(function(a) {
         if (a.lat == null || a.lon == null) return;
         var pos = ll2px(a.lat, a.lon);
-        if (pos.x < -20 || pos.x > S + 20 || pos.y < -20 || pos.y > S + 20) return;
+        if (pos.x < -20 || pos.x > W + 20 || pos.y < -20 || pos.y > H + 20) return;
 
         var r = 6;
         var strokeW = 2;
         var color = useDark ? '#ffffff' : '#000000';
+        placedAirportRects.push({ x: pos.x-r-3, y: pos.y-r-3, w: (r+3)*2, h: (r+3)*2 });
 
         // Outer circle
         var circle = document.createElementNS(ns, 'circle');
@@ -545,27 +456,95 @@
           layer.appendChild(line);
         });
 
-        // Airport label — right of crosshair, vertically centred on icon
+        // Airport label — outlined text like the map's own place-name labels, no box
         var code = a.iata || a.icao || '';
         if (code && view <= 3) {
-          var t = document.createElementNS(ns, 'text');
-          t.setAttribute('x', (pos.x + r + 6).toFixed(1));
-          t.setAttribute('y', pos.y.toFixed(1));
-          t.setAttribute('dominant-baseline', 'central');
-          t.setAttribute('font-size', '11');
-          t.setAttribute('font-family', 'var(--title-bar-font-family), "NicoClean", monospace');
-          t.setAttribute('fill', color);
-          t.textContent = code;
-          layer.appendChild(t);
+          var card = document.createElement('div');
+          card.textContent = code;
+          card.className = useDark
+            ? 'text--black text-stroke text-stroke--small'
+            : 'text--white text-stroke text-stroke--small text-stroke--black';
+          card.style.cssText = 'position:absolute;left:-9999px;top:0;' +
+            'font-size:12px;line-height:14px;font-weight:bold;font-family:' + labelFont + ';white-space:nowrap;';
+          airportCardsLayer.appendChild(card);
+          var cw = card.offsetWidth, ch = card.offsetHeight;
+
+          // Prefer the direction pointing away from home, so labels radiate
+          // outward instead of every airport defaulting to the same corner.
+          var outDx = pos.x >= homePx.x ? 1 : -1;
+          var outDy = pos.y >= homePx.y ? 1 : -1;
+          var anchors = [
+            {dx:outDx,dy:outDy}, {dx:outDx,dy:-outDy}, {dx:-outDx,dy:outDy}, {dx:-outDx,dy:-outDy},
+            {dx:outDx,dy:0}, {dx:-outDx,dy:0}
+          ];
+
+          var placed = null;
+          for (var i = 0; i < anchors.length; i++) {
+            var an = anchors[i];
+            var lx = an.dx > 0 ? pos.x + r + 4 : pos.x - r - 4 - cw;
+            var ly = an.dy > 0 ? pos.y + r + 2 : (an.dy < 0 ? pos.y - r - 2 - ch : pos.y - ch/2);
+            var rr = { x: lx, y: ly, w: cw, h: ch };
+            if (!overlapsAirport(rr)) { placed = rr; break; }
+          }
+          if (!placed) placed = { x: pos.x + r + 4, y: pos.y + r + 2, w: cw, h: ch };
+          placedAirportRects.push(placed);
+          card.style.left = placed.x.toFixed(1) + 'px';
+          card.style.top = placed.y.toFixed(1) + 'px';
         }
       });
     }
 
-    setupSymbols();
-    renderTiles();
-    renderAirports();
-    renderCenter();
-    renderPlanes();
+    function renderAll() {
+      container.querySelector('#sky-airports-' + instanceId).innerHTML = '';
+      container.querySelector('#sky-center-' + instanceId).innerHTML = '';
+      container.querySelector('#sky-outlines-' + instanceId).innerHTML = '';
+      container.querySelector('#sky-planes-' + instanceId).innerHTML = '';
+      cardsLayer.innerHTML = '';
+      airportCardsLayer.innerHTML = '';
+
+      setupSymbols();
+      renderAirports();
+      renderCenter();
+      renderPlanes();
+    }
+
+    var manualZoom = zoomSetting === 'auto' ? 9 : parseInt(zoomSetting, 10);
+
+    whenMapsReady(function () {
+      TRMNLMaps.watch(mapEl.id, function () {
+        map = new maplibregl.Map(TRMNLMaps.options({
+          el: mapEl.id,
+          preset: 'minimal',
+          center: [centerLon, centerLat],
+          zoom: manualZoom
+        }));
+        map.on('load', function () {
+          map.resize();
+          W = mapEl.clientWidth || W;
+          H = mapEl.clientHeight || H;
+          overlay.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+          if (zoomSetting === 'auto') {
+            var coords = [[centerLon, centerLat]];
+            (planes || [])
+              .filter(function (p) { return p.lat != null && p.lon != null; })
+              .forEach(function (p) {
+                coords.push([p.lon, p.lat]);
+                // Mirror each plane through home so the fitted bounds stay
+                // symmetric around it — fit() then has to center on home
+                // instead of drifting toward wherever the planes cluster.
+                coords.push([2*centerLon - p.lon, 2*centerLat - p.lat]);
+              });
+            if (coords.length > 1) {
+              TRMNLMaps.fit(map, coords, { padding: 60, maxZoom: 12 });
+              map.once('idle', renderAll);
+              return;
+            }
+          }
+          renderAll();
+        });
+        return map;
+      });
+    });
   }
 
   if (document.readyState === 'loading') {
