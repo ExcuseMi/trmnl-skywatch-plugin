@@ -96,11 +96,14 @@ custom_fields:
   description: How far to zoom the map. Auto fits the view to the nearest aircraft automatically. Pick a fixed level to override.
   options:
   - Auto (recommended): auto
+  - 6 (Widest): '6'
+  - 7 (Wider): '7'
   - 8 (Wide): '8'
   - 9 (Medium): '9'
   - 10 (Medium): '10'
   - 11 (Close): '11'
-  - 12 (Closest): '12'
+  - 12 (Closer): '12'
+  - 13 (Closest): '13'
   default: auto
   optional: true
 name: SkyWatch

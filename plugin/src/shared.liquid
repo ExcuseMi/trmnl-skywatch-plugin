@@ -532,6 +532,36 @@
 
     var manualZoom = zoomSetting === 'auto' ? 9 : parseInt(zoomSetting, 10);
 
+    // Standard Web Mercator pixel projection (independent of the MapLibre
+    // instance) so we can pick a zoom level before/without needing fit()'s
+    // bounding-box behavior, which centers on the bbox of ALL given points
+    // rather than keeping home fixed — that made auto-zoom balloon out
+    // whenever traffic wasn't symmetric around home (i.e. almost always).
+    function mercatorPx(lat, lon, zoom) {
+      var n = Math.pow(2, zoom) * 256;
+      var latRad = lat * Math.PI / 180;
+      return {
+        x: (lon + 180) / 360 * n,
+        y: (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+      };
+    }
+
+    function computeAutoZoom(padding) {
+      var pts = (planes || []).filter(function (p) { return p.lat != null && p.lon != null; });
+      if (!pts.length) return manualZoom;
+      var halfW = Math.max(20, (W - padding * 2) / 2);
+      var halfH = Math.max(20, (H - padding * 2) / 2);
+      for (var z = 12; z >= 4; z--) {
+        var home = mercatorPx(centerLat, centerLon, z);
+        var fits = pts.every(function (p) {
+          var pp = mercatorPx(p.lat, p.lon, z);
+          return Math.abs(pp.x - home.x) <= halfW && Math.abs(pp.y - home.y) <= halfH;
+        });
+        if (fits) return z;
+      }
+      return 4;
+    }
+
     whenMapsReady(function () {
       TRMNLMaps.watch(mapEl.id, function () {
         map = new maplibregl.Map(TRMNLMaps.options({
@@ -546,21 +576,7 @@
           H = mapEl.clientHeight || H;
           overlay.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
           if (zoomSetting === 'auto') {
-            var coords = [[centerLon, centerLat]];
-            (planes || [])
-              .filter(function (p) { return p.lat != null && p.lon != null; })
-              .forEach(function (p) {
-                coords.push([p.lon, p.lat]);
-                // Mirror each plane through home so the fitted bounds stay
-                // symmetric around it — fit() then has to center on home
-                // instead of drifting toward wherever the planes cluster.
-                coords.push([2*centerLon - p.lon, 2*centerLat - p.lat]);
-              });
-            if (coords.length > 1) {
-              TRMNLMaps.fit(map, coords, { padding: 60, maxZoom: 12 });
-              map.once('idle', renderAll);
-              return;
-            }
+            map.jumpTo({ center: [centerLon, centerLat], zoom: computeAutoZoom(60) });
           }
           renderAll();
         });
