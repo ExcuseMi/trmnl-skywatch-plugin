@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-06.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-07.
 
 **4570 airports** across 235 countries.
 
@@ -3742,7 +3742,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | TGD | LYPG | Podgorica Airport / Podgorica Golubovci Airbase | Podgorica | ME |
 | TGG | WMKN | Sultan Mahmud Airport | Kuala Terengganu | MY |
 | TGJ | NWWA | Tiga Airport | Tiga | NC |
-| TGK | URRT | Taganrog Yuzhny Airport | Taganrog | RU |
+| TGK | XRRT | Taganrog Yuzhny Airport | Taganrog | RU |
 | TGM | LRTM | Târgu Mureş Transilvania International Airport | Recea | RO |
 | TGN | YLTV | Latrobe Valley Airport | Morwell | AU |
 | TGO | ZBTL | Tongliao Airport | Tongliao | CN |
