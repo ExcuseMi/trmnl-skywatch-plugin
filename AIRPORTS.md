@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-10.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-11.
 
-**4570 airports** across 235 countries.
+**4569 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -2861,7 +2861,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | OMS | UNOO | Omsk Central Airport | Omsk | RU |
 | OND | FYOA | Ondangwa Airport | Ondangwa | NA |
 | ONJ | RJSR | Odate Noshiro Airport | Kitaakita | JP |
-| ONO | KONO | Ontario Municipal Airport | Oregon | US |
+| ONO | KONO | Ontario Municipal Airport | Ontario | US |
 | ONP | KONP | Newport Municipal Airport | Newport | US |
 | ONQ | LTAS | Zonguldak Çaycuma Airport | Zonguldak | TR |
 | ONT | KONT | Ontario International Airport | Ontario | US |
@@ -4345,7 +4345,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | YIW | ZSYW | Yiwu Airport | Yiwu/Jinhua | CN |
 | YJF | CYJF | Fort Liard Airport | Fort Liard | CA |
 | YJN | CYJN | St Jean Airport | St Jean | CA |
-| YJT | CYJT | Stephenville Dymond International Airport | Stephenville | CA |
 | YKA | CYKA | Kamloops John Moose Fulton Field Regional Airport | Kamloops | CA |
 | YKD | CYKM | Kincardine Municipal Airport | Kincardine | CA |
 | YKF | CYKF | Region of Waterloo International Airport | Breslau | CA |
