@@ -5,10 +5,39 @@
   {% assign local_timestamp = 'now' | date: "%s" | plus: trmnl.user.utc_offset %}
 {% endif %}
 
-{% if data.planes == blank %}
+{% if data.error_code or data.planes == blank %}
 
-<div class="layout layout--col gap--small">
-  <div class="description lg:description--large">No aircraft data — check your latitude and longitude settings.</div>
+{% assign cfv = trmnl.plugin_settings.custom_fields_values %}
+{% case data.error_code %}
+  {% when 'location_not_found' %}
+    {% assign msg_title = "Location not found" %}
+    {% capture msg_body %}Couldn't find "{{ data.address | default: cfv.address | escape }}". Try a more specific address (e.g. "Munich, Germany"), or clear the address and enter latitude and longitude instead.{% endcapture %}
+  {% when 'geocoder_unavailable' %}
+    {% assign msg_title = "Address lookup unavailable" %}
+    {% capture msg_body %}The address lookup service didn't respond. This usually fixes itself on the next refresh. To avoid it, clear the address and enter latitude and longitude instead.{% endcapture %}
+  {% when 'invalid_location' %}
+    {% assign msg_title = "Invalid coordinates" %}
+    {% capture msg_body %}Latitude must be between -90 and 90, longitude between -180 and 180. Check the plugin settings.{% endcapture %}
+  {% when 'missing_location' %}
+    {% assign msg_title = "No location set" %}
+    {% capture msg_body %}Enter an address, or latitude and longitude, in the plugin settings.{% endcapture %}
+  {% when 'upstream_unavailable' %}
+    {% assign msg_title = "Aircraft data unavailable" %}
+    {% capture msg_body %}The ADS-B data providers didn't respond. This is temporary; SkyWatch will retry on the next refresh.{% endcapture %}
+  {% when 'access_denied' %}
+    {% assign msg_title = "Access denied" %}
+    {% capture msg_body %}The SkyWatch server rejected this request. Please report it on GitHub if it persists.{% endcapture %}
+  {% when 'unknown' %}
+    {% assign msg_title = "Something went wrong" %}
+    {% capture msg_body %}{{ data.error | escape }}. SkyWatch will retry on the next refresh.{% endcapture %}
+  {% else %}
+    {% assign msg_title = "No aircraft nearby" %}
+    {% capture msg_body %}No aircraft within {{ data.radius_nm }} nm of {{ data.lat | round: 3 }}, {{ data.lon | round: 3 }} right now. If that location looks wrong, check your settings.{% endcapture %}
+{% endcase %}
+
+<div class="layout layout--col layout--center gap--small" style="padding: 0 24px;">
+  <span class="title">{{ msg_title }}</span>
+  <div class="description lg:description--large text--center">{{ msg_body }}</div>
 </div>
 <div class="title_bar">
   <span class="title">{{ trmnl.plugin_settings.instance_name | default: "Sky Watch"}}</span>

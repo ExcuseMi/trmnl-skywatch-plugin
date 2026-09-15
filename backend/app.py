@@ -299,25 +299,34 @@ async def fetch_airports(lat_key: int, lon_key: int) -> list:
 # ---------------------------------------------------------------------------
 
 async def geocode_address(address: str):
+    """Returns (result_or_None, error_code_or_None).
+
+    error_code is 'location_not_found' when the geocoder had no match, or
+    'geocoder_unavailable' when the lookup itself failed.
+    """
     key = geo_key(address)
     raw = await redis_client.get(key)
     if raw:
-        return json.loads(raw)
+        return json.loads(raw), None
 
     url = "https://nominatim.openstreetmap.org/search"
     params = {'q': address, 'format': 'json', 'limit': 1}
     try:
         async with httpx.AsyncClient(timeout=10.0, headers={'User-Agent': USER_AGENT}) as client:
             response = await client.get(url, params=params)
-            if response.status_code == 200:
-                data = response.json()
-                if data:
-                    result = {'lat': float(data[0]['lat']), 'lon': float(data[0]['lon'])}
-                    await redis_client.setex(key, GEO_CACHE_TTL, json.dumps(result))
-                    return result
+        if response.status_code != 200:
+            logger.warning(f"Geocoding failed for {address!r}: HTTP {response.status_code}")
+            return None, 'geocoder_unavailable'
+        data = response.json()
+        if not data:
+            logger.info(f"Geocoding: no match for {address!r}")
+            return None, 'location_not_found'
+        result = {'lat': float(data[0]['lat']), 'lon': float(data[0]['lon'])}
+        await redis_client.setex(key, GEO_CACHE_TTL, json.dumps(result))
+        return result, None
     except Exception as e:
-        logger.error(f"Geocoding error: {e}")
-    return None
+        logger.error(f"Geocoding error for {address!r}: {type(e).__name__}: {e}")
+        return None, 'geocoder_unavailable'
 
 
 # ---------------------------------------------------------------------------
@@ -658,10 +667,24 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
 # HTTP handlers
 # ---------------------------------------------------------------------------
 
+ERROR_MESSAGES = {
+    'access_denied':        'Access denied',
+    'location_not_found':   'Location not found',
+    'geocoder_unavailable': 'Address lookup service unavailable',
+    'missing_location':     'Missing lat/lon or address',
+    'invalid_location':     'Latitude must be -90..90 and longitude -180..180',
+    'upstream_unavailable': 'Failed to fetch data',
+}
+
+
+def error_response(code: str, status: int = 200, **extra):
+    return jsonify({'error': ERROR_MESSAGES[code], 'error_code': code, **extra}), status
+
+
 @app.route('/')
 async def get_planes():
     if not check_ip_whitelist():
-        return jsonify({'error': 'Access denied'}), 403
+        return error_response('access_denied', 403)
 
     lat           = request.args.get('lat', type=float)
     lon           = request.args.get('lon', type=float)
@@ -670,14 +693,19 @@ async def get_planes():
     route_display = request.args.get('route_display', 'codes')
 
     if address:
-        geo = await geocode_address(address)
-        if geo:
-            lat, lon = geo['lat'], geo['lon']
-        else:
-            return jsonify({'error': 'Location not found'})
+        address = address.strip()
+    if address:
+        geo, geo_error = await geocode_address(address)
+        if geo_error:
+            return error_response(geo_error, address=address)
+        lat, lon = geo['lat'], geo['lon']
 
     if lat is None or lon is None:
-        return jsonify({'error': 'Missing lat/lon or address'})
+        if not address and (request.args.get('lat', '').strip() or request.args.get('lon', '').strip()):
+            return error_response('invalid_location')
+        return error_response('missing_location')
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return error_response('invalid_location', lat=lat, lon=lon)
 
     await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
@@ -718,7 +746,8 @@ async def get_planes():
         await enrich_with_routes(data['ac'], route_display)
         return jsonify({'data': data})
 
-    return jsonify({'error': 'Failed to fetch data'})
+    logger.warning(f"No aircraft data available for {lat},{lon} (upstream failed, no cache)")
+    return error_response('upstream_unavailable', lat=lat, lon=lon)
 
 
 @app.route('/debug/airports')

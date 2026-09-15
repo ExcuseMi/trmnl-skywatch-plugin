@@ -1,9 +1,11 @@
 function transform(input) {
   var d = (input && input.data) || {};
+  // Backend errors come back at the top level: { error, error_code, address?, lat?, lon? }
+  var errorCode = (input && input.error_code) || ((input && input.error) ? 'unknown' : null);
   var ac = Array.isArray(d.ac) ? d.ac : [];
 
-  var centerLat = parseFloat(d.lat || 51.5074);
-  var centerLon = parseFloat(d.lon || -0.1278);
+  var centerLat = parseFloat(d.lat != null ? d.lat : 51.5074);
+  var centerLon = parseFloat(d.lon != null ? d.lon : -0.1278);
   var units = input.trmnl.plugin_settings.custom_fields_values?.unit || 'metric';
 
   var planes = ac.map(function(a) {
@@ -41,7 +43,11 @@ function transform(input) {
       lat:        centerLat,
       lon:        centerLon,
       fetched_at: d.fetched_at_utc,
-      provider:   d.provider || 'airplanes.live'
+      provider:   d.provider || 'airplanes.live',
+      radius_nm:  50,
+      error_code: errorCode,
+      error:      (input && input.error) || null,
+      address:    (input && input.address) || null
     }
   };
 }
