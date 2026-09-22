@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-21.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-22.
 
-**4569 airports** across 235 countries.
+**4568 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -3185,7 +3185,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | QGU | RJNG | Gifu Airport | Gifu | JP |
 | QHR | HAHM | Harar Meda Airport | Debre Zeyit | ET |
 | QMJ | OIAI | Shahid Asiyaee Airport | Masjed Soleyman | IR |
-| QNS | SBCO | Canoas Air Force Base | Porto Alegre | BR |
 | QOW | DNIM | Sam Mbakwe International Cargo Airport | Owerri | NG |
 | QPG | WSAP | Paya Lebar Air Base | Paya Lebar | SG |
 | QRA | FAGM | Rand Airport | Johannesburg | ZA |
