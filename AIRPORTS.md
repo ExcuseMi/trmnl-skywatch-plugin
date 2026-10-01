@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-09-30.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-01.
 
 **4568 airports** across 235 countries.
 
@@ -1702,11 +1702,11 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | INN | LOWI | Innsbruck Airport | Innsbruck | AT |
 | INT | KINT | Smith Reynolds Airport | Winston Salem | US |
 | INU | ANYN | Nauru International Airport | Yaren | NR |
-| INV | EGPE | Inverness Airport | Inverness | GB |
+| INV | EGPE | Inverness Airport | Inverness, Highland | GB |
 | INW | KINW | Winslow Lindbergh Regional Airport | Winslow | US |
 | INZ | DAUI | In Salah Airport | In Salah | DZ |
 | IOA | LGIO | Ioannina King Pyrrhus National Airport | Ioannina | GR |
-| IOM | EGNS | Isle of Man Airport | Castletown | IM |
+| IOM | EGNS | Isle of Man Airport | Castletown, Rushen | IM |
 | IOS | SBIL | Bahia - Jorge Amado Airport | Ilhéus | BR |
 | IPC | SCIP | Mataveri International Airport | Isla De Pascua | CL |
 | IPH | WMKI | Sultan Azlan Shah Airport | Ipoh | MY |
