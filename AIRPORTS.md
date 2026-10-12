@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-11.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-12.
 
 **4568 airports** across 235 countries.
 
@@ -262,7 +262,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | AXT | RJSK | Akita Airport | Akita | JP |
 | AXU | HAAX | Axum Airport | Axum | ET |
 | AYJ | VEAY | Maharshi Valmiki International Airport | Faizabad | IN |
-| AYO | SGAY | Aeropuerto Nacional Juan de Ayolas | Ayolas | PY |
+| AYO | SGAY | Juan de Ayolas National Airport | Ayolas | PY |
 | AYP | SPHO | Air Force Colonel Alfredo Mendivil Duarte Airport | Ayacucho | PE |
 | AYQ | YAYE | Ayers Rock Connellan Airport | Yulara | AU |
 | AYT | LTAI | Antalya International Airport | Antalya | TR |
@@ -3009,7 +3009,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PIE | KPIE | St. Petersburg Clearwater International Airport | Pinellas Park | US |
 | PIH | KPIH | Pocatello Regional Airport | Pocatello | US |
 | PIK | EGPK | Glasgow Prestwick Airport | Prestwick, South Ayrshire | GB |
-| PIL | SGPI | Aeródromo Don Carlos Miguel Gimenez | Pilar | PY |
+| PIL | SGPI | Don Carlos Miguel Gimenez Airport | Pilar | PY |
 | PIO | SPSO | Captain Renán Elías Olivera International Airport | Pisco | PE |
 | PIR | KPIR | Pierre Regional Airport | Pierre | US |
 | PIS | LFBI | Poitiers-Biard Airport | Poitiers/Biard | FR |
@@ -3018,7 +3018,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | PIW | CZMN | Pikwitonei Airport | Pikwitonei | CA |
 | PIX | LPPI | Pico Airport | Pico Island | PT |
 | PIZ | PPIZ | Point Lay LRRS Airport | Point Lay | US |
-| PJC | SGPJ | Aeropuerto Nacional Dr. Augusto Roberto Fuster | Pedro Juan Caballero | PY |
+| PJC | SGPJ | Dr. Augusto Roberto Fuster International Airport | Pedro Juan Caballero | PY |
 | PJG | OPPG | Panjgur Airport | Panjgur | PK |
 | PJM | MRPJ | Puerto Jimenez Airport | Puerto Jimenez | CR |
 | PKB | KPKB | Mid Ohio Valley Regional Airport | Parkersburg (Williamstown) | US |
@@ -4094,7 +4094,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | VLV | SVVL | Dr. Antonio Nicolás Briceño Airport | Valera | VE |
 | VLY | EGOV | Anglesey Airport | Angelsey | GB |
 | VME | SAOR | Villa Reynolds Airport | Villa Mercedes | AR |
-| VMI | SGVM | Aeropuerto Nacional Doctor Juan Plate | Puerto Vallemi | PY |
+| VMI | SGVM | Doctor Juan Plate National Airport | Puerto Vallemi | PY |
 | VMU | AYBA | Baimuru Airport | Baimuru | PG |
 | VNE | LFRV | Vannes-Meucon Airport | Vannes/Meucon | FR |
 | VNO | EYVI | Vilnius International Airport | Vilnius | LT |
