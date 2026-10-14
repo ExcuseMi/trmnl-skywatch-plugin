@@ -372,6 +372,18 @@
 
 {{ sw_icons }}
 {% if cd == "true" %}{{ sw_panel }}{% endif %}
+    // The end labels of the horizontal axis (pure): left and right, or null where all bearings are folded together.
+    var COMPASS16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    function axisEndLabels(axis, hdg) {
+      if (axis === 'eastwest') return { left: 'W', right: 'E' };
+      if (axis !== 'heading') return null;
+      var deg3 = function (n) { return ('00' + n).slice(-3) + '\u00b0'; };
+      var name = function (n) { return COMPASS16[Math.round(n / 22.5) % 16]; };
+      var back = (hdg + 180) % 360;
+      return { left: name(back) + ' ' + deg3(back), right: deg3(hdg) + ' ' + name(hdg) };
+    }
+    window.skyAxisEndLabels = axisEndLabels;
+
     function el(tag, attrs, parent) {
       var n = document.createElementNS(ns, tag);
       Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
@@ -381,7 +393,7 @@
     function f1(n) { return n.toFixed(1); }
 
     // ---- plot box -------------------------------------------------------
-    var padL = 54, padR = 16, padB = 36, groundBand = 22, sc = 1.3, iconHalf = 12 * sc;
+    var padL = 54, padR = 16, padB = 46, groundBand = 22, sc = 1.3, iconHalf = 12 * sc;
     // The provider label sits top right: the plot starts below it, so no icon can go under it.
     var labelEl = container.querySelector('.label');
     var cBox = container.getBoundingClientRect(), lBox = labelEl ? labelEl.getBoundingClientRect() : null;
@@ -521,17 +533,15 @@
       });
     });
     var unitTxt = kmMode ? 'km' : 'nm';
-    if (axisMode === 'distance') {
-      text('distance (' + unitTxt + ')', px1, xLabelY + 16, 'end', 12, 'bold');
-    } else if (axisMode === 'eastwest') {
-      text('W  (' + unitTxt + ')', px0, xLabelY + 16, 'start', 12, 'bold');
-      text('(' + unitTxt + ')  E', px1, xLabelY + 16, 'end', 12, 'bold');
-    } else {
-      var back = (heading + 180) % 360;
-      var hd = function (n) { return ('00' + n).slice(-3) + '°'; };
-      text(hd(back) + '  (' + unitTxt + ')', px0, xLabelY + 16, 'start', 12, 'bold');
-      text('(' + unitTxt + ')  ' + hd(heading), px1, xLabelY + 16, 'end', 12, 'bold');
+    var ends = axisEndLabels(axisMode, heading);
+    var endY = xLabelY + 20;
+    if (ends) {
+      var bigEnds = axisMode === 'eastwest';
+      text(ends.left, px0, endY, 'start', bigEnds ? 20 : 14, 'bold');
+      text(ends.right, px1, endY, 'end', bigEnds ? 20 : 14, 'bold');
     }
+    text(unitTxt, signed ? cx : px1, endY - (signed ? 0 : 0), signed ? 'middle' : 'end', 12, 'bold');
+    if (axisMode === 'distance') text('all directions', (px0 + px1) / 2, endY, 'middle', 12);
 
     // Ground strip at field elevation, with home on it
     var yGround = yOf(fieldElev);

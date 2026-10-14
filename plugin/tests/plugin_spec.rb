@@ -271,4 +271,25 @@ RSpec.describe 'SkyWatch' do
     b = xs_screen(xs_fields.merge('xs_axis' => 'eastwest', 'xs_heading' => '200')).evaluate("document.querySelector('[data-chart] svg').innerHTML.length")
     expect(a).to eq(b)
   end
+
+  # The axis end labels are a pure function of the axis and the heading.
+  it 'labels the ends of the axis with compass directions' do
+    screen = xs_screen(xs_fields)
+    ends = ->(axis, hdg) { screen.evaluate("window.skyAxisEndLabels(#{axis.to_json}, #{hdg})") }
+    expect(ends.call('eastwest', 0)).to eq('left' => 'W', 'right' => 'E')
+    expect(ends.call('distance', 0)).to be_nil
+    { 45 => ["SW 225\u00b0", "045\u00b0 NE"], 90 => ["W 270\u00b0", "090\u00b0 E"],
+      225 => ["NE 045\u00b0", "225\u00b0 SW"] }.each do |hdg, (left, right)|
+      expect(ends.call('heading', hdg)).to eq('left' => left, 'right' => right)
+    end
+    expect(ends.call('heading', 0)).to eq('left' => "S 180\u00b0", 'right' => "000\u00b0 N")
+  end
+
+  it 'draws W and E on the east-west axis and the heading ends on the heading axis' do
+    ew = xs_screen(xs_fields.merge('xs_axis' => 'eastwest'))
+    expect(ew).to have_text('W').and have_text('E')
+    hd = xs_screen(xs_fields.merge('xs_axis' => 'heading', 'xs_heading' => '45'))
+    expect(hd).to have_text("SW 225\u00b0").and have_text("045\u00b0 NE")
+    expect(xs_screen(xs_fields)).to have_text('all directions')
+  end
 end
