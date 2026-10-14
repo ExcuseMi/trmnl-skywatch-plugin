@@ -5,6 +5,7 @@
 # descending, a ground and a 7700 aircraft. No network. Docs: https://github.com/usetrmnl/trmnlp#testing-plugins
 require 'fileutils'
 require 'json'
+require 'tmpdir'
 
 RSpec.describe 'SkyWatch' do
   let(:fixture) { JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch.json'))) }
@@ -39,5 +40,74 @@ RSpec.describe 'SkyWatch' do
 
   it 'sends the radar page unchanged in dark mode (full)' do
     match_recorded('radar-full-dark', radar_page('full', dark_mode: true))
+  end
+
+  # ---- Cross-section view ---------------------------------------------------------------------------------------
+  # No map in this mode, so the pixels are stable and compared (tests/snapshots/<os>/xsection-*.png). The test
+  # browser draws the plugin dark (settings.yml dark_mode: yes), so the light variant renders a copy of the plugin
+  # with that switched off.
+  let(:xs_fields) { custom_fields.merge('view' => 'xsection', 'xs_axis' => 'distance', 'xs_heading' => '90') }
+
+  def xs_screen(fields, view: 'full', light: false)
+    return trmnl.render(view:, mocks:, custom_fields: fields) unless light
+
+    Dir.mktmpdir do |dir|
+      FileUtils.cp_r([File.join(Dir.pwd, 'src'), File.join(Dir.pwd, '.trmnlp.yml')], dir)
+      %w[src/settings.yml .trmnlp.yml].each do |f|
+        path = File.join(dir, f)
+        File.write(path, File.read(path).sub("dark_mode: 'yes'", "dark_mode: 'no'"))
+      end
+      trmnl.plugin(dir).render(view:, mocks:, custom_fields: fields)
+    end
+  end
+
+  def drawn(screen) = screen.all('[data-xs-plane]', visible: :all).map { it['data-xs-plane'] }
+  def tagged(screen) = screen.all('[data-xs-tag]', visible: :all).map { it['data-xs-tag'] }
+
+  { 'distance' => {}, 'eastwest' => {}, 'heading' => { 'xs_heading' => '90' } }.each do |axis, extra|
+    [false, true].each do |light|
+      it "draws the cross-section (#{axis}, #{light ? 'light' : 'dark'})" do
+        screen = xs_screen(xs_fields.merge('xs_axis' => axis).merge(extra), light:)
+        expect(screen.problems).to be_empty
+        expect(screen).to match_snapshot("xsection-#{axis}-#{light ? 'light' : 'dark'}")
+      end
+    end
+  end
+
+  it 'draws and tags the 7700 aircraft' do
+    screen = xs_screen(xs_fields)
+    expect(drawn(screen)).to include('DLH4AB')
+    expect(tagged(screen)).to include('DLH4AB')
+    expect(screen).to have_text('MAYDAY')
+  end
+
+  it 'draws at most 12 aircraft' do
+    screen = xs_screen(xs_fields)
+    expect(drawn(screen).size).to be_between(1, 12)
+  end
+
+  it 'draws ground aircraft on the strip only with show_ground' do
+    on = xs_screen(xs_fields.merge('show_ground' => 'true'))
+    off = xs_screen(xs_fields.merge('show_ground' => 'false'))
+    expect(on.all('[data-xs-ground]', visible: :all).size).to eq(1)
+    expect(off.all('[data-xs-ground]', visible: :all).size).to eq(0)
+  end
+
+  it 'dims aircraft far from the heading line instead of dropping them' do
+    screen = xs_screen(xs_fields.merge('xs_axis' => 'heading', 'xs_heading' => '90'))
+    dimmed = screen.all('[data-xs-dim]', visible: :all).map { it['data-xs-plane'] }
+    expect(dimmed).not_to be_empty
+    expect(tagged(screen) & dimmed).to be_empty
+    expect(dimmed).not_to include('DLH4AB')   # the 7700 aircraft is never dimmed
+    expect(tagged(screen)).to include('DLH4AB')
+  end
+
+  %w[full half_horizontal half_vertical quadrant].each do |layout|
+    next if layout == 'full'
+
+    it "keeps the radar on the #{layout} layout when the cross-section is chosen" do
+      page = trmnl.render(view: layout, mocks:, custom_fields: xs_fields).html.gsub(/inst_[A-Za-z0-9]+/, 'inst_X')
+      expect(page).to eq(File.read(File.join(__dir__, 'snapshots', "radar-#{layout}.html")))
+    end
   end
 end
