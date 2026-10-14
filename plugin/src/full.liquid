@@ -481,19 +481,18 @@
       bodies.forEach(function (b) {
         var side = sideOf(b.st.az);
         if (b.st.elev > HORIZON) {
-          var tanE = Math.tan(Math.max(0, b.st.elev) * DEG), pts = [], ex = null, ey = null;
+          // Icon only: placed where the sun's or moon's line of sight would leave the plot (top edge when high, the
+          // side edge when low), through the same piecewise axes, so the position still means something.
+          var tanE = Math.tan(Math.max(0, b.st.elev) * DEG), ex = null, ey = null;
           for (var dn = 0; dn <= radiusNm + 0.001; dn += 0.5) {
             var ft = fieldElev + dn * 6076 * tanE, atTop = ft >= ceiling;
             if (atTop && dn > 0) {   // leaves through the top: stop where the line meets the ceiling
               var prev = fieldElev + (dn - 0.5) * 6076 * tanE, frac = (ceiling - prev) / (ft - prev);
               ex = xAt((dn - 0.5) + 0.5 * Math.max(0, Math.min(1, frac)), side); ey = py0;
-              pts.push(f1(ex) + ',' + f1(ey));
               break;
             }
             ex = xAt(dn, side); ey = yOf(ft);
-            pts.push(f1(ex) + ',' + f1(ey));
           }
-          el('polyline', { points: pts.join(' '), fill: 'none', stroke: gridColor, 'stroke-width': 2, 'stroke-dasharray': '6 5', 'data-xs-sightline': b.kind }, gridLayer);
           var ix = Math.min(Math.max(ex, px0 + 12), px1 - 12), iy = Math.max(ey, py0 + 12);
           drawBody(b.kind, ix, iy);
           var lbl = Math.round(b.st.elev) + '° ' + compass(b.st.az);

@@ -109,7 +109,7 @@ custom_fields:
 - keyname: xs_sun_moon
   field_type: boolean
   name: Show Sun and Moon
-  description: "Cross-section only. The sun and moon's line of sight from your location: an aircraft on the line is the one you would see crossing it."
+  description: "Cross-section only. The sun and moon's position as seen from your location."
   default: 'false'
   optional: true
 - keyname: xs_cities

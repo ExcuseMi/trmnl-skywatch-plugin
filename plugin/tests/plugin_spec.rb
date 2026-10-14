@@ -416,16 +416,18 @@ RSpec.describe 'SkyWatch' do
     expect(xs_screen(xs_fields, mocks: noon).all('[data-xs-body]', visible: :all)).to be_empty
   end
 
-  it 'draws the sun line of sight with elevation and bearing when it is up' do
+  it 'draws the sun as an icon with elevation and bearing, and no line of sight' do
     screen = xs_screen(sm_fields, mocks: noon)
-    expect(screen.all('[data-xs-sightline="sun"]', visible: :all).size).to eq(1)
+    expect(screen.all('[data-xs-sightline]', visible: :all)).to be_empty
+    expect(screen.all('[data-xs-body="sun"]', visible: :all).size).to eq(1)
     expect(screen.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\A\d+\u00b0 [NESW]{1,3}\z/)
   end
 
   it 'shows the rising time when the sun is below the horizon, in the chosen clock format' do
     # sunrise at 50.8 N 3.4 E on 2 September is about 05:00 UTC (the center of the disc crosses the horizon a few minutes later)
     night = xs_screen(sm_fields)
-    expect(night.all('[data-xs-sightline="sun"]', visible: :all)).to be_empty
+    expect(night.all('[data-xs-sightline]', visible: :all)).to be_empty
+    expect(night.all('[data-xs-body="sun"]', visible: :all).size).to eq(1)
     expect(night.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\Arises 5:(0|1)\d AM\z/)   # imperial: auto is 12 h
     metric = xs_screen(sm_fields.merge('unit' => 'metric'))
     expect(metric.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\Arises 05:(0|1)\d\z/)
