@@ -34,6 +34,9 @@
   var routeHidden = '{{ cfv.route_display }}' === 'hidden';
   var closestOn  = '{{ cfv.closest_details }}' === 'true';
   var localNow   = {{ local_timestamp | default: 0 }};
+  var sunMoonOn  = '{{ cfv.xs_sun_moon }}' === 'true';
+  var nowSec     = {{ data.fetched_at | default: 'now' | date: "%s" }};
+  var utcOff     = {{ trmnl.user.utc_offset | default: 0 }};
   var timeFmt    = '{{ cfv.time_format | default: "auto" | escape }}';
   var settingDark = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
 
@@ -78,6 +81,80 @@
       return { left: name(back) + ' ' + deg3(back), right: deg3(hdg) + ' ' + name(hdg) };
     }
     window.skyAxisEndLabels = axisEndLabels;
+
+    // ---- sun and moon: pure computation from the time and the place, no requests ---------------------------------
+    // Sun: NOAA's solar position algorithm. Moon: Meeus chapter 47, the main terms (about 0.3 degrees).
+    var DEG = Math.PI / 180;
+    function sinD(x) { return Math.sin(x * DEG); }
+    function cosD(x) { return Math.cos(x * DEG); }
+    function wrap360(x) { return ((x % 360) + 360) % 360; }
+    function julian(ms) { return ms / 86400000 + 2440587.5; }
+    // azimuth from north, clockwise; elevation without refraction
+    function horizontal(raHourAngleDeg, decDeg, latDeg) {
+      var elev = Math.asin(sinD(latDeg) * sinD(decDeg) + cosD(latDeg) * cosD(decDeg) * cosD(raHourAngleDeg)) / DEG;
+      var az = Math.atan2(sinD(raHourAngleDeg), cosD(raHourAngleDeg) * sinD(latDeg) - Math.tan(decDeg * DEG) * cosD(latDeg)) / DEG + 180;
+      return { elev: elev, az: wrap360(az) };
+    }
+    function sunState(ms, lat, lon) {
+      var T = (julian(ms) - 2451545) / 36525;
+      var L0 = wrap360(280.46646 + T * (36000.76983 + T * 0.0003032));
+      var M = 357.52911 + T * (35999.05029 - 0.0001537 * T);
+      var e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T);
+      var C = sinD(M) * (1.914602 - T * (0.004817 + 0.000014 * T)) + sinD(2 * M) * (0.019993 - 0.000101 * T) + sinD(3 * M) * 0.000289;
+      var omega = 125.04 - 1934.136 * T;
+      var lam = L0 + C - 0.00569 - 0.00478 * sinD(omega);
+      var eps = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60 + 0.00256 * cosD(omega);
+      var dec = Math.asin(sinD(eps) * sinD(lam)) / DEG;
+      var y = Math.pow(Math.tan(eps * DEG / 2), 2);
+      var eqMin = 4 * (y * sinD(2 * L0) - 2 * e * sinD(M) + 4 * e * y * sinD(M) * cosD(2 * L0) - 0.5 * y * y * sinD(4 * L0) - 1.25 * e * e * sinD(2 * M)) / DEG;
+      var tst = ((ms / 60000) % 1440 + eqMin + 4 * lon + 1440) % 1440;
+      var h = horizontal(tst / 4 - 180, dec, lat);
+      h.lambda = wrap360(lam);
+      return h;
+    }
+    // [D, M, M', F, sum of longitude (1e-6 deg), sum of distance (1e-3 km)]
+    var MOON_LR = [[0,0,1,0,6288774,-20905355],[2,0,-1,0,1274027,-3699111],[2,0,0,0,658314,-2955968],[0,0,2,0,213618,-569925],
+      [0,1,0,0,-185116,48888],[0,0,0,2,-114332,-3149],[2,0,-2,0,58793,246158],[2,-1,-1,0,57066,-152138],[2,0,1,0,53322,-170733],
+      [2,-1,0,0,45758,-204586],[0,1,-1,0,-40923,-129620],[1,0,0,0,-34720,108743],[0,1,1,0,-30383,104755],[2,0,0,-2,15327,10321],
+      [0,0,1,2,-12528,0],[0,0,1,-2,10980,79661],[4,0,-1,0,10675,-34782],[0,0,3,0,10034,-23210],[4,0,-2,0,8548,-21636],
+      [2,1,-1,0,-7888,24208],[2,1,0,0,-6766,30824],[1,0,-1,0,-5163,-8379],[1,1,0,0,4987,-16675],[2,-1,1,0,4036,-12831],
+      [2,0,2,0,3994,-10445],[4,0,0,0,3861,-11650],[2,0,-3,0,3665,14403],[0,1,-2,0,-2689,-7003],[2,0,-1,2,-2602,0],
+      [2,-1,-2,0,2390,10056],[1,0,1,0,-2348,6322],[2,-2,0,0,2236,-9884]];
+    // [D, M, M', F, sum of latitude (1e-6 deg)]
+    var MOON_B = [[0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],[2,0,-1,1,55413],[2,0,-1,-1,46271],
+      [2,0,0,1,32573],[0,0,2,1,17198],[2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],[2,0,1,1,4200],[2,1,0,-1,-3359]];
+    function moonEcliptic(jd) {
+      var T = (jd - 2451545) / 36525;
+      var Lp = wrap360(218.3164477 + 481267.88123421 * T), D = wrap360(297.8501921 + 445267.1114034 * T);
+      var M = wrap360(357.5291092 + 35999.0502909 * T), Mp = wrap360(134.9633964 + 477198.8675055 * T);
+      var F = wrap360(93.2720950 + 483202.0175233 * T), E = 1 - 0.002516 * T;
+      var sl = 0, sr = 0, sb = 0;
+      MOON_LR.forEach(function (t) {
+        var f = Math.pow(E, Math.abs(t[1])), arg = t[0] * D + t[1] * M + t[2] * Mp + t[3] * F;
+        sl += t[4] * f * sinD(arg); sr += t[5] * f * cosD(arg);
+      });
+      MOON_B.forEach(function (t) {
+        sb += t[4] * Math.pow(E, Math.abs(t[1])) * sinD(t[0] * D + t[1] * M + t[2] * Mp + t[3] * F);
+      });
+      return { lon: wrap360(Lp + sl / 1e6), lat: sb / 1e6, dist: 385000.56 + sr / 1000 };
+    }
+    function moonState(ms, lat, lon) {
+      var jd = julian(ms), T = (jd - 2451545) / 36525, m = moonEcliptic(jd);
+      var eps = 23.4393 - 0.013 * T;
+      var ra = Math.atan2(sinD(m.lon) * cosD(eps) - Math.tan(m.lat * DEG) * sinD(eps), cosD(m.lon)) / DEG;
+      var dec = Math.asin(sinD(m.lat) * cosD(eps) + cosD(m.lat) * sinD(eps) * sinD(m.lon)) / DEG;
+      var gmst = wrap360(280.46061837 + 360.98564736629 * (jd - 2451545));
+      var h = horizontal(gmst + lon - ra, dec, lat);
+      h.elev -= Math.asin(6378.14 / m.dist) / DEG * cosD(h.elev);   // parallax
+      h.lon = m.lon; h.ra = wrap360(ra); h.dec = dec; h.dist = m.dist; h.lat = m.lat;
+      return h;
+    }
+    // lit fraction (0 new, 1 full) and whether it is waxing
+    function moonPhase(ms) {
+      var d = wrap360(moonEcliptic(julian(ms)).lon - sunState(ms, 0, 0).lambda);
+      return { fraction: (1 - cosD(d)) / 2, waxing: d < 180 };
+    }
+    window.skyAstro = { sun: sunState, moon: moonState, moonEcliptic: moonEcliptic, phase: moonPhase };
 
     function el(tag, attrs, parent) {
       var n = document.createElementNS(ns, tag);
@@ -309,6 +386,86 @@
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
       darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
     if (panelRes) placedRects.push(panelRes.rect);   // top left of the plot, kept clear of tags
+    // ---- sun and moon on the chart ----------------------------------------------------------------------------
+    if (sunMoonOn) {
+      var nowMs = nowSec * 1000;
+      var clock12 = timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial');
+      var belowSlots = { 1: 0, '-1': 0 };
+      var bodies = [{ kind: 'sun', st: sunState(nowMs, centerLat, centerLon) }, { kind: 'moon', st: moonState(nowMs, centerLat, centerLon) }];
+      var phaseNow = moonPhase(nowMs);
+      var sideOf = function (az) {
+        if (axisMode === 'eastwest') return Math.sin(az * DEG) >= 0 ? 1 : -1;
+        if (axisMode === 'heading') return Math.cos((az - heading) * DEG) >= 0 ? 1 : -1;
+        return 1;
+      };
+      var drawBody = function (kind, cxp, cyp) {
+        var g = el('g', { transform: 'translate(' + f1(cxp) + ',' + f1(cyp) + ')', 'data-xs-body': kind }, gridLayer);
+        if (kind === 'sun') {
+          el('circle', { cx: 0, cy: 0, r: 5, fill: fg }, g);
+          for (var k = 0; k < 8; k++) {
+            el('line', { x1: f1(7.5 * Math.cos(k * Math.PI / 4)), y1: f1(7.5 * Math.sin(k * Math.PI / 4)),
+              x2: f1(11 * Math.cos(k * Math.PI / 4)), y2: f1(11 * Math.sin(k * Math.PI / 4)), stroke: fg, 'stroke-width': 1.6 }, g);
+          }
+        } else {
+          var r = 8, kf = phaseNow.fraction;
+          el('circle', { cx: 0, cy: 0, r: r, fill: darkMode ? '#000000' : '#ffffff', stroke: fg, 'stroke-width': 1.5 }, g);
+          if (kf > 0.02) {
+            var xt = Math.abs(r * (1 - 2 * kf));
+            var d = 'M0 ' + (-r) + ' A' + r + ' ' + r + ' 0 0 1 0 ' + r + ' A' + xt.toFixed(2) + ' ' + r + ' 0 0 ' + (kf < 0.5 ? 0 : 1) + ' 0 ' + (-r) + ' Z';
+            el('path', { d: d, fill: fg, transform: phaseNow.waxing ? '' : 'scale(-1,1)' }, g);
+          }
+        }
+        return g;
+      };
+      var hhmm = function (ms) {
+        var t = new Date(ms + utcOff * 1000), hh = t.getUTCHours(), mm = ('0' + t.getUTCMinutes()).slice(-2);
+        return clock12 ? ((hh % 12) || 12) + ':' + mm + ' ' + (hh < 12 ? 'AM' : 'PM') : ('0' + hh).slice(-2) + ':' + mm;
+      };
+      bodies.forEach(function (b) {
+        var side = sideOf(b.st.az);
+        if (b.st.elev > 0) {
+          var tanE = Math.tan(b.st.elev * DEG), pts = [], ex = null, ey = null;
+          for (var dn = 0; dn <= radiusNm + 0.001; dn += 0.5) {
+            var ft = fieldElev + dn * 6076 * tanE, atTop = ft >= ceiling;
+            if (atTop && dn > 0) {   // leaves through the top: stop where the line meets the ceiling
+              var prev = fieldElev + (dn - 0.5) * 6076 * tanE, frac = (ceiling - prev) / (ft - prev);
+              ex = xAt((dn - 0.5) + 0.5 * Math.max(0, Math.min(1, frac)), side); ey = py0;
+              pts.push(f1(ex) + ',' + f1(ey));
+              break;
+            }
+            ex = xAt(dn, side); ey = yOf(ft);
+            pts.push(f1(ex) + ',' + f1(ey));
+          }
+          el('polyline', { points: pts.join(' '), fill: 'none', stroke: gridColor, 'stroke-width': 2, 'stroke-dasharray': '6 5', 'data-xs-sightline': b.kind }, gridLayer);
+          var ix = Math.min(Math.max(ex, px0 + 12), px1 - 12), iy = Math.max(ey, py0 + 12);
+          drawBody(b.kind, ix, iy);
+          var lbl = Math.round(b.st.elev) + '° ' + compass(b.st.az);
+          var lx = side > 0 ? ix - 15 : ix + 15;
+          var tEl = text(lbl, lx, iy + 4, side > 0 ? 'end' : 'start', 11, 'bold');
+          tEl.setAttribute('data-xs-body-label', b.kind);
+          var w = lbl.length * 6.6;
+          placedRects.push({ x: ix - 13, y: iy - 13, w: 26, h: 26 });
+          placedRects.push({ x: side > 0 ? lx - w : lx, y: iy - 9, w: w, h: 14 });
+        } else {
+          // below the horizon: a small icon at the end of the ground strip with its next rising time
+          var rise = null;
+          for (var m = 1; m <= 26 * 60; m++) {
+            var t2 = nowMs + m * 60000;
+            if ((b.kind === 'sun' ? sunState(t2, centerLat, centerLon) : moonState(t2, centerLat, centerLon)).elev > 0) { rise = t2; break; }
+          }
+          var slot = belowSlots[side]++;
+          var bx = side > 0 ? px1 - 14 - slot * 125 : px0 + 14 + slot * 125, by = (yGround + py1) / 2;
+          drawBody(b.kind, bx, by);
+          var rl = rise ? 'rises ' + hhmm(rise) : 'below horizon';
+          var rx = side > 0 ? bx - 15 : bx + 15;
+          var rEl = text(rl, rx, by + 4, side > 0 ? 'end' : 'start', 11, 'bold');
+          rEl.setAttribute('data-xs-body-label', b.kind);
+          var rw = rl.length * 6.6;
+          placedRects.push({ x: bx - 13, y: by - 13, w: 26, h: 26 });
+          placedRects.push({ x: side > 0 ? rx - rw : rx, y: by - 9, w: rw, h: 14 });
+        }
+      });
+    }
 
     function overlaps(r) {
       var pad = 4;

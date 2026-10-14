@@ -44,7 +44,19 @@ Set **Display** to *Cross-section* for a vertical slice of the sky around home i
 - Icons face the direction of travel along the axis and tilt when climbing or descending faster than 500 ft/min; the ground strip sits at the nearest airport's field elevation.
 - At most 12 aircraft are drawn: emergencies first, then the nearest low ones, then the highest.
 
+- **Sun and moon** (setting *Show Sun and Moon*): computed from the time and your location, no extra requests. A faint dashed line of sight rises from home at the body's elevation, with its icon (the moon in its current phase) and "elevation, direction" where it leaves the chart. Below the horizon, the icon sits at the end of the ground strip with "rises" and the time. An aircraft on a line is the one you would see crossing the sun or moon.
+- The horizontal axis is enlarged for the first 15 nm (30 km): that zone takes half the width, is shaded faintly and marked with a break (//).
+
 Cross-section view inspired by Avation-Cross-section.
+
+## Closest aircraft panel
+
+Setting *Show Closest Aircraft Details* (full layout, radar and cross-section) adds a panel for the airborne aircraft nearest to home: callsign, type, altitude, speed, vertical rate, distance and bearing, route with progress, phase of flight (taking off, climbing, cruising, descending, approach, on the ground), distance to go and an estimated arrival time (from the distance to the destination and the current speed). An emergency squawk shows at the top. The aircraft is ringed on the chart. *Clock Format* sets 12 or 24 hour times for the arrival and sun/moon times; Automatic follows the units.
+
+## Settings that depend on others
+
+The cross-section settings (axis, heading, sun and moon) only show when *Display* is Cross-section, and the heading only when the axis is Runway / custom heading. A hidden setting keeps its value but is ignored.
+
 
 ## How ADS-B Works
 

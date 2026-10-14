@@ -50,7 +50,7 @@ RSpec.describe 'SkyWatch' do
   let(:xs_fields) { custom_fields.merge('view' => 'xsection', 'xs_axis' => 'distance', 'xs_heading' => '90') }
 
   # light: the plugin copy with dark_mode off. mismatch: a light screen while the plugin setting still says yes.
-  def xs_screen(fields, view: 'full', light: false, mismatch: false)
+  def xs_screen(fields, view: 'full', light: false, mismatch: false, mocks: self.mocks)
     return trmnl.render(view:, mocks:, custom_fields: fields) unless light || mismatch
 
     Dir.mktmpdir do |dir|
@@ -359,5 +359,99 @@ RSpec.describe 'SkyWatch' do
     imperial24 = panel(cd_fields.merge('time_format' => '24h'), mocks: only('BEL7MZ'))
     expect(imperial24).to include('ETA 20:28')
     expect(panel(cd_fields.merge('unit' => 'metric'), mocks: only('BEL7MZ'))).to include('ETA 20:28')   # auto follows the units
+  end
+
+  # ---- Sun and moon -----------------------------------------------------------------------------------------------
+  # The positions are computed in the page. References: the sun's noon elevation is 90 - latitude + declination
+  # (declination 23.44 deg at a solstice); the moon values are the worked example 47.a of Meeus, Astronomical
+  # Algorithms (1992-04-12 0h TD: lambda 133.1627, beta -3.2291, distance 368409.7 km, RA 134.6885, Dec 13.7684).
+  def astro(expr) = xs_screen(xs_fields).evaluate(expr)
+
+  it 'computes the sun for two fixed times and places' do
+    london = astro("window.skyAstro.sun(Date.UTC(2024, 5, 21, 12, 0, 0), 51.5074, -0.1278)")
+    expect(london['elev']).to be_within(0.5).of(61.9)
+    expect(london['az']).to be_within(1.5).of(179.3)   # 1.3 minutes before solar noon
+    new_york = astro("window.skyAstro.sun(Date.UTC(2024, 11, 21, 17, 0, 0), 40.7128, -74.0060)")
+    expect(new_york['elev']).to be_within(0.5).of(25.85)
+    expect(new_york['az']).to be_within(2).of(181.5)
+    # 3 November: the equation of time is +16.4 minutes, so noon came at 11:43 UTC and 12:00 is 17 minutes after it
+    november = astro("window.skyAstro.sun(Date.UTC(2024, 10, 3, 12, 0, 0), 51.5074, -0.1278)")
+    expect(november['elev']).to be_within(0.5).of(23.3)
+    expect(november['az']).to be_within(1.2).of(184.4)
+    midnight = astro("window.skyAstro.sun(Date.UTC(2024, 5, 21, 0, 0, 0), 51.5074, -0.1278)")
+    expect(midnight['elev']).to be < -10
+  end
+
+  it 'computes the moon like the Meeus worked example' do
+    m = astro('window.skyAstro.moonEcliptic(2448724.5)')
+    expect(m['lon']).to be_within(0.3).of(133.1627)
+    expect(m['lat']).to be_within(0.3).of(-3.2291)
+    expect(m['dist']).to be_within(1500).of(368_409.7)
+    ms = astro('(2448724.5 - 2440587.5) * 86400000')
+    pos = astro("window.skyAstro.moon(#{ms}, 0, 0)")
+    expect(pos['ra']).to be_within(0.4).of(134.6885)
+    expect(pos['dec']).to be_within(0.3).of(13.7684)
+  end
+
+  it 'gives the moon phase for a full, a new and a quarter moon' do
+    phase = ->(y, mo, d, h, mi) { astro("window.skyAstro.phase(Date.UTC(#{y}, #{mo - 1}, #{d}, #{h}, #{mi}, 0))") }
+    expect(phase.call(2024, 6, 22, 1, 8)['fraction']).to be > 0.99
+    expect(phase.call(2024, 6, 6, 12, 38)['fraction']).to be < 0.01
+    quarter = phase.call(2024, 6, 14, 5, 18)
+    expect(quarter['fraction']).to be_within(0.04).of(0.5)
+    expect(quarter['waxing']).to be(true)
+    expect(phase.call(2024, 6, 28, 21, 53)['waxing']).to be(false)   # last quarter
+  end
+
+  def with_fetched(stamp)
+    data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch.json')))
+    data['data']['fetched_at_utc'] = stamp
+    { 'https://trmnl.bettens.dev/skywatch*' => { json: data } }
+  end
+
+  let(:sm_fields) { xs_fields.merge('xs_sun_moon' => 'true') }
+  let(:noon) { with_fetched('2026-09-01T12:00:00+00:00') }
+
+  it 'draws nothing for the sun and moon by default' do
+    expect(xs_screen(xs_fields, mocks: noon).all('[data-xs-body]', visible: :all)).to be_empty
+  end
+
+  it 'draws the sun line of sight with elevation and bearing when it is up' do
+    screen = xs_screen(sm_fields, mocks: noon)
+    expect(screen.all('[data-xs-sightline="sun"]', visible: :all).size).to eq(1)
+    expect(screen.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\A\d+\u00b0 [NESW]{1,3}\z/)
+  end
+
+  it 'shows the rising time when the sun is below the horizon, in the chosen clock format' do
+    # sunrise at 50.8 N 3.4 E on 2 September is about 05:00 UTC (the center of the disc crosses the horizon a few minutes later)
+    night = xs_screen(sm_fields)
+    expect(night.all('[data-xs-sightline="sun"]', visible: :all)).to be_empty
+    expect(night.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\Arises 5:(0|1)\d AM\z/)   # imperial: auto is 12 h
+    metric = xs_screen(sm_fields.merge('unit' => 'metric'))
+    expect(metric.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\Arises 05:(0|1)\d\z/)
+    twenty_four = xs_screen(sm_fields.merge('time_format' => '24h'))
+    expect(twenty_four.find('[data-xs-body-label="sun"]', visible: :all).text(:all)).to match(/\Arises 05:(0|1)\d\z/)
+  end
+
+  it 'keeps tags off the sun and moon labels' do
+    screen = xs_screen(sm_fields, mocks: noon)
+    hit = screen.evaluate(<<~JS)
+      (function () {
+        var labels = Array.prototype.slice.call(document.querySelectorAll('[data-xs-body-label], [data-xs-body]'));
+        return Array.prototype.some.call(document.querySelectorAll('[data-xs-tag]'), function (t) {
+          var b = t.getBoundingClientRect();
+          return labels.some(function (l) { var r = l.getBoundingClientRect(); return b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top; });
+        });
+      })()
+    JS
+    expect(hit).to be(false)
+  end
+
+  [[false, 'day', :noon], [true, 'day', :noon], [false, 'night', nil], [true, 'night', nil]].each do |light, name, mk|
+    it "draws the sun and moon (#{name}, #{light ? 'light' : 'dark'})" do
+      screen = xs_screen(sm_fields, light:, mocks: mk ? noon : mocks)
+      expect(screen.problems).to be_empty
+      expect(screen).to match_snapshot("xsection-sunmoon-#{name}-#{light ? 'light' : 'dark'}")
+    end
   end
 end

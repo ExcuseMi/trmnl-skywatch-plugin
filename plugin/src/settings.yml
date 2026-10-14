@@ -106,6 +106,12 @@ custom_fields:
   description: A panel with the details of the aircraft closest to home (full layout only).
   default: 'false'
   optional: true
+- keyname: xs_sun_moon
+  field_type: boolean
+  name: Show Sun and Moon
+  description: "Cross-section only. The sun and moon's line of sight from your location: an aircraft on the line is the one you would see crossing it."
+  default: 'false'
+  optional: true
 - keyname: map_zoom
   field_type: select
   name: Map Zoom
@@ -136,6 +142,7 @@ custom_fields:
     hidden:
     - xs_axis
     - xs_heading
+    - xs_sun_moon
 - keyname: xs_axis
   field_type: select
   name: Cross-section Horizontal Axis
