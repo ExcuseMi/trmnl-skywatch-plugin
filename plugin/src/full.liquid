@@ -346,10 +346,11 @@
     var xLabelY = py1 + 16;
     function xTickLabel(nm) { return String(kmMode ? Math.round(nm * 1.852) : Math.round(nm)); }
     function xAt(nm, side) { return signed ? cx + side * gx(nm) * (px1 - px0) / 2 : px0 + gx(nm) * (px1 - px0); }
-    // the enlarged inner zone, shaded very faintly
+    // the enlarged inner zone, shaded very faintly (a heavy tint turned into a grey block on the 16-grey panel; the
+    // break marks carry the message)
     var zoneL = signed ? xAt(axis.breakNm, -1) : px0, zoneR = xAt(axis.breakNm, 1);
     el('rect', { x: f1(zoneL), y: py0, width: f1(zoneR - zoneL), height: f1(py1 - py0),
-      fill: darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' }, gridLayer);
+      fill: darkMode ? '#0a0a0a' : '#f7f7f7', 'data-xs-zone': '1' }, gridLayer);   // just noticeable: a step of about 1/25 of the range
     var lastLabelX = {};
     axis.ticksNm.forEach(function (nm) {
       (signed && nm > 0 ? [-1, 1] : [1]).forEach(function (side) {
@@ -425,13 +426,35 @@
       var dim = axisMode === 'heading' && !c.emerg && Math.abs(c.pl.cross) > radiusNm / 3;   // an emergency is never dimmed
       return { c: c, x: x, y: y, dim: dim };
     });
+    // Icons never overlap. In priority order (emergencies, the closest aircraft, then the 12-aircraft selection order) an
+    // icon that would overlap a kept one is nudged vertically a little, within its altitude band, or left out.
+    (function () {
+      var pri = items.slice().sort(function (a, b) {
+        var rank = function (i) { return i.c.emerg ? 0 : (closest && i.c.p === closest.p ? 1 : 2); };
+        return rank(a) - rank(b) || chosen.indexOf(a.c) - chosen.indexOf(b.c);
+      });
+      var kept = [], sep = iconHalf * 2 - 2;
+      pri.forEach(function (it) {
+        var offs = it.c.ground ? [0] : [0, -8, 8, -16, 16, -24, 24];
+        for (var k = 0; k < offs.length; k++) {
+          var yy = Math.max(py0 + iconHalf, it.y + offs[k]);
+          if (!kept.some(function (o) { return Math.abs(o.x - it.x) < sep && Math.abs(o.y - yy) < sep; })) {
+            it.y = yy; kept.push(it); return;
+          }
+        }
+      });
+      items = items.filter(function (it) { return kept.indexOf(it) >= 0; });
+    })();
+    items.forEach(function (it, i) { it.idx = i; });
     var placedRects = items.map(function (it) {
       return { x: it.x - iconHalf, y: it.y - iconHalf, w: iconHalf * 2, h: iconHalf * 2 };
     });
     placedRects.push({ x: homeX - 14, y: yHome - 28, w: 28, h: 28 });
     placedRects.push(labelRect);   // the provider label
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
-      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
+      darkMode: settingDark, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, px1: px1, py0: py0, bottomY: yGround,
+      keepClear: [{ x: homeX - 14, y: yHome - 28, w: 28, h: 28 }],
+      spots: items.map(function (it) { return { x: it.x, y: it.y, p: it.c.p }; }) }) : null;
     if (panelRes) placedRects.push(panelRes.rect);   // top left of the plot, kept clear of tags
     // ---- sun and moon on the chart ----------------------------------------------------------------------------
     if (sunMoonOn) {
@@ -509,9 +532,19 @@
       });
     }
 
+    var connSegs = [];
+    function crossesConnector(r) {   // a tag never sits on the connector line
+      return connSegs.some(function (sg) {
+        for (var k = 0; k <= 1; k += 0.02) {
+          var px = sg.x1 + (sg.x2 - sg.x1) * k, py = sg.y1 + (sg.y2 - sg.y1) * k;
+          if (px > r.x - 3 && px < r.x + r.w + 3 && py > r.y - 3 && py < r.y + r.h + 3) return true;
+        }
+        return false;
+      });
+    }
     function overlaps(r) {
       var pad = 4;
-      return placedRects.some(function (e) {
+      return crossesConnector(r) || placedRects.some(function (e) {
         return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x && r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
       });
     }
@@ -531,6 +564,11 @@
       }
       if (panelRes && panelRes.ref === p) {
         el('circle', { cx: 0, cy: 0, r: iconHalf + 3, fill: 'none', stroke: fg, 'stroke-width': 2, 'data-closest-marker': '1' }, g);
+        // a solid connector from the ring to the panel's border, in the panel's border colour, under the icons
+        var cn = connectorPoints(it.x, it.y, iconHalf + 3, panelRes.rect);
+        el('line', { x1: f1(cn.x1), y1: f1(cn.y1), x2: f1(cn.x2), y2: f1(cn.y2), stroke: panelRes.border,
+          'stroke-width': 2.5 * Math.max(1, W / 800), 'data-closest-connector': '1' }, leaderLayer);
+        connSegs.push(cn);
       }
       var inner = el('g', { transform: 'rotate(' + rot + ') scale(' + sc + ')' }, g);
       var href = '#icon-' + getIconKey(p) + '-' + instanceId;
@@ -595,6 +633,7 @@
       return out.sort(function (m, n) { return m.score - n.score; });
     }
     function leaderTo(it, r, name) {
+      placedLeaders.push(leaderSeg(it, r));
       var np = nearestOnRect(r, it.x, it.y);
       var d = Math.hypot(np.x - it.x, np.y - it.y) || 1;
       var e = { x: it.x + (np.x - it.x) / d * iconHalf * 0.8, y: it.y + (np.y - it.y) / d * iconHalf * 0.8 };
@@ -602,10 +641,42 @@
         'stroke-width': 2.5, 'stroke-dasharray': '3 2', 'data-xs-leader': name }, leaderLayer);
       return ln;
     }
-    var order = items.filter(function (i) { return i.c.emerg; }).concat(items.filter(function (i) { return !i.c.emerg; }));
+    // Segment helpers: a candidate tag is rejected when its leader would cross another leader, another icon or a tag.
+    var placedLeaders = [];
+    function segSeg(a, b) {
+      var o = function (p, q, r) { return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x); };
+      var p1 = { x: a.x1, y: a.y1 }, p2 = { x: a.x2, y: a.y2 }, p3 = { x: b.x1, y: b.y1 }, p4 = { x: b.x2, y: b.y2 };
+      return o(p1, p2, p3) * o(p1, p2, p4) < 0 && o(p3, p4, p1) * o(p3, p4, p2) < 0;
+    }
+    function segRect(sg, r, pad) {
+      var n = Math.max(2, Math.ceil(Math.hypot(sg.x2 - sg.x1, sg.y2 - sg.y1) / 3));
+      for (var k = 0; k <= n; k++) {
+        var x = sg.x1 + (sg.x2 - sg.x1) * k / n, y = sg.y1 + (sg.y2 - sg.y1) * k / n;
+        if (x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad) return true;
+      }
+      return false;
+    }
+    function leaderSeg(it, r) {
+      var np = nearestOnRect(r, it.x, it.y), d = Math.hypot(np.x - it.x, np.y - it.y) || 1;
+      return { x1: it.x + (np.x - it.x) / d * iconHalf * 0.8, y1: it.y + (np.y - it.y) / d * iconHalf * 0.8, x2: np.x, y2: np.y };
+    }
+    function cleanLeader(it, r) {
+      var sg = leaderSeg(it, r);
+      if (placedLeaders.some(function (o) { return segSeg(sg, o) || segRect(o, r, 2); })) return false;
+      for (var k = 0; k < placedRects.length; k++) {
+        if (k === it.idx) continue;                                    // its own icon: the leader starts inside it
+        if (segRect(sg, placedRects[k], k < items.length ? 1 : 0)) return false;   // other icons, tags, the panel, labels
+      }
+      return true;
+    }
+    // Most constrained first: emergencies, then the aircraft with the most neighbours close by.
+    var crowd = function (it) { return items.filter(function (o) { return o !== it && Math.hypot(o.x - it.x, o.y - it.y) < 140; }).length; };
+    var order = items.filter(function (i) { return i.c.emerg; }).concat(items.filter(function (i) { return !i.c.emerg; })
+      .sort(function (a, b) { return crowd(b) - crowd(a); }));
 
     order.forEach(function (it) {
       if (it.dim) return;
+      if (panelRes && it.c.p === panelRes.ref) return;   // the panel replaces this aircraft's tag
       var c = it.c, p = c.p;
       var lbl = (p.flight || '').trim() || p.r || '';
       var type = (p.t || '').trim();
@@ -639,7 +710,7 @@
 
       var cands = candidates(it, cw, ch), best = null;
       for (var i = 0; i < cands.length; i++) {
-        if (inside(cands[i].r) && !overlaps(cands[i].r)) { best = cands[i].r; break; }
+        if (inside(cands[i].r) && !overlaps(cands[i].r) && cleanLeader(it, cands[i].r)) { best = cands[i].r; break; }
       }
       if (!best && c.emerg) {
         // An emergency is always tagged, even if it has to sit over something else.

@@ -50,8 +50,10 @@ RSpec.describe 'SkyWatch' do
   let(:xs_fields) { custom_fields.merge('view' => 'xsection', 'xs_axis' => 'distance', 'xs_heading' => '90') }
 
   # light: the plugin copy with dark_mode off. mismatch: a light screen while the plugin setting still says yes.
-  def xs_screen(fields, view: 'full', light: false, mismatch: false, mocks: self.mocks)
-    return trmnl.render(view:, mocks:, custom_fields: fields) unless light || mismatch
+  def xs_screen(fields, view: 'full', light: false, mismatch: false, mocks: self.mocks, setting_light: false, device: 'og_plus')
+    # setting_light: a dark screen class while the plugin setting says light
+    return trmnl.render(view:, device:, mocks:, custom_fields: fields, variables: { 'trmnl' => { 'plugin_settings' => { 'dark_mode' => 'no' } } }) if setting_light
+    return trmnl.render(view:, device:, mocks:, custom_fields: fields) unless light || mismatch
 
     Dir.mktmpdir do |dir|
       FileUtils.cp_r([File.join(Dir.pwd, 'src'), File.join(Dir.pwd, '.trmnlp.yml')], dir)
@@ -60,7 +62,7 @@ RSpec.describe 'SkyWatch' do
         File.write(path, File.read(path).sub("dark_mode: 'yes'", "dark_mode: 'no'"))
       end
       vars = mismatch ? { 'trmnl' => { 'plugin_settings' => { 'dark_mode' => 'yes' } } } : {}
-      trmnl.plugin(dir).render(view:, mocks:, custom_fields: fields, variables: vars)
+      trmnl.plugin(dir).render(view:, device:, mocks:, custom_fields: fields, variables: vars)
     end
   end
 
@@ -535,11 +537,11 @@ RSpec.describe 'SkyWatch' do
 
   # A ground aircraft shows no speed at 0 kt, and keeps it while taxiing.
   it 'drops the speed of a stationary ground aircraft in the tag and the panel' do
-    still = xs_screen(xs_fields.merge('show_ground' => 'true', 'closest_details' => 'true'), mocks: only('', gs: 0))
+    still = xs_screen(xs_fields.merge('show_ground' => 'true'), mocks: only('', gs: 0))
     expect(still.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).to include('GND')
     expect(still.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).not_to include('kt')
     expect(panel(cd_fields, mocks: only('', gs: 0))).not_to include('0 kt')
-    taxi = xs_screen(xs_fields.merge('show_ground' => 'true', 'closest_details' => 'true'), mocks: only('', gs: 12))
+    taxi = xs_screen(xs_fields.merge('show_ground' => 'true'), mocks: only('', gs: 12))
     expect(taxi.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).to include('GND 12 kt')
     expect(panel(cd_fields, mocks: only('', gs: 12))).to include('12 kt')
   end
@@ -577,6 +579,202 @@ RSpec.describe 'SkyWatch' do
       expect([a, b].max).to be > 0.05              # there are dots
       expect([a, b].max).to be <= 0.18 unless light  # dark mode: sparser dots, a calm ground (the first pattern covered 25 %)
       expect((a - b).abs / [a, b].max).to be <= 0.2, "inner #{a.round(2)} outer #{b.round(2)}"
+    end
+  end
+
+  # ---- Panel corner choice and the inner-zone tint ----------------------------------------------------------------
+  # The panel never covers the closest aircraft (icon, ring, tag): it takes the corner that leaves it clear, then the
+  # one covering the fewest other aircraft, then top left. window.__skyPanel is a test hook with the panel's rectangle
+  # and the closest aircraft's position (in the chart's own pixels).
+  def clear_of_panel?(hook, pad)
+    rect = hook['rect']
+    pt = hook['pt']
+    !(pt['x'] > rect['x'] - pad && pt['x'] < rect['x'] + rect['w'] + pad && pt['y'] > rect['y'] - pad && pt['y'] < rect['y'] + rect['h'] + pad)
+  end
+
+  it 'keeps the panel off the closest aircraft in the cross-section, and its ring and tag uncovered' do
+    # 4.2 nm north of home at FL230: under the top-left corner in the distance view
+    near = only('DLH4AB', lat: 50.8921, lon: 3.3749, alt_baro: 23000, squawk: '1000', baro_rate: 0)
+    screen = xs_screen(xs_fields.merge('closest_details' => 'true', 'xs_axis' => 'distance'), mocks: near)
+    hook = screen.evaluate('window.__skyPanel')
+    expect(clear_of_panel?(hook, 34)).to be(true)
+    overlap = screen.evaluate(<<~JS)
+      (function () {
+        var p = document.querySelector('[data-closest-panel]').getBoundingClientRect();
+        var hit = function (e) { var b = e.getBoundingClientRect(); return b.left < p.right && b.right > p.left && b.top < p.bottom && b.bottom > p.top; };
+        var marker = document.querySelector('[data-closest-marker]'), tag = document.querySelector('[data-xs-tag]');
+        return { marker: !!marker && hit(marker), tag: !!tag && hit(tag), hasTag: !!tag, hasMarker: !!marker };
+      })()
+    JS
+    expect(overlap).to eq('marker' => false, 'tag' => false, 'hasTag' => false, 'hasMarker' => true)   # the panel replaces its tag
+  end
+
+  it 'keeps the panel off the closest aircraft on the radar too' do
+    # one aircraft to the north-west: auto zoom puts it near the top left, where the panel used to go
+    far = only('DLH4AB', lat: 51.15, lon: 2.85, alt_baro: 23000, squawk: '1000')
+    screen = trmnl.render(view: 'full', mocks: far, custom_fields: custom_fields.merge('closest_details' => 'true'))
+    hook = screen.evaluate('window.__skyPanel')
+    expect(hook['pt']).not_to be_nil
+    expect(clear_of_panel?(hook, 24)).to be(true)
+  end
+
+  it 'picks a radar corner that leaves the closest aircraft clear even when the other corners are busier' do
+    # the closest aircraft sits in the top-left corner (800 x 400); every other corner holds two more aircraft, so counting
+    # aircraft alone would choose the top left and cover it
+    screen = xs_screen(xs_fields.merge('closest_details' => 'true'))
+    res = screen.evaluate(<<~JS)
+      (function () {
+        var mk = function (lat, px, py) { return { lat: lat, lon: 3.3749, alt_baro: 20000, flight: 'P' + px + '_' + py, t: 'A320', px: px, py: py }; };
+        var planes = [mk(50.85, 120, 90), mk(51.8, 90, 330), mk(51.8, 150, 340), mk(51.8, 650, 330), mk(51.8, 700, 340), mk(51.8, 690, 120), mk(51.8, 740, 110)];
+        var host = document.querySelector('[data-chart]');
+        var r = window.skyClosestPanel({ container: host, planes: planes, centerLat: 50.8221, centerLon: 3.3749, unit: 'imperial', darkMode: true, labelFont: 'monospace',
+          routeHidden: false, fieldElev: 0, localNow: 0, clock12: true, mode: 'radar', W: 800, H: 400, project: function (q) { return { x: q.px, y: q.py }; } });
+        var hook = window.__skyPanel;
+        var roots = host.querySelectorAll('[data-closest-panel]'); host.removeChild(roots[roots.length - 1]);
+        return hook;
+      })()
+    JS
+    expect(clear_of_panel?(res, 24)).to be(true)
+  end
+
+  it 'tints the inner zone only just noticeably, in light and dark' do
+    [false, true].each do |light|
+      screen = xs_screen(xs_fields, light:)
+      fill = screen.evaluate("document.querySelector('[data-xs-zone]').getAttribute('fill')")
+      level = fill[1, 2].to_i(16)
+      background = light ? 255 : 0
+      expect((level - background).abs).to be_between(1, 13), "#{light ? 'light' : 'dark'} tint #{fill}"   # at most about 5 % of the range
+    end
+  end
+
+  # The panel's colours come from the dark_mode setting only, never from the screen class (TRMNL's preview and the
+  # device set that class differently). Radar: white panel, black text, always. Cross-section: black with white text
+  # in dark mode, white with black text in light mode.
+  PANEL_LOOK_JS = <<~JS.freeze
+    (function () {
+      var panel = document.querySelector('[data-closest-panel]');
+      return { bg: getComputedStyle(panel).backgroundColor, text: getComputedStyle(panel.querySelector('.title')).color };
+    })()
+  JS
+
+  WHITE = 'rgb(255, 255, 255)'.freeze
+  BLACK = 'rgb(0, 0, 0)'.freeze
+
+  { 'radar' => { dark: [WHITE, BLACK], light: [WHITE, BLACK] },
+    'xsection' => { dark: [BLACK, WHITE], light: [WHITE, BLACK] } }.each do |mode, looks|
+    {
+      [:dark, :dark] => {},                                 # setting dark, screen class dark
+      [:dark, :light] => { mismatch: true },                # setting dark, screen class light
+      [:light, :light] => { light: true },                  # setting light, screen class light
+      [:light, :dark] => { setting_light: true }            # setting light, screen class dark
+    }.each do |(setting, klass), opts|
+      it "colours the #{mode} panel from the #{setting} setting, whatever the #{klass} screen class says" do
+        look = xs_screen(cd_fields.merge('view' => mode), **opts).evaluate(PANEL_LOOK_JS)
+        expect([look['bg'], look['text']]).to eq(looks.fetch(setting))
+      end
+    end
+  end
+
+  # The closest aircraft has no tag: a solid connector, in the panel's border colour, joins its ring to the panel.
+  it 'joins the closest aircraft to its panel with a connector instead of a tag' do
+    screen = xs_screen(cd_fields.merge('view' => 'xsection'))
+    expect(screen.all('[data-xs-tag="RYR8CL"]', visible: :all)).to be_empty                 # the closest aircraft: no tag card
+    expect(screen.all('[data-xs-tag]', visible: :all).size).to be >= 5                       # the others keep theirs
+    res = screen.evaluate(<<~JS)
+      (function () {
+        var line = document.querySelector('[data-closest-connector]'), hook = window.__skyPanel;
+        var svg = document.querySelector('[data-chart] svg').getBoundingClientRect();
+        var a = ['x1', 'y1', 'x2', 'y2'].map(function (k) { return parseFloat(line.getAttribute(k)); });
+        var r = hook.rect;
+        var nx = Math.min(Math.max(a[2], r.x), r.x + r.w), ny = Math.min(Math.max(a[3], r.y), r.y + r.h);
+        var tags = Array.prototype.map.call(document.querySelectorAll('[data-xs-tag]'), function (e) { var b = e.getBoundingClientRect(); return { x: b.left - svg.left, y: b.top - svg.top, w: b.width, h: b.height }; });
+        var crossing = tags.filter(function (g) {
+          for (var k = 0; k <= 1; k += 0.01) { var x = a[0] + (a[2] - a[0]) * k, y = a[1] + (a[3] - a[1]) * k; if (x > g.x && x < g.x + g.w && y > g.y && y < g.y + g.h) return true; }
+          return false;
+        }).length;
+        return { fromIcon: Math.hypot(a[0] - hook.pt.x, a[1] - hook.pt.y), toPanel: Math.hypot(a[2] - nx, a[3] - ny),
+                 width: parseFloat(line.getAttribute('stroke-width')), dash: line.getAttribute('stroke-dasharray'), stroke: line.getAttribute('stroke'), crossing: crossing };
+      })()
+    JS
+    expect(res['fromIcon']).to be_within(3).of(12 * 1.3 + 3)       # at the ring around the icon
+    expect(res['toPanel']).to be <= 2                              # on the panel's border
+    expect(res['width']).to be >= 2.5
+    expect(res['dash']).to be_nil                                  # solid
+    expect(res['stroke']).to eq('#ffffff')                         # the panel's border colour (dark setting: white on black)
+    expect(res['crossing']).to eq(0)                               # no tag sits on the connector
+  end
+
+  it 'computes the connector from the ring to the nearest point of the panel' do
+    screen = xs_screen(xs_fields.merge('closest_details' => 'true'))
+    c = screen.evaluate('window.skyConnector(100, 100, 20, { x: 200, y: 50, w: 100, h: 100 })')
+    expect([c['x1'], c['y1'], c['x2'], c['y2']]).to eq([120, 100, 200, 100])
+    diagonal = screen.evaluate('window.skyConnector(0, 0, 10, { x: 30, y: 40, w: 10, h: 10 })')
+    expect(diagonal['x2']).to eq(30)
+    expect(diagonal['y2']).to eq(40)
+    expect(Math.hypot(diagonal['x1'], diagonal['y1'])).to be_within(1e-9).of(10)
+  end
+
+  # ---- A busy sky: no criss-crossing leaders, no overlapping icons or tags --------------------------------------
+  # tests/fixtures/skywatch-brussels-busy.json is a real moment from the live backend (21 aircraft over Brussels).
+  def busy_mocks
+    { 'https://trmnl.bettens.dev/skywatch*' => { json: JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-brussels-busy.json'))) } }
+  end
+
+  TANGLE_JS = <<~JS.freeze
+    (function () {
+      var svg = document.querySelector('[data-chart] svg').getBoundingClientRect();
+      var k = svg.width / +document.querySelector('[data-chart] svg').getAttribute('viewBox').split(' ')[2];   // the page may be scaled (the X)
+      var box = function (e) { var b = e.getBoundingClientRect(); return { x: (b.left - svg.left) / k, y: (b.top - svg.top) / k, w: b.width / k, h: b.height / k }; };
+      var leaders = Array.prototype.map.call(document.querySelectorAll('[data-xs-leader]'), function (l) {
+        return { name: l.getAttribute('data-xs-leader'), x1: +l.getAttribute('x1'), y1: +l.getAttribute('y1'), x2: +l.getAttribute('x2'), y2: +l.getAttribute('y2') };
+      });
+      var icons = Array.prototype.map.call(document.querySelectorAll('[data-xs-plane]'), function (g) {
+        var m = g.getAttribute('transform').split('(')[1].split(')')[0].split(',');
+        return { name: g.getAttribute('data-xs-plane'), x: +m[0], y: +m[1] };
+      });
+      var tags = Array.prototype.map.call(document.querySelectorAll('[data-xs-tag]'), function (e) { var b = box(e); b.name = e.getAttribute('data-xs-tag'); return b; });
+      var o = function (p, q, r) { return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x); };
+      var cross = function (a, b) {
+        var p1 = { x: a.x1, y: a.y1 }, p2 = { x: a.x2, y: a.y2 }, p3 = { x: b.x1, y: b.y1 }, p4 = { x: b.x2, y: b.y2 };
+        return o(p1, p2, p3) * o(p1, p2, p4) < 0 && o(p3, p4, p1) * o(p3, p4, p2) < 0;
+      };
+      var through = function (l, r) {
+        for (var k = 0; k <= 60; k++) { var x = l.x1 + (l.x2 - l.x1) * k / 60, y = l.y1 + (l.y2 - l.y1) * k / 60; if (x > r.x + 1 && x < r.x + r.w - 1 && y > r.y + 1 && y < r.y + r.h - 1) return true; }
+        return false;
+      };
+      var res = { leaders: leaders.length, tags: tags.length, icons: icons.length, leaderCross: [], leaderIcon: [], leaderTag: [], iconOverlap: [], tagOverlap: [] };
+      leaders.forEach(function (l, i) {
+        for (var j = i + 1; j < leaders.length; j++) if (cross(l, leaders[j])) res.leaderCross.push(l.name + '/' + leaders[j].name);
+        icons.forEach(function (ic) { if (ic.name !== l.name && through(l, { x: ic.x - 15, y: ic.y - 15, w: 30, h: 30 })) res.leaderIcon.push(l.name + '>' + ic.name); });
+        tags.forEach(function (t) { if (t.name !== l.name && through(l, t)) res.leaderTag.push(l.name + '>' + t.name); });
+      });
+      icons.forEach(function (a, i) { for (var j = i + 1; j < icons.length; j++) if (Math.abs(a.x - icons[j].x) < 29 && Math.abs(a.y - icons[j].y) < 29) res.iconOverlap.push(a.name + '/' + icons[j].name); });
+      tags.forEach(function (a, i) { for (var j = i + 1; j < tags.length; j++) { var b = tags[j]; if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) res.tagOverlap.push(a.name + '/' + b.name); } });
+      return res;
+    })()
+  JS
+
+  [['og_plus', 'the 800 px layout'], ['v2', 'the X']].each do |device, label|
+    %w[distance eastwest].product([false, true]).each do |axis, panel_on|
+      it "keeps a busy sky untangled on #{label} (#{axis}, panel #{panel_on ? 'on' : 'off'})" do
+        fields = { 'address' => 'Brussels', 'unit' => 'imperial', 'view' => 'xsection', 'xs_axis' => axis, 'closest_details' => panel_on.to_s }
+        res = trmnl.render(view: 'full', device:, mocks: busy_mocks, custom_fields: fields).evaluate(TANGLE_JS)
+        expect(res['tags']).to be >= 5
+        expect(res['leaderCross']).to be_empty
+        expect(res['leaderIcon']).to be_empty
+        expect(res['leaderTag']).to be_empty
+        expect(res['iconOverlap']).to be_empty
+        expect(res['tagOverlap']).to be_empty
+      end
+    end
+  end
+
+  [['og_plus', 'distance', false], ['og_plus', 'eastwest', true], ['v2', 'distance', false]].each do |device, axis, light|
+    it "draws the busy Brussels sky (#{device}, #{axis}, #{light ? 'light' : 'dark'})" do
+      fields = { 'address' => 'Brussels', 'unit' => 'imperial', 'view' => 'xsection', 'xs_axis' => axis, 'closest_details' => 'true' }
+      screen = xs_screen(fields, mocks: busy_mocks, light:, device:)
+      expect(screen.problems).to be_empty
+      expect(screen).to match_snapshot("xsection-busy-#{device}-#{axis}-#{light ? 'light' : 'dark'}")
     end
   end
 end

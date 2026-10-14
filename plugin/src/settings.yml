@@ -6,6 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 3.3.1
 serverless_language: node
+refresh_interval_floor:
 polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}&view={{ trmnl.plugin_settings.custom_fields_values.view | default: "radar" }}'
 polling_headers: ''
 polling_body: ''
@@ -109,13 +110,13 @@ custom_fields:
 - keyname: xs_sun_moon
   field_type: boolean
   name: Show Sun and Moon
-  description: "Cross-section only. The sun and moon's position as seen from your location."
+  description: Cross-section only. The sun and moon's position as seen from your location.
   default: 'false'
   optional: true
 - keyname: xs_cities
   field_type: boolean
   name: Show Towns
-  description: "Cross-section only. Names of nearby towns along the ground strip."
+  description: Cross-section only. Names of nearby towns along the ground strip.
   default: 'true'
   optional: true
 - keyname: map_zoom
@@ -153,7 +154,7 @@ custom_fields:
 - keyname: xs_axis
   field_type: select
   name: Cross-section Horizontal Axis
-  description: "Used only by the cross-section.<br />Distance from home - range, with a compass bearing on each label.<br />East-West - west on the left, east on the right, home in the middle.<br />Runway / custom heading - offset along the heading below; aircraft far off that line are dimmed."
+  description: Used only by the cross-section.<br />Distance from home - range, with a compass bearing on each label.<br />East-West - west on the left, east on the right, home in the middle.<br />Runway / custom heading - offset along the heading below; aircraft far off that line are dimmed.
   options:
   - Distance from home: distance
   - East-West: eastwest

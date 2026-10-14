@@ -86,7 +86,7 @@
   var routeHidden = '{{ trmnl.plugin_settings.custom_fields_values.route_display }}' === 'hidden';
   var timeFmt    = '{{ trmnl.plugin_settings.custom_fields_values.time_format | default: "auto" }}';
   var clock12    = timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial');
-  var panelRect = null, closestRef = null;{% endif %}
+  var panelRect = null, closestRef = null, panelBorder = '#000000';{% endif %}
 
   function whenMapsReady(cb) {
     var tries = 0;
@@ -282,9 +282,15 @@
           mk.setAttribute('cx', pos.x.toFixed(0)); mk.setAttribute('cy', pos.y.toFixed(0)); mk.setAttribute('r', (iconHalf + 3).toFixed(0));
           mk.setAttribute('fill', 'none'); mk.setAttribute('stroke', '#000000'); mk.setAttribute('stroke-width', '2'); mk.setAttribute('data-closest-marker', '1');
           if (outlineLayer) outlineLayer.appendChild(mk);
+          if (panelRect) {   // a solid connector from the ring to the panel's border, in the panel's border colour
+            var cn = connectorPoints(pos.x, pos.y, iconHalf + 3, panelRect), cl = document.createElementNS(ns, 'line');
+            cl.setAttribute('x1', cn.x1.toFixed(1)); cl.setAttribute('y1', cn.y1.toFixed(1)); cl.setAttribute('x2', cn.x2.toFixed(1)); cl.setAttribute('y2', cn.y2.toFixed(1));
+            cl.setAttribute('stroke', panelBorder); cl.setAttribute('stroke-width', '3'); cl.setAttribute('data-closest-connector', '1');
+            if (outlineLayer) outlineLayer.appendChild(cl);
+          }
         }{% endif %}
 
-        if (view <= 4) {
+        if (view <= 4{% if cd == "true" %} && closestRef !== p{% endif %}) {
           var lbl = (p.flight || '').trim() || p.r || '';
           var desc = (p.desc || p.t || '').trim();
           var altStr = formatAltitude(p.alt_baro);
@@ -512,7 +518,7 @@
       var res = closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit, darkMode: darkMode,
         labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: clock12, mode: 'radar', W: W, H: H,
         project: function (q) { var m = mercatorPx(q.lat, q.lon, z); return { x: W / 2 + m.x - home.x, y: H / 2 + m.y - home.y }; } });
-      if (res) { panelRect = res.rect; closestRef = res.ref; }
+      if (res) { panelRect = res.rect; closestRef = res.ref; panelBorder = res.border; }
     })();
 {% endif %}    whenMapsReady(function () {
       TRMNLMaps.watch(mapEl.id, function () {
@@ -669,13 +675,24 @@ if (rate > 500) return 'Climbing';
 if (rate < -500) return 'Descending';
 return 'Cruising';
 }
+// The connector from an aircraft to its panel: from the ring around the icon (radius r) to the nearest point of the
+// panel's rectangle. Pure, shared by both views.
+function connectorPoints(cx, cy, r, rect) {
+var nx = Math.min(Math.max(cx, rect.x), rect.x + rect.w), ny = Math.min(Math.max(cy, rect.y), rect.y + rect.h);
+var d = Math.hypot(nx - cx, ny - cy) || 1;
+return { x1: cx + (nx - cx) / d * r, y1: cy + (ny - cy) / d * r, x2: nx, y2: ny, len: Math.max(0, d - r) };
+}
+window.skyConnector = connectorPoints;
+window.skyClosestPanel = closestPanel;
 function closestPanel(o) {
 var found = pickClosest(o.planes, o.centerLat, o.centerLon);
 if (!found) return null;
 var p = found.p, imperial = o.unit === 'imperial', ground = p.alt_baro === 'ground';
 var ftMsl = ground ? (o.fieldElev || 0) : (imperial ? +p.alt_baro : +p.alt_baro / 0.3048);
-var scr = o.container.closest ? o.container.closest('.screen') : null;
-var dark = scr ? scr.classList.contains('screen--dark-mode') : o.darkMode;
+// Colours come from the plugin's dark_mode setting only (the screen class differs between TRMNL's preview and the
+// device). Radar: always a white panel with black text, which stands out on the map in both modes. Cross-section:
+// black with white text in dark mode, white with black text in light mode.
+var dark = o.mode === 'xs' && o.darkMode;
 var fg = dark ? '#ffffff' : '#000000', bg = dark ? '#000000' : '#ffffff';
 var soft = dark ? '#bbbbbb' : '#555555', rule = dark ? '#777777' : '#999999';
 var SQ = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
@@ -780,20 +797,28 @@ if (p.squawk) small.push('SQ ' + p.squawk);
 if (small.length) root.appendChild(el('div', 'description', small.join(' · '), 'font-size:10px;line-height:12px;color:' + soft + ';margin-top:4px;'));
 o.container.appendChild(root);
 var w = root.offsetWidth, h = root.offsetHeight, x, y;
+var corners;
 if (o.mode === 'xs') {
-x = o.px0 + 6; y = o.py0 + 4;
+var bot = o.bottomY - h - 4;
+corners = [{ x: o.px0 + 6, y: o.py0 + 4 }, { x: o.px1 - w - 6, y: o.py0 + 4 }, { x: o.px0 + 6, y: bot }, { x: o.px1 - w - 6, y: bot }];
 } else {
 var topR = o.topOffset || 40, m = 8;
-var corners = [{ x: m, y: m }, { x: m, y: o.H - h - m }, { x: o.W - w - m, y: o.H - h - m }, { x: o.W - w - m, y: topR }];
-var pts = (o.planes || []).filter(function (q) { return q.lat != null && q.lon != null; }).map(o.project);
-var bestC = corners[0], bestN = 1e9;
+corners = [{ x: m, y: m }, { x: m, y: o.H - h - m }, { x: o.W - w - m, y: o.H - h - m }, { x: o.W - w - m, y: topR }];
+}
+var pts = o.mode === 'xs' ? (o.spots || []).map(function (sp) { return { x: sp.x, y: sp.y, q: sp.p }; })
+: (o.planes || []).filter(function (q) { return q.lat != null && q.lon != null; }).map(function (q) { var s2 = o.project(q); s2.q = q; return s2; });
+var hits = function (c, pt, pad) { return pt.x > c.x - pad && pt.x < c.x + w + pad && pt.y > c.y - pad && pt.y < c.y + h + pad; };
+var bestC = corners[0], bestCost = 1e12;
 corners.forEach(function (c) {
-var n = pts.filter(function (q) { return q.x > c.x - 16 && q.x < c.x + w + 16 && q.y > c.y - 16 && q.y < c.y + h + 16; }).length;
-if (n < bestN) { bestN = n; bestC = c; }
+var cost = 0;
+pts.forEach(function (pt) { if (pt.q === p) { if (hits(c, pt, 34)) cost += 1e9; } else if (hits(c, pt, 16)) cost += 1; });
+(o.keepClear || []).forEach(function (r) { if (c.x < r.x + r.w && c.x + w > r.x && c.y < r.y + r.h && c.y + h > r.y) cost += 1e6; });
+if (cost < bestCost) { bestCost = cost; bestC = c; }
 });
 x = bestC.x; y = bestC.y;
-}
+var mine = pts.filter(function (pt) { return pt.q === p; })[0];
+window.__skyPanel = { rect: { x: x, y: y, w: w, h: h }, pt: mine ? { x: mine.x, y: mine.y } : null };
 root.style.left = x.toFixed(0) + 'px';
 root.style.top = y.toFixed(0) + 'px';
-return { rect: { x: x, y: y, w: w, h: h }, ref: p };
+return { rect: { x: x, y: y, w: w, h: h }, ref: p, border: fg };
 }{% endtemplate %}
