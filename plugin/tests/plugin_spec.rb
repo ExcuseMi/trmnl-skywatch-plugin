@@ -175,6 +175,24 @@ RSpec.describe 'SkyWatch' do
     end
   end
 
+  # The fixture's dest_dist_nm must be the true distance from the aircraft to its destination airport.
+  DESTINATIONS = { 'BCN' => [41.2971, 2.0785], 'BRU' => [50.9014, 4.4844], 'LHR' => [51.4706, -0.4619] }.freeze
+
+  def haversine_nm(lat1, lon1, lat2, lon2)
+    rad = Math::PI / 180
+    a = Math.sin((lat2 - lat1) * rad / 2)**2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin((lon2 - lon1) * rad / 2)**2
+    2 * 3440.065 * Math.asin(Math.sqrt(a))
+  end
+
+  it 'has true dest_dist_nm values in the fixture' do
+    with_dist = fixture['data']['ac'].select { it['dest_dist_nm'] }
+    expect(with_dist.size).to be >= 3
+    with_dist.each do |a|
+      lat, lon = DESTINATIONS.fetch(a['dest'])
+      expect(a['dest_dist_nm']).to be_within(2).of(haversine_nm(a['lat'], a['lon'], lat, lon)), a['flight']
+    end
+  end
+
   it 'shows no panel by default, in either view' do
     expect(panel(custom_fields)).to be_nil
     expect(panel(custom_fields.merge('view' => 'xsection'))).to be_nil
@@ -189,9 +207,9 @@ RSpec.describe 'SkyWatch' do
 
   it 'shows metres, km, km/h and m/s in metric' do
     text = panel(cd_fields.merge('unit' => 'metric'))
-    expect(text).to include('1890 m', '459 km/h', '9.1 m/s', '10.1 km', '74.1 km to go')
+    expect(text).to include('1890 m', '459 km/h', '9.1 m/s', '10.1 km', '1069 km to go')
     expect(text).not_to include(' ft', ' kt', ' nm', 'fpm')
-    expect(text).to include('ETA 20:26')
+    expect(text).to include('ETA 22:36')
   end
 
   it 'picks a ground aircraft only when nothing is airborne' do
@@ -204,7 +222,7 @@ RSpec.describe 'SkyWatch' do
     expect(panel(cd_fields, mocks: only('RYR8CL'))).to include('Climbing')
     expect(panel(cd_fields, mocks: only('DLH4AB'))).to include('Descending')
     expect(panel(cd_fields, mocks: only('BEL7MZ'))).to include('Approach')
-    expect(panel(cd_fields, mocks: only('BEL7MZ', progress: 0.2))).to include('Approach')   # near the destination, not far along
+    expect(panel(cd_fields, mocks: only('BEL7MZ', progress: 0.2, dest_dist_nm: 25))).to include('Approach')   # near the destination, not far along
     expect(panel(cd_fields, mocks: only('BEL7MZ', progress: 0.2, dest_dist_nm: 80))).to include('Descending')
     expect(panel(cd_fields, mocks: only('RYR8CL', alt_baro: 1500))).to include('Taking off')
     expect(panel(cd_fields, mocks: only('IBE0603'))).to include('Cruising')
@@ -212,9 +230,9 @@ RSpec.describe 'SkyWatch' do
 
   it 'shows the distance left and the ETA from fetched_at, only above 50 kt' do
     text = panel(cd_fields, mocks: only('BEL7MZ'))
-    expect(text).to include('30 nm to go', 'ETA 8:26 PM')   # 30 nm at 180 kt is 10 minutes after 8:16 PM
+    expect(text).to include('35.1 nm to go', 'ETA 8:28 PM')   # 35.1 nm at 180 kt is 11.7 minutes after 8:16:32 PM
     slow = panel(cd_fields, mocks: only('BEL7MZ', gs: 40))
-    expect(slow).to include('30 nm to go')
+    expect(slow).to include('35.1 nm to go')
     expect(slow).not_to include('ETA')
   end
 

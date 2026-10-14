@@ -323,7 +323,7 @@
    {
     "hex": "4ca1b2",
     "flight": "RYR8CL",
-    "dest_dist_nm": 40.0,
+    "dest_dist_nm": 577.0,
     "r": "EI-DHS",
     "t": "B738",
     "cat": "A3",
@@ -342,7 +342,7 @@
    {
     "hex": "44d0a1",
     "flight": "BEL7MZ",
-    "dest_dist_nm": 30.0,
+    "dest_dist_nm": 35.1,
     "r": "OO-SSU",
     "t": "A319",
     "cat": "A3",
@@ -376,7 +376,7 @@
    {
     "hex": "3c4b26",
     "flight": "DLH4AB",
-    "dest_dist_nm": 180.5,
+    "dest_dist_nm": 158.5,
     "r": "D-AIZQ",
     "t": "A320",
     "cat": "A3",
