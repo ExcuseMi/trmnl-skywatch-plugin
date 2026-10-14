@@ -138,11 +138,24 @@
       return { along: along, cross: cross, dist: d, bearing: bearing, dir: dir >= 0 ? 1 : -1 };
     }
 
-    // X: the inner third of the radius takes half the width.
-    function gx(distNm) {
-      var a = Math.min(Math.abs(distNm), radiusNm), third = radiusNm / 3;
-      return a <= third ? 0.5 * a / third : 0.5 + 0.5 * (a - third) / (radiusNm - third);
+    // X: the inner zone (up to 15 nm or 30 km) takes half the width, the rest of the radius the other half. One
+    // function (makeAxis) drives the aircraft, the ticks and anything else placed along the axis.
+    function makeAxis(radius, km) {
+      var brk = km ? 30 / 1.852 : 15;
+      var tickList = km ? [0, 10, 20, 30, 40, 60, 80, radius * 1.852] : [0, 5, 10, 15, 20, 30, 40, radius];
+      return {
+        breakNm: brk,
+        gx: function (distNm) {
+          var a = Math.min(Math.abs(distNm), radius);
+          return a <= brk ? 0.5 * a / brk : 0.5 + 0.5 * (a - brk) / (radius - brk);
+        },
+        ticksNm: tickList.map(function (t) { return km ? t / 1.852 : t; }).filter(function (t) { return t <= radius + 0.01; })
+      };
     }
+    window.skyMakeAxis = makeAxis;
+    var kmMode = unit !== 'imperial';
+    var axis = makeAxis(radiusNm, kmMode);
+    var gx = axis.gx;
     function xOf(alongNm) {
       if (!signed) return px0 + gx(alongNm) * (px1 - px0);
       return cx + (alongNm < 0 ? -1 : 1) * gx(alongNm) * (px1 - px0) / 2;
@@ -207,23 +220,29 @@
     });
     text(unit === 'imperial' ? 'ft' : 'm', px0 - 6, py0 - 8, 'end', 12, 'bold');
 
-    var kmMode = unit !== 'imperial';
-    var xTicksNm = [];
-    if (!kmMode) {
-      [0, 5, 10, 15, 20, 30, 40, 50].forEach(function (v) { xTicksNm.push(v); });
-    } else {
-      [0, 10, 20, 30, 40, 60, 80].forEach(function (km) { xTicksNm.push(km / 1.852); });
-    }
     var xLabelY = py1 + 16;
     function xTickLabel(nm) { return String(kmMode ? Math.round(nm * 1.852) : Math.round(nm)); }
-    xTicksNm.forEach(function (nm) {
-      if (nm > radiusNm + 0.01) return;
-      if (signed && nm === 15) return;   // too close to 20 on a centred axis
-      var sides = signed && nm > 0 ? [-1, 1] : [1];
-      sides.forEach(function (s) {
-        var x = signed ? cx + s * gx(nm) * (px1 - px0) / 2 : px0 + gx(nm) * (px1 - px0);
+    function xAt(nm, side) { return signed ? cx + side * gx(nm) * (px1 - px0) / 2 : px0 + gx(nm) * (px1 - px0); }
+    // the enlarged inner zone, shaded very faintly
+    var zoneL = signed ? xAt(axis.breakNm, -1) : px0, zoneR = xAt(axis.breakNm, 1);
+    el('rect', { x: f1(zoneL), y: py0, width: f1(zoneR - zoneL), height: f1(py1 - py0),
+      fill: darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' }, gridLayer);
+    var lastLabelX = {};
+    axis.ticksNm.forEach(function (nm) {
+      (signed && nm > 0 ? [-1, 1] : [1]).forEach(function (side) {
+        var x = xAt(nm, side);
         el('line', { x1: f1(x), y1: py0, x2: f1(x), y2: f1(py1), stroke: gridColor, 'stroke-width': 1, 'stroke-dasharray': '2 4' }, gridLayer);
+        // no label closer than 24 px to the previous one on its side
+        if (lastLabelX[side] != null && Math.abs(x - lastLabelX[side]) < 24) return;
+        lastLabelX[side] = x;
         text(xTickLabel(nm), x, xLabelY, 'middle', 12);
+      });
+    });
+    // axis-break mark: two short slanted strokes where the scale changes
+    (signed ? [-1, 1] : [1]).forEach(function (side) {
+      var bx = xAt(axis.breakNm, side);
+      [-2.5, 2.5].forEach(function (dx) {
+        el('line', { x1: f1(bx + dx - 3), y1: py1 + 5, x2: f1(bx + dx + 3), y2: py1 - 5, stroke: fg, 'stroke-width': 2 }, gridLayer);
       });
     });
     var unitTxt = kmMode ? 'km' : 'nm';

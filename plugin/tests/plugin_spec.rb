@@ -332,4 +332,23 @@ RSpec.describe 'SkyWatch' do
       expect(res['same']).to be_empty
     end
   end
+
+  # The axis mapping is one pure function: break at 15 nm / 30 km on the half point, radius on the edge, monotonic.
+  it 'maps distance to the axis with the break at 15 nm or 30 km' do
+    screen = xs_screen(xs_fields)
+    %w[false true].each do |km|
+      ax = screen.evaluate("(function () { var a = window.skyMakeAxis(50, #{km}); return { brk: a.breakNm, half: a.gx(a.breakNm), edge: a.gx(50), zero: a.gx(0), over: a.gx(80), ticks: a.ticksNm, steps: Array.from({ length: 101 }, function (_, i) { return a.gx(i * 0.5); }) }; })()")
+      expect(ax['brk']).to be_within(0.01).of(km == 'true' ? 30 / 1.852 : 15)
+      expect(ax['half']).to be_within(1e-9).of(0.5)
+      expect([ax['zero'], ax['edge'], ax['over']]).to eq([0, 1, 1])
+      expect(ax['steps'].each_cons(2).all? { |a, b| b >= a }).to be(true)
+      expect(ax['ticks'].each_cons(2).all? { |a, b| b > a }).to be(true)
+      expect(ax['ticks'].last).to be_within(0.01).of(50)
+      expect(ax['ticks'].map { it.round(2) }).to include(ax['brk'].round(2))
+    end
+    imperial = screen.evaluate('window.skyMakeAxis(50, false).ticksNm')
+    metric = screen.evaluate('window.skyMakeAxis(50, true).ticksNm.map(function (t) { return Math.round(t * 1.852); })')
+    expect(imperial).to eq([0, 5, 10, 15, 20, 30, 40, 50])
+    expect(metric).to eq([0, 10, 20, 30, 40, 60, 80, 93])
+  end
 end
