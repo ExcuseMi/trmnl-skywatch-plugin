@@ -3,157 +3,7 @@
   {% assign local_timestamp = data.fetched_at | date: "%s" | plus: trmnl.user.utc_offset %}
 {% else %}
   {% assign local_timestamp = 'now' | date: "%s" | plus: trmnl.user.utc_offset %}
-{% endif %}
-
-{% if data.error_code or data.planes == blank %}
-
-{% assign cfv = trmnl.plugin_settings.custom_fields_values %}
-{% case data.error_code %}
-  {% when 'location_not_found' %}
-    {% assign msg_title = "Location not found" %}
-    {% capture msg_body %}Couldn't find "{{ data.address | default: cfv.address | escape }}". Try a more specific address (e.g. "Munich, Germany"), or clear the address and enter latitude and longitude instead.{% endcapture %}
-  {% when 'geocoder_unavailable' %}
-    {% assign msg_title = "Address lookup unavailable" %}
-    {% capture msg_body %}The address lookup service didn't respond. This usually fixes itself on the next refresh. To avoid it, clear the address and enter latitude and longitude instead.{% endcapture %}
-  {% when 'invalid_location' %}
-    {% assign msg_title = "Invalid coordinates" %}
-    {% capture msg_body %}Latitude must be between -90 and 90, longitude between -180 and 180. Check the plugin settings.{% endcapture %}
-  {% when 'missing_location' %}
-    {% assign msg_title = "No location set" %}
-    {% capture msg_body %}Enter an address, or latitude and longitude, in the plugin settings.{% endcapture %}
-  {% when 'upstream_unavailable' %}
-    {% assign msg_title = "Aircraft data unavailable" %}
-    {% capture msg_body %}The ADS-B data providers didn't respond. This is temporary; SkyWatch will retry on the next refresh.{% endcapture %}
-  {% when 'access_denied' %}
-    {% assign msg_title = "Access denied" %}
-    {% capture msg_body %}The SkyWatch server rejected this request. Please report it on GitHub if it persists.{% endcapture %}
-  {% when 'unknown' %}
-    {% assign msg_title = "Something went wrong" %}
-    {% capture msg_body %}{{ data.error | escape }}. SkyWatch will retry on the next refresh.{% endcapture %}
-  {% else %}
-    {% assign msg_title = "No aircraft nearby" %}
-    {% capture msg_body %}No aircraft within {{ data.radius_nm }} nm of {{ data.lat | round: 3 }}, {{ data.lon | round: 3 }} right now. If that location looks wrong, check your settings.{% endcapture %}
-{% endcase %}
-
-<div class="layout layout--col layout--center gap--small" style="padding: 0 24px;">
-  <span class="title">{{ msg_title }}</span>
-  <div class="description lg:description--large text--center">{{ msg_body }}</div>
-</div>
-<div class="title_bar">
-  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "Sky Watch"}}</span>
-</div>
-
-{% else %}
-
-{% assign instance_id = "inst_" | append_random %}
-
-<script src="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.js"></script>
-<link href="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.css" rel="stylesheet">
-
-<div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}" style="position:relative;">
-  <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
-  <div id="sky-map-{{ instance_id }}" class="map" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;"></div>
-  <div id="sky-airport-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;"></div>
-  <svg id="sky-overlay-{{ instance_id }}" class="w--full h--full rounded" style="position:absolute;top:0;left:0;z-index:5;" preserveAspectRatio="none">
-    <defs id="sky-defs-{{ instance_id }}"></defs>
-    <g id="sky-airports-{{ instance_id }}"></g>
-    <g id="sky-center-{{ instance_id }}"></g>
-    <g id="sky-outlines-{{ instance_id }}"></g>
-    <g id="sky-planes-{{ instance_id }}"></g>
-  </svg>
-  <div id="sky-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;"></div>
-</div>
-
-<div class="title_bar">
-  <svg class="h--8 dark:hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
-<svg class="h--8 dark:block hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black" style="filter: invert(1);"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
-  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "SkyWatch" }}</span>
-  <span class="instance md:portrait:hidden">{% if trmnl.plugin_settings.custom_fields_values.address != blank %}{{ trmnl.plugin_settings.custom_fields_values.address }} · {% endif %}{% if trmnl.plugin_settings.custom_fields_values.unit == "imperial" %}{{ local_timestamp | date: "%-I:%M %p" }}{% else %}{{ local_timestamp | date: "%H:%M" }}{% endif %}</span>
-</div>
-
-<script>
-(function () {
-  var instanceId = '{{ instance_id }}';
-  var planes     = {{ data.planes | json }};
-  var airports   = {{ data.airports | json | default: "[]" }};
-  var total      = {{ data.total | default: 0 }};
-  var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
-  var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
-  var zoomSetting = '{{ trmnl.plugin_settings.custom_fields_values.map_zoom | default: "auto" }}';
-  var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
-  var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
-  var view       = {{ view | default: 1 }};
-
-  function whenMapsReady(cb) {
-    var tries = 0;
-    (function attempt() {
-      if (window.TRMNLMaps && window.maplibregl) return cb();
-      if (++tries > 200) return;
-      setTimeout(attempt, 50);
-    })();
-  }
-
-  function init() {
-    var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
-    if (!container) return;
-    var mapEl = container.querySelector('#sky-map-' + instanceId);
-    var overlay = container.querySelector('#sky-overlay-' + instanceId);
-    var cardsLayer = container.querySelector('#sky-cards-' + instanceId);
-    var airportCardsLayer = container.querySelector('#sky-airport-cards-' + instanceId);
-    if (!mapEl || !overlay || !cardsLayer || !airportCardsLayer) return;
-
-    var ns = 'http://www.w3.org/2000/svg';
-    var W = mapEl.clientWidth || 768;
-    var H = mapEl.clientHeight || 768;
-    overlay.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-
-    var titleEl = document.querySelector('.title_bar .title');
-    var labelFont = titleEl ? getComputedStyle(titleEl).fontFamily : 'var(--title-bar-font-family), "NicoClean", monospace';
-
-    var map = null;
-
-    function ll2px(lat, lon) {
-      var p = map.project([lon, lat]);
-      return { x: p.x, y: p.y };
-    }
-
-    function formatAltitude(val) {
-      if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
-      var n = Math.round(+val);
-      if (unit === 'imperial') { return n >= 1000 ? (Math.round(n/100)/10) + 'k ft' : n + ' ft'; }
-      return n >= 1000 ? (Math.round(n/100)/10) + ' km' : n + ' m';
-    }
-
-    function formatSpeed(val) {
-      if (val == null) return '—';
-      return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' kt' : ' km/h');
-    }
-
-    function renderCenter() {
-      var g = container.querySelector('#sky-center-' + instanceId);
-      if (!g) return;
-      var pos = ll2px(centerLat, centerLon);
-      var useDark = darkMode;
-      var fillColor = useDark ? '#ffffff' : '#000000';
-
-      var path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z');
-      path.setAttribute('transform', 'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ') scale(1.4) translate(-8,-8)');
-      path.setAttribute('fill', fillColor);
-
-      // Add a small shadow/glow for visibility on dark maps if needed
-      if (useDark) {
-        path.setAttribute('stroke', '#000000');
-        path.setAttribute('stroke-width', '1');
-      } else {
-        path.setAttribute('stroke', '#ffffff');
-        path.setAttribute('stroke-width', '1');
-      }
-
-      g.appendChild(path);
-    }
-
-    var ICONS = {
+{% endif %}{% assign chart_mode = trmnl.plugin_settings.custom_fields_values.view | default: "radar" %}{% capture sw_icons %}    var ICONS = {
       CAT_A0: { d: 'M 147.119 -35.2539 C 147.119 -41.8457 138.086 -46.6797 127.344 -46.6797 L 103.125 -46.6797 C 100.049 -46.6797 98.877 -47.168 96.9238 -49.2676 L 59.2773 -90.4785 C 58.0566 -91.7969 56.5918 -92.5293 55.0293 -92.5293 L 48.4375 -92.5293 C 46.9727 -92.5293 46.1426 -91.2109 46.875 -89.6484 L 66.2598 -46.6797 L 34.9121 -43.5547 L 24.6582 -62.1582 C 23.8281 -63.4766 22.9004 -64.0625 21.0938 -64.0625 L 18.3594 -64.0625 C 16.8945 -64.0625 16.0645 -63.2812 16.0645 -61.7676 L 16.0645 -8.78906 C 16.0645 -7.22656 16.8945 -6.49414 18.3594 -6.49414 L 21.0938 -6.49414 C 22.9004 -6.49414 23.8281 -7.08008 24.6582 -8.39844 L 34.9121 -26.9531 L 66.2598 -23.877 L 46.875 19.1406 C 46.1426 20.6543 46.9727 21.9727 48.4375 21.9727 L 55.0293 21.9727 C 56.5918 21.9727 58.0566 21.2402 59.2773 19.9219 L 96.9238 -21.2402 C 98.877 -23.3887 100.049 -23.877 103.125 -23.877 L 127.344 -23.877 C 138.086 -23.877 147.119 -28.6621 147.119 -35.2539 Z', v: '0 0 200 200', f: 'matrix(0, -1.526083, 1.526083, 0, 154.192352, 224.515808)' },
       CAT_A1: { d: 'M 137.678 -39.456 C 137.678 -41.883 134.94 -44.391 133.645 -44.391 C 130.326 -44.391 135.025 -44.391 128.237 -44.391 L 109.354 -44.391 C 106.278 -44.391 101.866 -46.186 99.913 -48.286 L 99.913 -91.597 C 98.693 -92.916 94.12 -96.731 90.472 -96.731 C 86.824 -96.731 80.299 -93.16 81.031 -91.597 L 71.59 -44.391 L 62.149 -44.391 L 33.822 -39.639 C 33.825 -40.147 33.825 -57.191 33.825 -63.273 C 33.825 -67.493 21.167 -63.273 21.167 -63.273 C 19.703 -63.273 20.894 -55.345 20.979 -53.858 C 20.894 -53.832 16.125 -41.44 16.143 -34.95 C 16.161 -28.451 21.006 -16.068 21.006 -16.068 C 21.006 -14.506 19.141 -6.626 21.176 -6.6129999999999995 C 20.605 -6.626 33.825 -2.219 33.825 -6.626 C 33.825 -13.832 33.825 -30.235 33.825 -30.235 L 62.149 -25.509 L 71.59 -25.509 L 81.031 21.697 C 80.299 23.21 86.998 25.911 90.472 25.911 C 93.946 25.911 98.693 23.015 99.913 21.697 L 99.913 -20.794 C 101.866 -22.943 106.278 -25.509 109.354 -25.509 L 128.237 -25.509 C 135.418 -25.509 130.239 -25.509 133.62 -25.485 C 135.593 -25.509 137.678 -28.025 137.678 -30.396 C 137.678 -30.396 146.133 -33.618 146.135 -34.95 C 146.137 -36.315 137.678 -39.456 137.678 -39.456 Z', v: '0 0 200 200', f: 'matrix(0, -1.526083, 1.526083, 0, 154.192352, 224.515808)' },
       CAT_A2: { d: 'M 147.119 -34.95 C 147.119 -41.542 138.979 -44.391 128.237 -44.391 L 109.354 -44.391 C 106.278 -44.391 101.866 -46.186 99.913 -48.286 L 90.472 -91.597 C 89.252 -92.916 84.679 -97.135 81.031 -97.135 C 77.383 -97.135 70.858 -93.16 71.59 -91.597 L 73.978 -44.391 L 62.149 -44.391 C 62.149 -44.391 64.374 -51.607 62.149 -53.832 C 57.698 -58.283 47.717 -58.283 43.266 -53.832 C 41.041 -51.607 43.266 -44.391 43.266 -44.391 L 34.912 -43.555 L 24.658 -62.158 C 23.828 -63.477 22.9 -64.062 21.094 -64.062 L 18.359 -64.062 C 16.895 -64.062 16.064 -63.281 16.064 -61.768 L 19.737 -34.95 L 16.064 -8.789 C 16.064 -7.227 16.895 -6.494 18.359 -6.494 L 21.094 -6.494 C 22.9 -6.494 23.828 -7.08 24.658 -8.398 L 34.912 -26.953 L 43.451 -26.66 C 43.451 -26.66 40.791 -18.587 43.266 -16.068 C 47.678 -11.579 57.698 -11.617 62.149 -16.068 C 64.374 -18.293 62.149 -25.509 62.149 -25.509 L 73.978 -25.509 L 71.59 21.697 C 70.858 23.21 77.557 26.113 81.031 26.113 C 84.505 26.113 89.252 23.015 90.472 21.697 L 99.913 -20.794 C 101.866 -22.943 106.278 -25.509 109.354 -25.509 L 128.237 -25.509 C 138.979 -25.509 147.119 -28.358 147.119 -35.511 L 147.119 -34.95 Z', v: '0 0 200 200', f: 'matrix(0, -1.526083, 1.526083, 0, 154.192352, 224.515808)' },
@@ -249,7 +99,526 @@
       if (catMap[cat]) return catMap[cat];
       if (cat.startsWith('C')) return 'CAT_C0';
       return 'CAT_A0';
+    }{% endcapture %}{% capture sw_titlebar %}<div class="title_bar">
+  <svg class="h--8 dark:hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
+<svg class="h--8 dark:block hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black" style="filter: invert(1);"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
+  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "SkyWatch" }}</span>
+  <span class="instance md:portrait:hidden">{% if trmnl.plugin_settings.custom_fields_values.address != blank %}{{ trmnl.plugin_settings.custom_fields_values.address }} · {% endif %}{% if trmnl.plugin_settings.custom_fields_values.unit == "imperial" %}{{ local_timestamp | date: "%-I:%M %p" }}{% else %}{{ local_timestamp | date: "%H:%M" }}{% endif %}</span>
+</div>{% endcapture %}
+
+{% if data.error_code or data.planes == blank %}
+
+{% assign cfv = trmnl.plugin_settings.custom_fields_values %}
+{% case data.error_code %}
+  {% when 'location_not_found' %}
+    {% assign msg_title = "Location not found" %}
+    {% capture msg_body %}Couldn't find "{{ data.address | default: cfv.address | escape }}". Try a more specific address (e.g. "Munich, Germany"), or clear the address and enter latitude and longitude instead.{% endcapture %}
+  {% when 'geocoder_unavailable' %}
+    {% assign msg_title = "Address lookup unavailable" %}
+    {% capture msg_body %}The address lookup service didn't respond. This usually fixes itself on the next refresh. To avoid it, clear the address and enter latitude and longitude instead.{% endcapture %}
+  {% when 'invalid_location' %}
+    {% assign msg_title = "Invalid coordinates" %}
+    {% capture msg_body %}Latitude must be between -90 and 90, longitude between -180 and 180. Check the plugin settings.{% endcapture %}
+  {% when 'missing_location' %}
+    {% assign msg_title = "No location set" %}
+    {% capture msg_body %}Enter an address, or latitude and longitude, in the plugin settings.{% endcapture %}
+  {% when 'upstream_unavailable' %}
+    {% assign msg_title = "Aircraft data unavailable" %}
+    {% capture msg_body %}The ADS-B data providers didn't respond. This is temporary; SkyWatch will retry on the next refresh.{% endcapture %}
+  {% when 'access_denied' %}
+    {% assign msg_title = "Access denied" %}
+    {% capture msg_body %}The SkyWatch server rejected this request. Please report it on GitHub if it persists.{% endcapture %}
+  {% when 'unknown' %}
+    {% assign msg_title = "Something went wrong" %}
+    {% capture msg_body %}{{ data.error | escape }}. SkyWatch will retry on the next refresh.{% endcapture %}
+  {% else %}
+    {% assign msg_title = "No aircraft nearby" %}
+    {% capture msg_body %}No aircraft within {{ data.radius_nm }} nm of {{ data.lat | round: 3 }}, {{ data.lon | round: 3 }} right now. If that location looks wrong, check your settings.{% endcapture %}
+{% endcase %}
+
+<div class="layout layout--col layout--center gap--small" style="padding: 0 24px;">
+  <span class="title">{{ msg_title }}</span>
+  <div class="description lg:description--large text--center">{{ msg_body }}</div>
+</div>
+<div class="title_bar">
+  <span class="title">{{ trmnl.plugin_settings.instance_name | default: "Sky Watch"}}</span>
+</div>
+
+{% else %}{% if chart_mode == "xsection" and view == 1 %}
+{% assign instance_id = "inst_" | append_random %}
+{% assign cfv = trmnl.plugin_settings.custom_fields_values %}
+
+<div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}" data-chart="xsection" style="position:relative;">
+  <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
+  <svg id="sky-xs-{{ instance_id }}" class="w--full h--full" style="position:absolute;top:0;left:0;z-index:2;" preserveAspectRatio="none">
+    <defs id="sky-defs-{{ instance_id }}"></defs>
+    <g id="sky-xs-grid-{{ instance_id }}"></g>
+    <g id="sky-xs-leaders-{{ instance_id }}"></g>
+    <g id="sky-xs-planes-{{ instance_id }}"></g>
+  </svg>
+  <div id="sky-xs-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;"></div>
+</div>
+
+{{ sw_titlebar }}
+
+<script>
+(function () {
+  var instanceId = '{{ instance_id }}';
+  var planes     = {{ data.planes | json }};
+  var baroRates  = {{ data.baro_rates | json | default: "[]" }};
+  planes.forEach(function (p, i) { p.baro_rate = baroRates[i] != null ? baroRates[i] : 0; });
+  var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
+  var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
+  var radiusNm   = parseFloat('{{ data.radius_nm | default: 50 }}') || 50;
+  var fieldElev  = parseFloat('{{ data.field_elev_ft | default: 0 }}') || 0;
+  var unit       = '{{ cfv.unit | default: "metric" }}';
+  var axisMode   = '{{ cfv.xs_axis | default: "distance" | escape }}';
+  var heading    = parseFloat('{{ cfv.xs_heading | default: 90 | escape }}');
+  var showGround = '{{ cfv.show_ground }}' === 'true';
+  var routeHidden = '{{ cfv.route_display }}' === 'hidden';
+  var settingDark = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
+
+  if (axisMode !== 'eastwest' && axisMode !== 'heading') axisMode = 'distance';
+  if (!isFinite(heading)) heading = 90;
+  heading = ((Math.round(heading) % 360) + 360) % 360;
+
+  function init() {
+    var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
+    if (!container) return;
+    var svg = container.querySelector('#sky-xs-' + instanceId);
+    var cardsLayer = container.querySelector('#sky-xs-cards-' + instanceId);
+    var gridLayer = container.querySelector('#sky-xs-grid-' + instanceId);
+    var leaderLayer = container.querySelector('#sky-xs-leaders-' + instanceId);
+    var planeLayer = container.querySelector('#sky-xs-planes-' + instanceId);
+    if (!svg || !cardsLayer) return;
+
+    var ns = 'http://www.w3.org/2000/svg';
+    var W = container.clientWidth || 768;
+    var H = container.clientHeight || 400;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var screenEl = container.closest('.screen');
+    var darkMode = screenEl ? screenEl.classList.contains('screen--dark-mode') : settingDark;
+    var fg = darkMode ? '#ffffff' : '#000000';
+    var gridColor = darkMode ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.2)';
+    var lineColor = darkMode ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)';
+    var titleEl = document.querySelector('.title_bar .title');
+    var labelFont = titleEl ? getComputedStyle(titleEl).fontFamily : 'var(--title-bar-font-family), "NicoClean", monospace';
+    var FT = 0.3048;
+
+{{ sw_icons }}
+
+    function el(tag, attrs, parent) {
+      var n = document.createElementNS(ns, tag);
+      Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+      if (parent) parent.appendChild(n);
+      return n;
     }
+    function f1(n) { return n.toFixed(1); }
+
+    // ---- plot box -------------------------------------------------------
+    var padL = 54, padR = 16, padT = 22, padB = 36, groundBand = 22;
+    var px0 = padL, px1 = W - padR, py0 = padT, py1 = H - padB;
+    var yZero = py1 - groundBand;            // 0 ft
+    var plotH = yZero - py0;
+    var signed = axisMode !== 'distance';
+    var cx = (px0 + px1) / 2;
+
+    // ---- geometry helpers -------------------------------------------------
+    var RAD = Math.PI / 180;
+    function offsets(p) {
+      var dy = (p.lat - centerLat) * 60;
+      var dx = (p.lon - centerLon) * 60 * Math.cos(centerLat * RAD);
+      return { dx: dx, dy: dy };
+    }
+    function greatCircleNm(p) {
+      var a = Math.pow(Math.sin((p.lat - centerLat) * RAD / 2), 2) +
+        Math.cos(centerLat * RAD) * Math.cos(p.lat * RAD) * Math.pow(Math.sin((p.lon - centerLon) * RAD / 2), 2);
+      return 2 * 3440.065 * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
+    var COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    function compass(deg) { return COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]; }
+    function altFt(p) {
+      if (p.alt_baro === 'ground') return fieldElev;
+      return unit === 'imperial' ? +p.alt_baro : +p.alt_baro / FT;
+    }
+
+    // Along-axis position in nm (signed on signed axes), the cross-track offset and the travel direction.
+    function place(p) {
+      var o = offsets(p), d = greatCircleNm(p);
+      var bearing = Math.atan2(o.dx, o.dy) / RAD;
+      var tr = (p.track != null ? +p.track : 90) * RAD;
+      var dir, along, cross = 0;
+      if (axisMode === 'eastwest') {
+        along = o.dx; dir = Math.sin(tr);
+      } else if (axisMode === 'heading') {
+        var h = heading * RAD;
+        along = o.dx * Math.sin(h) + o.dy * Math.cos(h);
+        cross = o.dx * Math.cos(h) - o.dy * Math.sin(h);
+        dir = Math.cos(tr - h);
+      } else {
+        along = d; dir = Math.cos(tr - bearing * RAD);
+      }
+      if (p.track == null) dir = 1;
+      return { along: along, cross: cross, dist: d, bearing: bearing, dir: dir >= 0 ? 1 : -1 };
+    }
+
+    // X: the inner third of the radius takes half the width.
+    function gx(distNm) {
+      var a = Math.min(Math.abs(distNm), radiusNm), third = radiusNm / 3;
+      return a <= third ? 0.5 * a / third : 0.5 + 0.5 * (a - third) / (radiusNm - third);
+    }
+    function xOf(alongNm) {
+      if (!signed) return px0 + gx(alongNm) * (px1 - px0);
+      return cx + (alongNm < 0 ? -1 : 1) * gx(alongNm) * (px1 - px0) / 2;
+    }
+
+    // Y: 0 to 10,000 ft takes 45 % of the height, the rest goes up to the ceiling.
+    var ceiling = 20000;
+    function yOf(ft) {
+      var lowH = 0.45 * plotH;
+      var f = Math.max(0, ft);
+      if (f <= 10000) return yZero - f / 10000 * lowH;
+      return yZero - lowH - Math.min(1, (f - 10000) / (ceiling - 10000)) * (plotH - lowH);
+    }
+
+    // ---- which aircraft ---------------------------------------------------
+    var SQUAWK_LABELS = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
+    var MAX_DRAWN = 12;
+    var cand = (planes || []).filter(function (p) {
+      if (p.lat == null || p.lon == null || p.alt_baro == null) return false;
+      return p.alt_baro !== 'ground' || showGround;
+    }).map(function (p) {
+      var pl = place(p);
+      return { p: p, pl: pl, ft: altFt(p), ground: p.alt_baro === 'ground', emerg: !!SQUAWK_LABELS[p.squawk] };
+    });
+    var chosen = cand.filter(function (c) { return c.emerg; }).slice(0, MAX_DRAWN);
+    var rest = cand.filter(function (c) { return !c.emerg; });
+    var low = rest.filter(function (c) { return c.ft < 10000; }).sort(function (a, b) { return a.pl.dist - b.pl.dist; });
+    var high = rest.filter(function (c) { return c.ft >= 10000; }).sort(function (a, b) { return b.ft - a.ft; });
+    low.concat(high).forEach(function (c) { if (chosen.length < MAX_DRAWN) chosen.push(c); });
+
+    var topFt = 0;
+    chosen.forEach(function (c) { if (!c.ground && c.ft > topFt) topFt = c.ft; });
+    ceiling = topFt <= 20000 ? 20000 : (topFt <= 30000 ? 30000 : (topFt <= 40000 ? 40000 : 50000));
+
+    // ---- axes -----------------------------------------------------------
+    function text(str, x, y, anchor, size, weight) {
+      var t = el('text', { x: f1(x), y: f1(y), 'text-anchor': anchor, 'font-size': size || 12, fill: fg,
+        'font-family': labelFont, 'font-weight': weight || 'normal' }, gridLayer);
+      t.textContent = str;
+      return t;
+    }
+    var yTicksFt = [];
+    var yLabel = function (ft) { return String(unit === 'imperial' ? ft : Math.round(ft * FT)); };
+    if (unit === 'imperial') {
+      [0, 2500, 5000, 7500, 10000].forEach(function (v) { yTicksFt.push(v); });
+      for (var t1 = 20000; t1 <= ceiling; t1 += 10000) yTicksFt.push(t1);
+    } else {
+      [0, 1000, 2000, 3000].forEach(function (m) { yTicksFt.push(m / FT); });
+      [4000, 6000, 8000, 10000, 12000, 14000, 16000].forEach(function (m) { if (m / FT <= ceiling + 1) yTicksFt.push(m / FT); });
+    }
+    yTicksFt.forEach(function (ft) {
+      var y = yOf(ft);
+      el('line', { x1: px0, y1: f1(y), x2: px1, y2: f1(y), stroke: gridColor, 'stroke-width': 1, 'stroke-dasharray': ft === 0 ? '' : '2 4' }, gridLayer);
+      text(yLabel(ft), px0 - 6, y + 4, 'end', 12);
+    });
+    text(unit === 'imperial' ? 'ft' : 'm', px0 - 6, py0 - 8, 'end', 12, 'bold');
+
+    var kmMode = unit !== 'imperial';
+    var xTicksNm = [];
+    if (!kmMode) {
+      [0, 5, 10, 15, 20, 30, 40, 50].forEach(function (v) { xTicksNm.push(v); });
+    } else {
+      [0, 10, 20, 30, 40, 60, 80].forEach(function (km) { xTicksNm.push(km / 1.852); });
+    }
+    var xLabelY = py1 + 16;
+    function xTickLabel(nm) { return String(kmMode ? Math.round(nm * 1.852) : Math.round(nm)); }
+    xTicksNm.forEach(function (nm) {
+      if (nm > radiusNm + 0.01) return;
+      if (signed && nm === 15) return;   // too close to 20 on a centred axis
+      var sides = signed && nm > 0 ? [-1, 1] : [1];
+      sides.forEach(function (s) {
+        var x = signed ? cx + s * gx(nm) * (px1 - px0) / 2 : px0 + gx(nm) * (px1 - px0);
+        el('line', { x1: f1(x), y1: py0, x2: f1(x), y2: f1(py1), stroke: gridColor, 'stroke-width': 1, 'stroke-dasharray': '2 4' }, gridLayer);
+        text(xTickLabel(nm), x, xLabelY, 'middle', 12);
+      });
+    });
+    var unitTxt = kmMode ? 'km' : 'nm';
+    if (axisMode === 'distance') {
+      text('distance (' + unitTxt + ')', px1, xLabelY + 16, 'end', 12, 'bold');
+    } else if (axisMode === 'eastwest') {
+      text('W  (' + unitTxt + ')', px0, xLabelY + 16, 'start', 12, 'bold');
+      text('(' + unitTxt + ')  E', px1, xLabelY + 16, 'end', 12, 'bold');
+    } else {
+      var back = (heading + 180) % 360;
+      var hd = function (n) { return ('00' + n).slice(-3) + '°'; };
+      text(hd(back) + '  (' + unitTxt + ')', px0, xLabelY + 16, 'start', 12, 'bold');
+      text('(' + unitTxt + ')  ' + hd(heading), px1, xLabelY + 16, 'end', 12, 'bold');
+    }
+
+    // Ground strip at field elevation, with home on it
+    var yGround = yOf(fieldElev);
+    el('rect', { x: px0, y: f1(yGround), width: px1 - px0, height: f1(py1 - yGround), fill: gridColor }, gridLayer);
+    el('line', { x1: px0, y1: f1(yGround), x2: px1, y2: f1(yGround), stroke: fg, 'stroke-width': 2 }, gridLayer);
+    var homeX = xOf(0);
+    var house = el('path', { d: 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z',
+      transform: 'translate(' + homeX.toFixed(0) + ',' + (yGround - 14).toFixed(0) + ') scale(1.4) translate(-8,-8)',
+      fill: fg, stroke: darkMode ? '#000000' : '#ffffff', 'stroke-width': 1 }, gridLayer);
+    house.setAttribute('data-xs-home', '1');
+
+    // ---- formatting -------------------------------------------------------
+    function formatAlt(c) {
+      if (c.ground) return 'GND';
+      if (unit === 'imperial') {
+        if (c.ft >= 18000) return 'FL' + ('00' + Math.round(c.ft / 100)).slice(-3);
+        return Math.round(c.ft) + ' ft';
+      }
+      return Math.round(+c.p.alt_baro) + ' m';
+    }
+    function formatSpeed(v) {
+      return Math.round(+v) + (unit === 'imperial' ? ' kt' : ' km/h');
+    }
+    function altBgColor(ft) {
+      if (ft < 5000) return '#444444';
+      if (ft < 15000) return '#222222';
+      if (ft < 30000) return '#111111';
+      return '#000000';
+    }
+    function altPlaneColor(c) {
+      if (c.ground) return '#999999';
+      if (c.ft < 5000) return '#aaaaaa';
+      if (c.ft < 15000) return '#cccccc';
+      if (c.ft < 30000) return '#eeeeee';
+      return '#ffffff';
+    }
+
+    // ---- aircraft ---------------------------------------------------------
+    setupSymbols();
+    var sc = 1.3, iconHalf = 12 * sc;
+    var items = chosen.map(function (c) {
+      var x = xOf(c.pl.along);
+      var y = c.ground ? yGround - iconHalf * 0.6 : yOf(c.ft);
+      var dim = axisMode === 'heading' && !c.emerg && Math.abs(c.pl.cross) > radiusNm / 3;   // an emergency is never dimmed
+      return { c: c, x: x, y: y, dim: dim };
+    });
+    var placedRects = items.map(function (it) {
+      return { x: it.x - iconHalf, y: it.y - iconHalf, w: iconHalf * 2, h: iconHalf * 2 };
+    });
+    placedRects.push({ x: homeX - 14, y: yGround - 28, w: 28, h: 28 });
+    placedRects.push({ x: W - 120, y: 0, w: 120, h: 36 });   // the provider label
+
+    function overlaps(r) {
+      var pad = 4;
+      return placedRects.some(function (e) {
+        return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x && r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
+      });
+    }
+    function inside(r) { return r.x >= 2 && r.y >= 2 && r.x + r.w <= W - 2 && r.y + r.h <= py1 - 2; }
+
+    items.forEach(function (it) {
+      var c = it.c, p = c.p;
+      var s = 0;
+      if (!c.ground && p.baro_rate != null) s = p.baro_rate > 500 ? 1 : (p.baro_rate < -500 ? -1 : 0);
+      var rot = c.pl.dir * (90 - 20 * s);
+      var g = el('g', { 'data-xs-plane': (p.flight || p.r || p.t || '?'),
+        transform: 'translate(' + it.x.toFixed(0) + ',' + it.y.toFixed(0) + ')' }, planeLayer);
+      if (it.dim) { g.setAttribute('opacity', '0.5'); g.setAttribute('data-xs-dim', '1'); }
+      if (c.ground) g.setAttribute('data-xs-ground', '1');
+      if (c.emerg) {
+        el('circle', { cx: 0, cy: 0, r: iconHalf + 6, fill: 'none', stroke: fg, 'stroke-width': 3, 'stroke-dasharray': '4 3' }, g);
+      }
+      var inner = el('g', { transform: 'rotate(' + rot + ') scale(' + sc + ')' }, g);
+      var href = '#icon-' + getIconKey(p) + '-' + instanceId;
+      var ou = el('use', { width: 24, height: 24, x: -12, y: -12, fill: 'none', stroke: '#000000', 'stroke-width': 2.5 }, inner);
+      ou.setAttributeNS('http://www.w3.org/1999/xlink', 'href', href);
+      var use = el('use', { width: 24, height: 24, x: -12, y: -12, fill: c.emerg ? '#ffffff' : altPlaneColor(c), stroke: 'none' }, inner);
+      use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', href);
+    });
+
+    // ---- tags: emergencies first, the rest in drawn order ------------------
+    var ANCHORS = [
+      { ax: 1, ay: 0 }, { ax: 1, ay: -1 }, { ax: 0, ay: -1 }, { ax: -1, ay: -1 },
+      { ax: -1, ay: 0 }, { ax: -1, ay: 1 }, { ax: 0, ay: 1 }, { ax: 1, ay: 1 }
+    ];
+    var RADII = [iconHalf + 14, iconHalf + 44, iconHalf + 84];
+    var order = items.filter(function (i) { return i.c.emerg; }).concat(items.filter(function (i) { return !i.c.emerg; }));
+
+    order.forEach(function (it) {
+      if (it.dim) return;
+      var c = it.c, p = c.p;
+      var lbl = (p.flight || '').trim() || p.r || '';
+      var type = (p.t || '').trim();
+      var line1 = (lbl + ' ' + type).trim();
+      if (axisMode === 'distance') line1 = (line1 + ' ' + compass(c.pl.bearing)).trim();
+      var arrow = '';
+      if (!c.ground && p.baro_rate != null && Math.abs(p.baro_rate) > 500) arrow = p.baro_rate > 0 ? ' ▲' : ' ▼';
+      var line2 = formatAlt(c) + arrow + (p.gs != null ? ' ' + formatSpeed(p.gs) : '');
+      var route = '';
+      if (!routeHidden) route = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
+      var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
+      if (!line1 && !squawkLabel) return;
+
+      var card = document.createElement('div');
+      card.setAttribute('data-xs-tag', (p.flight || p.r || p.t || '?'));
+      card.style.cssText = 'position:absolute;left:-9999px;top:0;background:' + altBgColor(c.ft) +
+        ';border:1px solid rgba(255,255,255,0.35);border-radius:5px;padding:2px 5px;font-family:' + labelFont + ';white-space:nowrap;';
+      function addRow(str, weight, color) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        d.style.fontSize = '12px'; d.style.lineHeight = '14px'; d.style.color = color;
+        if (weight) d.style.fontWeight = weight;
+        card.appendChild(d);
+      }
+      if (squawkLabel) addRow(squawkLabel, 'bold', '#ffffff');
+      addRow(line1, 'bold', '#ffffff');
+      addRow(line2, null, '#ffffff');
+      if (route) addRow(route, null, '#aaaaaa');
+      cardsLayer.appendChild(card);
+      var cw = card.offsetWidth, ch = card.offsetHeight;
+
+      var best = null, away = false;
+      for (var ri = 0; ri < RADII.length && !best; ri++) {
+        for (var i = 0; i < ANCHORS.length; i++) {
+          var a = ANCHORS[i];
+          var lx = it.x + a.ax * RADII[ri] - (a.ax < 0 ? cw : (a.ax === 0 ? cw / 2 : 0));
+          var ly = it.y + a.ay * RADII[ri] - (a.ay < 0 ? ch : (a.ay === 0 ? ch / 2 : 0));
+          var r = { x: lx, y: ly, w: cw, h: ch };
+          if (inside(r) && !overlaps(r)) { best = r; away = ri > 0; break; }
+        }
+      }
+      if (!best && c.emerg) {
+        // An emergency is always tagged, even if it has to sit over something else.
+        var fx = Math.min(Math.max(it.x + RADII[0], 2), W - cw - 2);
+        var fy = Math.min(Math.max(it.y - ch / 2, 2), py1 - ch - 2);
+        best = { x: fx, y: fy, w: cw, h: ch };
+        away = true;
+      }
+      if (!best) { cardsLayer.removeChild(card); return; }
+      placedRects.push(best);
+      card.style.left = f1(best.x) + 'px';
+      card.style.top = f1(best.y) + 'px';
+      if (away) {
+        var tx = Math.min(Math.max(it.x, best.x), best.x + best.w);
+        var ty = Math.min(Math.max(it.y, best.y), best.y + best.h);
+        el('line', { x1: f1(it.x), y1: f1(it.y), x2: f1(tx), y2: f1(ty), stroke: lineColor, 'stroke-width': 2.5, 'stroke-dasharray': '3 2' }, leaderLayer);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+{% else %}
+
+{% assign instance_id = "inst_" | append_random %}
+
+<script src="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.js"></script>
+<link href="https://trmnl.com/js/maplibre-gl/5.24.0/maplibre-gl.css" rel="stylesheet">
+
+<div class="layout layout--stretch gap--none m--0 p--0" data-instance="{{ instance_id }}" style="position:relative;">
+  <span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ data.provider | default: "airplanes.live" }}</span>
+  <div id="sky-map-{{ instance_id }}" class="map" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;"></div>
+  <div id="sky-airport-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:2;"></div>
+  <svg id="sky-overlay-{{ instance_id }}" class="w--full h--full rounded" style="position:absolute;top:0;left:0;z-index:5;" preserveAspectRatio="none">
+    <defs id="sky-defs-{{ instance_id }}"></defs>
+    <g id="sky-airports-{{ instance_id }}"></g>
+    <g id="sky-center-{{ instance_id }}"></g>
+    <g id="sky-outlines-{{ instance_id }}"></g>
+    <g id="sky-planes-{{ instance_id }}"></g>
+  </svg>
+  <div id="sky-cards-{{ instance_id }}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;z-index:6;"></div>
+</div>
+
+{{ sw_titlebar }}
+
+<script>
+(function () {
+  var instanceId = '{{ instance_id }}';
+  var planes     = {{ data.planes | json }};
+  var airports   = {{ data.airports | json | default: "[]" }};
+  var total      = {{ data.total | default: 0 }};
+  var centerLat  = parseFloat('{{ data.lat | default: 51.5074 }}');
+  var centerLon  = parseFloat('{{ data.lon | default: -0.1278 }}');
+  var zoomSetting = '{{ trmnl.plugin_settings.custom_fields_values.map_zoom | default: "auto" }}';
+  var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "metric" }}';
+  var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
+  var view       = {{ view | default: 1 }};
+
+  function whenMapsReady(cb) {
+    var tries = 0;
+    (function attempt() {
+      if (window.TRMNLMaps && window.maplibregl) return cb();
+      if (++tries > 200) return;
+      setTimeout(attempt, 50);
+    })();
+  }
+
+  function init() {
+    var container = document.querySelector('.layout[data-instance="' + instanceId + '"]');
+    if (!container) return;
+    var mapEl = container.querySelector('#sky-map-' + instanceId);
+    var overlay = container.querySelector('#sky-overlay-' + instanceId);
+    var cardsLayer = container.querySelector('#sky-cards-' + instanceId);
+    var airportCardsLayer = container.querySelector('#sky-airport-cards-' + instanceId);
+    if (!mapEl || !overlay || !cardsLayer || !airportCardsLayer) return;
+
+    var ns = 'http://www.w3.org/2000/svg';
+    var W = mapEl.clientWidth || 768;
+    var H = mapEl.clientHeight || 768;
+    overlay.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var titleEl = document.querySelector('.title_bar .title');
+    var labelFont = titleEl ? getComputedStyle(titleEl).fontFamily : 'var(--title-bar-font-family), "NicoClean", monospace';
+
+    var map = null;
+
+    function ll2px(lat, lon) {
+      var p = map.project([lon, lat]);
+      return { x: p.x, y: p.y };
+    }
+
+    function formatAltitude(val) {
+      if (val == null || val === 'ground') return val === 'ground' ? 'GND' : '—';
+      var n = Math.round(+val);
+      if (unit === 'imperial') { return n >= 1000 ? (Math.round(n/100)/10) + 'k ft' : n + ' ft'; }
+      return n >= 1000 ? (Math.round(n/100)/10) + ' km' : n + ' m';
+    }
+
+    function formatSpeed(val) {
+      if (val == null) return '—';
+      return Math.round(+val).toLocaleString() + (unit === 'imperial' ? ' kt' : ' km/h');
+    }
+
+    function renderCenter() {
+      var g = container.querySelector('#sky-center-' + instanceId);
+      if (!g) return;
+      var pos = ll2px(centerLat, centerLon);
+      var useDark = darkMode;
+      var fillColor = useDark ? '#ffffff' : '#000000';
+
+      var path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z');
+      path.setAttribute('transform', 'translate(' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + ') scale(1.4) translate(-8,-8)');
+      path.setAttribute('fill', fillColor);
+
+      // Add a small shadow/glow for visibility on dark maps if needed
+      if (useDark) {
+        path.setAttribute('stroke', '#000000');
+        path.setAttribute('stroke-width', '1');
+      } else {
+        path.setAttribute('stroke', '#ffffff');
+        path.setAttribute('stroke-width', '1');
+      }
+
+      g.appendChild(path);
+    }
+
+{{ sw_icons }}
 
     function renderPlanes() {
       var layer = container.querySelector('#sky-planes-' + instanceId);
@@ -621,5 +990,5 @@
   }
 })();
 </script>
-{% endif %}
+{% endif %}{% endif %}
 {% endtemplate %}
