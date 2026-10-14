@@ -595,8 +595,11 @@ RSpec.describe 'SkyWatch' do
     screen = xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), mocks: innsbruck_mocks)
     fixture_data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))['data']
     drops = screen.all('[data-xs-drop]', visible: :all).to_h { [it['data-xs-drop'], it['data-xs-drop-m'].to_f] }
-    planes = screen.all('[data-xs-plane]', visible: :all).reject { it['data-xs-ground'] || it['data-xs-dim'] }.map { it['data-xs-plane'] }
-    expect(planes.size).to be >= 4
+    airborne = screen.all('[data-xs-plane]', visible: :all).reject { it['data-xs-ground'] || it['data-xs-dim'] }.map { it['data-xs-plane'] }
+    low = ->(name) { fixture_data['ac'].find { it['flight'] == name }['alt_baro'] < 10_000 }
+    planes = airborne.select(&low)
+    expect(planes.size).to be >= 3
+    expect(airborne - planes).not_to be_empty            # aircraft above 10,000 ft are drawn but get no drop line
     expect(drops.keys).to match_array(planes)
     planes.each do |name|
       ac = fixture_data['ac'].find { it['flight'] == name }
@@ -619,9 +622,42 @@ RSpec.describe 'SkyWatch' do
     expect(dropped).not_to include('OE-FDI')
   end
 
-  it 'falls back to the field elevation for the drop line without terrain data' do
-    screen = xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false))
-    expect(screen.all('[data-xs-drop]', visible: :all).map { it['data-xs-drop-m'].to_f }.uniq).to eq([(1906 * 0.3048).round.to_f])
+  it 'draws no drop lines over the flat fallback strip' do
+    expect(xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false)).all('[data-xs-drop]', visible: :all)).to be_empty
+    expect(xs_screen(xs_fields).all('[data-xs-drop]', visible: :all)).to be_empty   # the Belgium fixture has no terrain
+  end
+
+  # The terrain shape reaches both plot edges, and its silhouette stays visible in the 2-bit picture across the whole
+  # width: beside the inner zone it once turned white because its tint was too faint.
+  TERRAIN_EDGES_JS = <<~JS.freeze
+    (function () {
+      var svg = document.querySelector('[data-chart] svg').getBoundingClientRect();
+      var boxes = Array.prototype.map.call(document.querySelectorAll('[data-xs-terrain]'), function (e) { return e.getBoundingClientRect(); });
+      var pts = [];
+      Array.prototype.forEach.call(document.querySelectorAll('[data-xs-terrain]'), function (e) {
+        e.getAttribute('points').split(' ').forEach(function (p, i, all) {
+          var xy = p.split(',').map(parseFloat);
+          if (i > 0 && i < all.length - 1) pts.push([xy[0] + svg.left, xy[1] + svg.top]);
+        });
+      });
+      return { left: Math.min.apply(null, boxes.map(function (b) { return b.left; })) - svg.left,
+               right: Math.max.apply(null, boxes.map(function (b) { return b.right; })) - svg.left, width: svg.width, pts: pts };
+    })()
+  JS
+
+  %w[distance eastwest heading].each do |axis|
+    it "spans the full plot width with a visible silhouette (#{axis})" do
+      screen = xs_screen(inn_fields.merge('xs_axis' => axis, 'xs_heading' => '90'), mocks: innsbruck_mocks)
+      edges = screen.evaluate(TERRAIN_EDGES_JS)
+      expect(edges['left']).to be <= 56           # the plot starts at x = 54
+      expect(edges['right']).to be >= edges['width'] - 18
+      pixels = MiniMagick::Image.open(screen.png_path).get_pixels
+      pts = edges['pts'].select { |x, y| x > 60 && x < edges['width'] - 20 && y > 40 && y < 330 }
+      outer = pts.select { |x, _| (x - 54).abs.between?(0, 0) || x < 54 + (edges['width'] - 70) * 0.18 || x > 54 + (edges['width'] - 70) * 0.82 }
+      expect(outer.size).to be >= 10
+      visible = outer.count { |x, y| pixels[(y - 9).round][x.round][0] != pixels[(y + 9).round][x.round][0] }
+      expect(visible.to_f / outer.size).to be >= 0.8   # grey inside the shape, white or lighter above it
+    end
   end
 
   it 'shows the height above ground in the panel, in both units, and hides it on the ground or without terrain' do

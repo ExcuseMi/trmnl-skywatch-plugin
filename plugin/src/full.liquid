@@ -396,9 +396,10 @@
           if (first === null) first = x;
           last = x;
         }
-        // a light background silhouette, no hard edge: the aircraft always read as in front of it
+        // a light background silhouette, no hard edge: the aircraft always read as in front of it. The fill must be
+        // strong enough to survive the 2-bit palette (a 12 % tint turned white outside the shaded inner zone).
         el('polygon', { points: f1(first) + ',' + f1(py1) + ' ' + line.join(' ') + ' ' + f1(last) + ',' + f1(py1),
-          fill: darkMode ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.12)', stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
+          fill: gridColor, stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
       });
       yHome = yOf(terrain.home_m / FT);
     }
@@ -543,8 +544,9 @@
       var rot = c.pl.dir * (90 - 20 * s);
       var g = el('g', { 'data-xs-plane': (p.flight || p.r || p.t || '?'),
         transform: 'translate(' + it.x.toFixed(0) + ',' + it.y.toFixed(0) + ')' }, planeLayer);
-      if (!c.ground && !it.dim) {
-        // a thin drop line to the ground directly beneath this aircraft (its own bearing and distance from home)
+      if (!c.ground && !it.dim && hasTerrain && c.ft < 10000) {
+        // a thin drop line to the ground beneath this aircraft (its own bearing and distance from home), only for
+        // aircraft below 10,000 ft and only over real terrain: at altitude or over a flat strip it is clutter
         var gFt = groundFtAt(c.pl.bearing, c.pl.dist), gy = yOf(gFt);
         var dl = el('line', { x1: f1(it.x), y1: f1(it.y), x2: f1(it.x), y2: f1(gy), stroke: fg, 'stroke-opacity': 0.55, 'stroke-width': 1,
           'data-xs-drop': (p.flight || p.r || p.t || '?'), 'data-xs-drop-m': Math.round(gFt * FT), 'data-xs-drop-y': f1(gy) }, leaderLayer);
