@@ -6,7 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 3.3.1
 serverless_language: node
-polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}&view={{ trmnl.plugin_settings.custom_fields_values.view | default: "radar" }}'
+polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}&view={{ trmnl.plugin_settings.custom_fields_values.view | default: "radar" }}&terrain={{ trmnl.plugin_settings.custom_fields_values.xs_terrain | default: "false" }}'
 polling_headers: ''
 polling_body: ''
 id: 286469
@@ -112,6 +112,12 @@ custom_fields:
   description: "Cross-section only. The sun and moon's position as seen from your location."
   default: 'false'
   optional: true
+- keyname: xs_terrain
+  field_type: boolean
+  name: Show Terrain
+  description: "The ground's real height along the slice (hills and mountains). Fetched once per location."
+  default: 'false'
+  optional: true
 - keyname: xs_cities
   field_type: boolean
   name: Show Towns
@@ -150,6 +156,7 @@ custom_fields:
     - xs_heading
     - xs_sun_moon
     - xs_cities
+    - xs_terrain
 - keyname: xs_axis
   field_type: select
   name: Cross-section Horizontal Axis

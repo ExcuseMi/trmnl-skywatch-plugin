@@ -66,7 +66,7 @@ def call(monkeypatch, query, terrain_result, seed=None):
 
 
 def test_terrain_and_cities_only_for_xsection(monkeypatch):
-    status, body, asked, fake = call(monkeypatch, 'view=xsection', GRID)
+    status, body, asked, fake = call(monkeypatch, 'view=xsection&terrain=true', GRID)
     assert status == 200 and body['data']['terrain'] == GRID
     assert [c['name'] for c in body['data']['cities']] == ['Kortrijk']
     assert any(k.startswith('skywatch:terrain:v1:') for k in fake.store)     # cached for next time
@@ -78,12 +78,22 @@ def test_terrain_and_cities_only_for_xsection(monkeypatch):
 
 def test_terrain_failure_returns_a_response_without_terrain(monkeypatch):
     for failure in (None, RuntimeError('boom')):
-        status, body, _, fake = call(monkeypatch, 'view=xsection', failure)
+        status, body, _, fake = call(monkeypatch, 'view=xsection&terrain=true', failure)
         assert status == 200 and 'terrain' not in body['data'] and body['data']['ac']
         assert not any(k.startswith('skywatch:terrain:') for k in fake.store)  # a failure is not cached
 
 
 def test_cached_terrain_is_not_fetched_again(monkeypatch):
     key = f"skywatch:terrain:v1:{round(50.8, 2)}:{round(3.3, 2)}"
-    status, body, asked, _ = call(monkeypatch, 'view=xsection', None, seed={key: json.dumps(GRID)})
+    status, body, asked, _ = call(monkeypatch, 'view=xsection&terrain=true', None, seed={key: json.dumps(GRID)})
     assert status == 200 and body['data']['terrain'] == GRID and asked['terrain'] == 0
+
+
+def test_no_terrain_fetch_when_the_terrain_setting_is_off_or_absent(monkeypatch):
+    for query in ('view=xsection', 'view=xsection&terrain=false', 'view=radar&terrain=true'):
+        status, body, asked, fake = call(monkeypatch, query, GRID)
+        assert status == 200 and 'terrain' not in body['data'], query
+        assert asked['terrain'] == 0, query
+        assert not any(k.startswith('skywatch:terrain:') for k in fake.store), query
+    status, body, _, _ = call(monkeypatch, 'view=xsection', GRID)
+    assert [c['name'] for c in body['data']['cities']] == ['Kortrijk']      # towns do not depend on the terrain setting

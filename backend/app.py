@@ -777,6 +777,7 @@ async def get_planes():
     show_ground   = request.args.get('show_ground', 'false').lower() == 'true'
     route_display = request.args.get('route_display', 'codes')
     want_xsection = request.args.get('view') == 'xsection'
+    want_terrain = want_xsection and request.args.get('terrain', 'false').lower() == 'true'
 
     if address:
         address = address.strip()
@@ -798,7 +799,7 @@ async def get_planes():
     raw_data, tile_airports, terrain, tile_cities = await asyncio.gather(
         fetch_planes(lat, lon, show_ground),
         fetch_airports(lat_key, lon_key),
-        get_terrain(lat, lon) if want_xsection else _none(),
+        get_terrain(lat, lon) if want_terrain else _none(),
         fetch_cities(lat_key, lon_key) if want_xsection else _none(),
     )
 

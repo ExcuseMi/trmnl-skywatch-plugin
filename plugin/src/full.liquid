@@ -34,7 +34,7 @@
   var routeHidden = '{{ cfv.route_display }}' === 'hidden';
   var closestOn  = '{{ cfv.closest_details }}' === 'true';
   var localNow   = {{ local_timestamp | default: 0 }};
-  var terrain    = {{ data.terrain | json }};
+  var terrain    = '{{ cfv.xs_terrain }}' === 'true' ? {{ data.terrain | json }} : null;   // off: the flat strip, whatever the payload holds
   var cityList   = {{ data.cities | json }};
   var citiesOn   = '{{ cfv.xs_cities }}' !== 'false';
   var sunMoonOn  = '{{ cfv.xs_sun_moon }}' === 'true';

@@ -464,7 +464,7 @@ RSpec.describe 'SkyWatch' do
     { 'https://trmnl.bettens.dev/skywatch*' => { json: data } }
   end
 
-  let(:inn_fields) { { 'address' => 'Innsbruck', 'unit' => 'metric', 'show_ground' => 'true', 'view' => 'xsection', 'xs_axis' => 'distance' } }
+  let(:inn_fields) { { 'address' => 'Innsbruck', 'unit' => 'metric', 'show_ground' => 'true', 'view' => 'xsection', 'xs_axis' => 'distance', 'xs_terrain' => 'true' } }
 
   TOWN_GEOMETRY_JS = <<~JS.freeze
     (function () {
@@ -694,5 +694,21 @@ RSpec.describe 'SkyWatch' do
     expect(non_white).to be_between(0.1, 0.5)        # a solid grey would be near 1.0
     edge = xs.map { |x| pixels[strip['t'].round][x][0] }
     expect(edge.count { it < 60 }.to_f / edge.size).to be >= 0.9   # the field line is solid black
+  end
+
+  # Terrain is its own setting, off by default: the payload may hold terrain, the chart then keeps the flat strip.
+  it 'draws the flat strip, no drop lines and no height above ground when the terrain setting is off' do
+    off = inn_fields.reject { |k, _| k == 'xs_terrain' }
+    screen = xs_screen(off, mocks: innsbruck_mocks)
+    expect(screen.all('[data-xs-terrain]', visible: :all)).to be_empty
+    expect(screen.all('[data-xs-drop]', visible: :all)).to be_empty
+    expect(panel(off.merge('closest_details' => 'true'), mocks: innsbruck_mocks)).not_to include('above ground')
+    expect(xs_screen(off.merge('xs_terrain' => 'false'), mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all)).to be_empty
+    expect(xs_screen(inn_fields, mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all)).not_to be_empty
+  end
+
+  it 'asks the backend for terrain only when the setting is on' do
+    url = File.read(File.join(__dir__, '..', 'src', 'settings.yml'))[/^polling_url: '(.*)'$/, 1]
+    expect(url).to include('&terrain={{ trmnl.plugin_settings.custom_fields_values.xs_terrain')
   end
 end
