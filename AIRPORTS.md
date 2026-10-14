@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-13.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-14.
 
 **4568 airports** across 235 countries.
 
@@ -1067,7 +1067,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | EEN | KEEN | Dillant Hopkins Airport | Keene | US |
 | EES | HEBR | Berenice International Airport / Banas Cape Air Base | Berenice Troglodytica | EG |
 | EFD | KEFD | Ellington Airport | Houston | US |
-| EFL | LGKF | Kefallinia Airport | Kefallinia Island | GR |
+| EFL | LGKF | Kefalonia International Airport "Anna Pollatou" | Kefallinia Island | GR |
 | EGC | LFBE | Bergerac Dordogne-Périgord airport | Bergerac | FR |
 | EGE | KEGE | Eagle County Regional Airport | Eagle | US |
 | EGH | HEGR | El Jora Airport | El Jora | EG |
@@ -4561,7 +4561,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ZSE | FMEP | Saint-Pierre Pierrefonds Airport | Saint-Pierre | RE |
 | ZSJ | CZSJ | Sandy Lake Airport | Sandy Lake | CA |
 | ZST | CZST | Stewart Airport | Stewart | CA |
-| ZTH | LGZA | Zakynthos International Airport Dionysios Solomos | Zakynthos | GR |
+| ZTH | LGZA | Zakynthos International Airport "Dionysios Solomos" | Zakynthos | GR |
 | ZTR | UKKV | Zhytomyr Airport | Zhytomyr | UA |
 | ZTU | UBBY | Zaqatala International Airport | Zaqatala | AZ |
 | ZUC | CZUC | Ignace Municipal Airport | Ignace | CA |
