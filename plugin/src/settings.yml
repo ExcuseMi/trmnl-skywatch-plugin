@@ -106,6 +106,32 @@ custom_fields:
   - 13 (Closest): '13'
   default: auto
   optional: true
+- keyname: view
+  field_type: select
+  name: Display
+  description: Radar map, or a cross-section of the sky around home (altitude against distance). The cross-section only applies to the full layout; smaller layouts keep the radar.
+  options:
+  - Radar map: radar
+  - Cross-section: xsection
+  default: radar
+  optional: true
+- keyname: xs_axis
+  field_type: select
+  name: Cross-section Horizontal Axis
+  description: "Used only by the cross-section.<br />Distance from home — range, with a compass bearing on each label.<br />East-West — west on the left, east on the right, home in the middle.<br />Runway / custom heading — offset along the heading below; aircraft far off that line are dimmed."
+  options:
+  - Distance from home: distance
+  - East-West: eastwest
+  - Runway / custom heading: heading
+  default: distance
+  optional: true
+- keyname: xs_heading
+  field_type: number
+  name: Cross-section Heading
+  description: Degrees (0-359) for the Runway / custom heading axis. 90 points east, 270 west; a runway number times ten is a good start (runway 27 is 270).
+  placeholder: '90'
+  default: '90'
+  optional: true
 name: SkyWatch
 description: Real-time planes on a live map
 refresh_interval: 15

@@ -3,7 +3,8 @@
   "lat": 50.8221175,
   "lon": 3.3748872,
   "provider": "airplanes.live",
-  "fetched_at_utc": "2026-09-01T20:16:32.803417+00:00",
+  "field_elev_ft": 66,
+    "fetched_at_utc": "2026-09-01T20:16:32.803417+00:00",
   "airports": [
    {
     "lat": 51.190667,
