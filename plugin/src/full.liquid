@@ -194,6 +194,19 @@
     }
     window.skyGroundAt = groundAt;
 
+    // A fine dot pattern for the ground: light grey dots covering a quarter of each 4 px tile, so the ground reads as a
+    // lighter tone than a solid tint (which would quantize to a flat grey in the 2-bit picture).
+    function groundPattern(defs, id, onDark) {
+      var pat = document.createElementNS(ns, 'pattern');
+      pat.setAttribute('id', id); pat.setAttribute('width', '4'); pat.setAttribute('height', '4');
+      pat.setAttribute('patternUnits', 'userSpaceOnUse');
+      var dot = document.createElementNS(ns, 'rect');
+      dot.setAttribute('width', '2'); dot.setAttribute('height', '2'); dot.setAttribute('fill', onDark ? '#aaaaaa' : '#999999');
+      pat.appendChild(dot);
+      defs.appendChild(pat);
+      return 'url(#' + id + ')';
+    }
+
     function el(tag, attrs, parent) {
       var n = document.createElementNS(ns, tag);
       Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
@@ -375,6 +388,7 @@
     // Terrain: the profile along the axis (the highest ground at each distance on the distance axis), drawn as a
     // filled shape through the same piecewise Y axis. Without data the strip stays flat at the field elevation.
     var yGround = yOf(fieldElev);
+    var groundFill = groundPattern(svg.querySelector('defs'), 'xs-ground-' + instanceId, darkMode);
     var yHome = yGround;
     var hasTerrain = !!(terrain && terrain.grid && terrain.grid.length === terrain.bearings);
     var groundFtAt = function (bearing, d) { return groundAt(terrain, bearing, d, fieldElev * FT) / FT; };
@@ -399,11 +413,11 @@
         // a light background silhouette, no hard edge: the aircraft always read as in front of it. The fill must be
         // strong enough to survive the 2-bit palette (a 12 % tint turned white outside the shaded inner zone).
         el('polygon', { points: f1(first) + ',' + f1(py1) + ' ' + line.join(' ') + ' ' + f1(last) + ',' + f1(py1),
-          fill: gridColor, stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
+          fill: groundFill, stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
       });
       yHome = yOf(terrain.home_m / FT);
     }
-    el('rect', { x: px0, y: f1(yGround), width: px1 - px0, height: f1(py1 - yGround), fill: gridColor }, gridLayer);
+    el('rect', { x: px0, y: f1(yGround), width: px1 - px0, height: f1(py1 - yGround), fill: groundFill, 'data-xs-strip': '1' }, gridLayer);
     el('line', { x1: px0, y1: f1(yGround), x2: px1, y2: f1(yGround), stroke: fg, 'stroke-width': 2 }, gridLayer);
     var homeX = xOf(0);
     var house = el('path', { d: 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z',

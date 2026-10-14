@@ -652,11 +652,13 @@ RSpec.describe 'SkyWatch' do
       expect(edges['left']).to be <= 56           # the plot starts at x = 54
       expect(edges['right']).to be >= edges['width'] - 18
       pixels = MiniMagick::Image.open(screen.png_path).get_pixels
-      pts = edges['pts'].select { |x, y| x > 60 && x < edges['width'] - 20 && y > 40 && y < 330 }
-      outer = pts.select { |x, _| (x - 54).abs.between?(0, 0) || x < 54 + (edges['width'] - 70) * 0.18 || x > 54 + (edges['width'] - 70) * 0.82 }
+      mean = ->(x, y0, y1) { (-3..3).flat_map { |dx| (y0..y1).map { |y| pixels[y][x.round + dx][0] } }.then { |v| v.sum.to_f / v.size } }
+      pts = edges['pts'].select { |x, y| x > 64 && x < edges['width'] - 24 && y > 40 && y < 320 }
+      outer = pts.select { |x, _| x < 54 + (edges['width'] - 70) * 0.18 || x > 54 + (edges['width'] - 70) * 0.82 }
       expect(outer.size).to be >= 10
-      visible = outer.count { |x, y| pixels[(y - 9).round][x.round][0] != pixels[(y + 9).round][x.round][0] }
-      expect(visible.to_f / outer.size).to be >= 0.8   # grey inside the shape, white or lighter above it
+      # the dots make the fill a lighter tone: compare the mean of a patch above the outline with one inside the shape
+      visible = outer.count { |x, y| (mean.call(x, (y - 14).round, (y - 6).round) - mean.call(x, (y + 6).round, (y + 14).round)).abs >= 10 }
+      expect(visible.to_f / outer.size).to be >= 0.8
     end
   end
 
@@ -677,5 +679,20 @@ RSpec.describe 'SkyWatch' do
     ground_only = innsbruck_mocks
     ground_only.values.first[:json]['data']['ac'].select! { it['alt_baro'] == 'ground' }
     expect(panel(fields, mocks: ground_only)).not_to include('above ground')
+  end
+
+  # The ground is a lighter tone than a solid tint: a dot pattern covers a fraction of the pixels, and the top edge
+  # of the strip stays a solid line. Measured on the 2-bit picture in light mode (the old fill was a solid grey).
+  it 'fills the ground with a light dot pattern and keeps the strip edge solid' do
+    screen = xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), light: true, mocks: innsbruck_mocks)
+    pixels = MiniMagick::Image.open(screen.png_path).get_pixels
+    strip = screen.evaluate("(function () { var b = document.querySelector('[data-xs-strip]').getBoundingClientRect(), s = document.querySelector('[data-chart] svg').getBoundingClientRect(); return { l: b.left, t: b.top - s.top + s.top, r: b.right, b: b.bottom }; })()")
+    ys = ((strip['t'] + 4).round..(strip['b'] - 3).round).to_a
+    xs = (120..180).to_a                              # clear of town names and the break marks
+    values = ys.flat_map { |y| xs.map { |x| pixels[y][x][0] } }
+    non_white = values.count { it < 250 }.to_f / values.size
+    expect(non_white).to be_between(0.1, 0.5)        # a solid grey would be near 1.0
+    edge = xs.map { |x| pixels[strip['t'].round][x][0] }
+    expect(edge.count { it < 60 }.to_f / edge.size).to be >= 0.9   # the field line is solid black
   end
 end
