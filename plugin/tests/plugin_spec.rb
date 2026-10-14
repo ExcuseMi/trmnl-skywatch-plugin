@@ -152,4 +152,100 @@ RSpec.describe 'SkyWatch' do
       expect(page).to eq(File.read(File.join(__dir__, 'snapshots', "radar-#{layout}.html")))
     end
   end
+
+  # ---- Closest aircraft panel -----------------------------------------------------------------------------------
+  # Off by default: the radar guard and the cross-section snapshots above cover "nothing changes". The radar draws
+  # no pixels here (no WebGL) but the panel is plain HTML, so its text is asserted; the cross-section is compared
+  # as pixels. The fixture's closest airborne aircraft is RYR8CL (5.5 nm, climbing); fetched_at is 20:16 UTC and the
+  # test user's offset makes that 8:16 PM.
+  let(:cd_fields) { custom_fields.merge('closest_details' => 'true') }
+
+  def only(*flights, **change)
+    data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch.json')))
+    data['data']['ac'] = data['data']['ac'].select { flights.include?(it['flight']) }.map { |a| a.merge(change.transform_keys(&:to_s)) }
+    { 'https://trmnl.bettens.dev/skywatch*' => { json: data } }
+  end
+
+  def panel(fields, view: 'full', mocks: self.mocks)
+    trmnl.render(view:, mocks:, custom_fields: fields).then do |screen|
+      screen.has_css?('[data-closest-panel]', visible: :all) ? screen.find('[data-closest-panel]', visible: :all).text(:all).strip : nil
+    end
+  end
+
+  it 'shows no panel by default, in either view' do
+    expect(panel(custom_fields)).to be_nil
+    expect(panel(custom_fields.merge('view' => 'xsection'))).to be_nil
+  end
+
+  %w[radar xsection].each do |mode|
+    it "shows the closest airborne aircraft in the #{mode} view" do
+      text = panel(cd_fields.merge('view' => mode))
+      expect(text).to include('RYR8CL', 'Boeing 737-800', '6200 ft', '248 kt', '1800 fpm', '5.5 nm NW', 'CRL', 'BCN', 'Climbing', 'EI-DHS')
+    end
+  end
+
+  it 'shows metres, km, km/h and m/s in metric' do
+    text = panel(cd_fields.merge('unit' => 'metric'))
+    expect(text).to include('1890 m', '459 km/h', '9.1 m/s', '10.1 km', '74.1 km to go')
+    expect(text).not_to include(' ft', ' kt', ' nm', 'fpm')
+    expect(text).to include('ETA 20:26')
+  end
+
+  it 'picks a ground aircraft only when nothing is airborne' do
+    expect(panel(cd_fields, mocks: only('', 'RYR8CL'))).to include('RYR8CL')
+    text = panel(cd_fields, mocks: only(''))
+    expect(text).to include('GND', 'On the ground')
+  end
+
+  it 'names the flight phase' do
+    expect(panel(cd_fields, mocks: only('RYR8CL'))).to include('Climbing')
+    expect(panel(cd_fields, mocks: only('DLH4AB'))).to include('Descending')
+    expect(panel(cd_fields, mocks: only('BEL7MZ'))).to include('Approach')
+    expect(panel(cd_fields, mocks: only('BEL7MZ', progress: 0.2))).to include('Approach')   # near the destination, not far along
+    expect(panel(cd_fields, mocks: only('BEL7MZ', progress: 0.2, dest_dist_nm: 80))).to include('Descending')
+    expect(panel(cd_fields, mocks: only('RYR8CL', alt_baro: 1500))).to include('Taking off')
+    expect(panel(cd_fields, mocks: only('IBE0603'))).to include('Cruising')
+  end
+
+  it 'shows the distance left and the ETA from fetched_at, only above 50 kt' do
+    text = panel(cd_fields, mocks: only('BEL7MZ'))
+    expect(text).to include('30 nm to go', 'ETA 8:26 PM')   # 30 nm at 180 kt is 10 minutes after 8:16 PM
+    slow = panel(cd_fields, mocks: only('BEL7MZ', gs: 40))
+    expect(slow).to include('30 nm to go')
+    expect(slow).not_to include('ETA')
+  end
+
+  it 'flags an emergency squawk at the top of the panel' do
+    expect(panel(cd_fields, mocks: only('DLH4AB'))).to start_with('MAYDAY')
+  end
+
+  it 'ignores the setting on the smaller layouts' do
+    %w[half_horizontal half_vertical quadrant].each do |layout|
+      page = trmnl.render(view: layout, mocks:, custom_fields: cd_fields).html.gsub(/inst_[A-Za-z0-9]+/, 'inst_X')
+      expect(page).to eq(File.read(File.join(__dir__, 'snapshots', "radar-#{layout}.html")))
+    end
+  end
+
+  [false, true].each do |light|
+    it "draws the panel in the cross-section (#{light ? 'light' : 'dark'})" do
+      screen = xs_screen(xs_fields.merge('closest_details' => 'true'), light:)
+      expect(screen.problems).to be_empty
+      expect(screen).to match_snapshot("xsection-closest-#{light ? 'light' : 'dark'}")
+    end
+  end
+
+  it 'marks the closest aircraft on the chart and keeps tags off the panel' do
+    screen = xs_screen(xs_fields.merge('closest_details' => 'true'))
+    expect(screen.all('[data-closest-marker]', visible: :all).size).to eq(1)
+    hit = screen.evaluate(<<~JS)
+      (function () {
+        var p = document.querySelector('[data-closest-panel]').getBoundingClientRect();
+        return Array.prototype.some.call(document.querySelectorAll('[data-xs-tag]'), function (t) {
+          var b = t.getBoundingClientRect();
+          return b.left < p.right && b.right > p.left && b.top < p.bottom && b.bottom > p.top;
+        });
+      })()
+    JS
+    expect(hit).to be(false)
+  end
 end

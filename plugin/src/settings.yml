@@ -90,6 +90,12 @@ custom_fields:
   description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
   optional: true
+- keyname: closest_details
+  field_type: boolean
+  name: Show Closest Aircraft Details
+  description: A panel with the details of the aircraft closest to home (full layout only).
+  default: 'false'
+  optional: true
 - keyname: map_zoom
   field_type: select
   name: Map Zoom
