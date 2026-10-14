@@ -730,7 +730,7 @@ root.appendChild(head);
 function rule1() { root.appendChild(el('div', 'divider', null, 'height:0;border-top:1px solid ' + rule + ';margin:5px 0;')); }
 rule1();
 var altStr = ground ? 'GND' : (imperial ? (ftMsl >= 18000 ? 'FL' + ('00' + Math.round(ftMsl / 100)).slice(-3) : Math.round(ftMsl) + ' ft') : Math.round(+p.alt_baro) + ' m');
-var spdStr = p.gs != null ? Math.round(+p.gs) + (imperial ? ' kt' : ' km/h') : '-';
+var spdStr = (p.gs != null && !(ground && +p.gs < 1)) ? Math.round(+p.gs) + (imperial ? ' kt' : ' km/h') : '-';
 var rate = +p.baro_rate || 0;
 var rateStr = ground ? '-' : (Math.abs(rate) > 500 ? (rate > 0 ? '▲ ' : '▼ ') : '') +
 (imperial ? Math.abs(Math.round(rate)) + ' fpm' : (Math.abs(rate) * 0.00508).toFixed(1) + ' m/s');

@@ -533,4 +533,36 @@ RSpec.describe 'SkyWatch' do
       end
     end
   end
+
+  # Rise and set times (upper limb, standard refraction) against two references: the sunrise-sunset.org API
+  # (api.sunrise-sunset.org/json, formatted=0, fetched 2026-10-14; its own tables run up to about 2 minutes off the
+  # precise values) and PyEphem 4 (VSOP87, pressure 1010 mbar, 10 C), which gives the precise times. Tolerance: 1 minute
+  # of PyEphem, 2.5 minutes of the published table.
+  it 'finds sunrise and sunset like published tables' do
+    screen = xs_screen(xs_fields)
+    cases = [
+      ['Belgium 2026-09-01', 50.82, 3.37, '2026-09-01T00:00:00Z', %w[2026-09-01T04:58:48Z 2026-09-01T18:34:15Z], %w[2026-09-01T04:59:42Z 2026-09-01T18:32:19Z]],
+      ['New York 2024-12-21', 40.7128, -74.0060, '2024-12-21T00:00:00Z', %w[2024-12-21T12:15:14Z 2024-12-21T21:33:38Z], %w[2024-12-21T12:16:23Z 2024-12-21T21:32:27Z]],
+      ['Sydney 2024-06-21', -33.8688, 151.2093, '2024-06-20T12:00:00Z', %w[2024-06-20T20:58:40Z 2024-06-21T06:55:19Z], %w[2024-06-20T20:59:45Z 2024-06-21T06:54:15Z]]
+    ]
+    cases.each do |name, lat, lon, from, table, ephem|
+      [true, false].each_with_index do |rising, i|
+        got = screen.evaluate("window.skyAstro.nextCrossing('sun', Date.parse(#{from.to_json}), #{lat}, #{lon}, #{rising}) / 1000").to_f
+        label = "#{name} #{rising ? 'sunrise' : 'sunset'}"
+        expect(got).to be_within(60).of(Time.iso8601(ephem[i]).to_f), "#{label} vs PyEphem"
+        expect(got).to be_within(150).of(Time.iso8601(table[i]).to_f), "#{label} vs sunrise-sunset.org"
+      end
+    end
+  end
+
+  # A ground aircraft shows no speed at 0 kt, and keeps it while taxiing.
+  it 'drops the speed of a stationary ground aircraft in the tag and the panel' do
+    still = xs_screen(xs_fields.merge('show_ground' => 'true', 'closest_details' => 'true'), mocks: only('', gs: 0))
+    expect(still.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).to include('GND')
+    expect(still.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).not_to include('kt')
+    expect(panel(cd_fields, mocks: only('', gs: 0))).not_to include('0 kt')
+    taxi = xs_screen(xs_fields.merge('show_ground' => 'true', 'closest_details' => 'true'), mocks: only('', gs: 12))
+    expect(taxi.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).to include('GND 12 kt')
+    expect(panel(cd_fields, mocks: only('', gs: 12))).to include('12 kt')
+  end
 end

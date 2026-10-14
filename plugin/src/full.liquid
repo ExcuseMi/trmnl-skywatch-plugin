@@ -157,7 +157,28 @@
       var d = wrap360(moonEcliptic(julian(ms)).lon - sunState(ms, 0, 0).lambda);
       return { fraction: (1 - cosD(d)) / 2, waxing: d < 180 };
     }
-    window.skyAstro = { sun: sunState, moon: moonState, moonEcliptic: moonEcliptic, phase: moonPhase };
+    // Rising and setting: the upper limb meets the horizon when the centre is 0.833 degrees below it (34' refraction
+    // plus 16' radius). The moon's elevation is already topocentric (parallax removed), so the same threshold holds.
+    var HORIZON = -0.833;
+    function bodyElev(kind, ms, lat, lon) { return (kind === 'sun' ? sunState(ms, lat, lon) : moonState(ms, lat, lon)).elev; }
+    // the next time (ms) the body rises (rising true) or sets after fromMs, within 26 hours, or null
+    function nextCrossing(kind, fromMs, lat, lon, rising) {
+      var prev = bodyElev(kind, fromMs, lat, lon) > HORIZON, a = fromMs;
+      for (var m = 1; m <= 26 * 60; m++) {
+        var t = fromMs + m * 60000, up = bodyElev(kind, t, lat, lon) > HORIZON;
+        if (up !== prev && up === rising) {
+          var lo = a, hi = t;
+          for (var i = 0; i < 12; i++) {
+            var mid = (lo + hi) / 2;
+            if ((bodyElev(kind, mid, lat, lon) > HORIZON) === rising) hi = mid; else lo = mid;
+          }
+          return hi;
+        }
+        prev = up; a = t;
+      }
+      return null;
+    }
+    window.skyAstro = { sun: sunState, moon: moonState, moonEcliptic: moonEcliptic, phase: moonPhase, nextCrossing: nextCrossing, horizon: HORIZON };
 
     function el(tag, attrs, parent) {
       var n = document.createElementNS(ns, tag);
@@ -459,8 +480,8 @@
       };
       bodies.forEach(function (b) {
         var side = sideOf(b.st.az);
-        if (b.st.elev > 0) {
-          var tanE = Math.tan(b.st.elev * DEG), pts = [], ex = null, ey = null;
+        if (b.st.elev > HORIZON) {
+          var tanE = Math.tan(Math.max(0, b.st.elev) * DEG), pts = [], ex = null, ey = null;
           for (var dn = 0; dn <= radiusNm + 0.001; dn += 0.5) {
             var ft = fieldElev + dn * 6076 * tanE, atTop = ft >= ceiling;
             if (atTop && dn > 0) {   // leaves through the top: stop where the line meets the ceiling
@@ -484,11 +505,7 @@
           placedRects.push({ x: side > 0 ? lx - w : lx, y: iy - 9, w: w, h: 14 });
         } else {
           // below the horizon: a small icon at the end of the ground strip with its next rising time
-          var rise = null;
-          for (var m = 1; m <= 26 * 60; m++) {
-            var t2 = nowMs + m * 60000;
-            if ((b.kind === 'sun' ? sunState(t2, centerLat, centerLon) : moonState(t2, centerLat, centerLon)).elev > 0) { rise = t2; break; }
-          }
+          var rise = nextCrossing(b.kind, nowMs, centerLat, centerLon, true);
           var slot = belowSlots[side]++;
           var bx = side > 0 ? px1 - 14 - slot * 125 : px0 + 14 + slot * 125, by = (yGround + py1) / 2;
           drawBody(b.kind, bx, by);
@@ -543,14 +560,20 @@
         if (axisMode === 'heading' && Math.abs(pl.cross) > radiusNm / 3) return;   // the same band as undimmed aircraft
         if (Math.abs(pl.along) > radiusNm) return;
         var cxp = xOf(pl.along);
-        var nameEl = text(c.name, cxp, yGround + 16, 'middle', 11, 'normal');
-        var bb = nameEl.getBBox();
-        var nx = Math.min(Math.max(cxp, px0 + 2 + bb.width / 2), px1 - 2 - bb.width / 2);
-        nameEl.setAttribute('x', f1(nx));
-        var rect = { x: nx - bb.width / 2, y: bb.y, w: bb.width, h: bb.height };
-        if (overlaps(rect) || rect.y + rect.h > py1) { nameEl.parentNode.removeChild(nameEl); return; }
-        var tick = el('line', { x1: f1(cxp), y1: f1(yGround), x2: f1(cxp), y2: f1(yGround + 6), stroke: fg, 'stroke-width': 1.5 }, gridLayer);
-        nameEl.setAttribute('data-xs-town', c.name);
+        // an HTML card in the tag layer so the Framework's text stroke applies, as for the radar's airport codes
+        var card = document.createElement('div');
+        card.textContent = c.name;
+        card.className = darkMode ? 'text--black text-stroke text-stroke--small' : 'text--white text-stroke text-stroke--small text-stroke--black';
+        card.style.cssText = 'position:absolute;left:-9999px;top:0;font-size:12px;line-height:14px;font-weight:bold;font-family:' + labelFont + ';white-space:nowrap;';
+        cardsLayer.appendChild(card);
+        var cw = card.offsetWidth, ch = card.offsetHeight;
+        var nx = Math.min(Math.max(cxp - cw / 2, px0 + 2), px1 - 2 - cw), ny = yGround + 4;
+        var rect = { x: nx, y: ny, w: cw, h: ch };
+        if (overlaps(rect) || ny + ch > py1 + 2) { cardsLayer.removeChild(card); return; }
+        card.style.left = f1(nx) + 'px';
+        card.style.top = f1(ny) + 'px';
+        var tick = el('line', { x1: f1(cxp), y1: f1(yGround), x2: f1(cxp), y2: f1(yGround + 5), stroke: fg, 'stroke-width': 1.5 }, gridLayer);
+        card.setAttribute('data-xs-town', c.name);
         tick.setAttribute('data-xs-town-tick', c.name);
         placedRects.push(rect);
         shown++;
@@ -601,7 +624,7 @@
       if (axisMode === 'distance') line1 = (line1 + ' ' + compass(c.pl.bearing)).trim();
       var arrow = '';
       if (!c.ground && p.baro_rate != null && Math.abs(p.baro_rate) > 500) arrow = p.baro_rate > 0 ? ' ▲' : ' ▼';
-      var line2 = formatAlt(c) + arrow + (p.gs != null ? ' ' + formatSpeed(p.gs) : '');
+      var line2 = formatAlt(c) + arrow + (p.gs != null && !(c.ground && +p.gs < 1) ? ' ' + formatSpeed(p.gs) : '');
       var route = '';
       if (!routeHidden) route = (p.origin && p.dest) ? p.origin + ' → ' + p.dest : (p.dest ? '→ ' + p.dest : '');
       var squawkLabel = SQUAWK_LABELS[p.squawk] || '';
