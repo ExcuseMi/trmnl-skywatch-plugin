@@ -217,7 +217,12 @@
     function f1(n) { return n.toFixed(1); }
 
     // ---- plot box -------------------------------------------------------
-    var padL = 54, padR = 16, padT = 22, padB = 36, groundBand = 22;
+    var padL = 54, padR = 16, padB = 36, groundBand = 22, sc = 1.3, iconHalf = 12 * sc;
+    // The provider label sits top right: the plot starts below it, so no icon can go under it.
+    var labelEl = container.querySelector('.label');
+    var cBox = container.getBoundingClientRect(), lBox = labelEl ? labelEl.getBoundingClientRect() : null;
+    var labelRect = lBox ? { x: lBox.left - cBox.left, y: lBox.top - cBox.top, w: lBox.width, h: lBox.height } : { x: W - 120, y: 0, w: 120, h: 36 };
+    var padT = Math.max(22, Math.ceil(labelRect.y + labelRect.h + iconHalf + 2));
     var px0 = padL, px1 = W - padR, py0 = padT, py1 = H - padB;
     var yZero = py1 - groundBand;            // 0 ft
     var plotH = yZero - py0;
@@ -395,10 +400,9 @@
 
     // ---- aircraft ---------------------------------------------------------
     setupSymbols();
-    var sc = 1.3, iconHalf = 12 * sc;
     var items = chosen.map(function (c) {
       var x = xOf(c.pl.along);
-      var y = c.ground ? yGround - iconHalf * 0.6 : yOf(c.ft);
+      var y = c.ground ? yGround - iconHalf - 2 : yOf(c.ft);
       var dim = axisMode === 'heading' && !c.emerg && Math.abs(c.pl.cross) > radiusNm / 3;   // an emergency is never dimmed
       return { c: c, x: x, y: y, dim: dim };
     });
@@ -406,7 +410,7 @@
       return { x: it.x - iconHalf, y: it.y - iconHalf, w: iconHalf * 2, h: iconHalf * 2 };
     });
     placedRects.push({ x: homeX - 14, y: yGround - 28, w: 28, h: 28 });
-    placedRects.push({ x: W - 120, y: 0, w: 120, h: 36 });   // the provider label
+    placedRects.push(labelRect);   // the provider label
 
     function overlaps(r) {
       var pad = 4;
@@ -414,7 +418,7 @@
         return r.x < e.x + e.w + pad && r.x + r.w + pad > e.x && r.y < e.y + e.h + pad && r.y + r.h + pad > e.y;
       });
     }
-    function inside(r) { return r.x >= 2 && r.y >= 2 && r.x + r.w <= W - 2 && r.y + r.h <= py1 - 2; }
+    function inside(r) { return r.x >= px0 + 2 && r.y >= 2 && r.x + r.w <= px1 - 2 && r.y + r.h <= py1 - 2; }
 
     items.forEach(function (it) {
       var c = it.c, p = c.p;
@@ -437,11 +441,38 @@
     });
 
     // ---- tags: emergencies first, the rest in drawn order ------------------
-    var ANCHORS = [
-      { ax: 1, ay: 0 }, { ax: 1, ay: -1 }, { ax: 0, ay: -1 }, { ax: -1, ay: -1 },
-      { ax: -1, ay: 0 }, { ax: -1, ay: 1 }, { ax: 0, ay: 1 }, { ax: 1, ay: 1 }
-    ];
-    var RADII = [iconHalf + 14, iconHalf + 44, iconHalf + 84];
+    // Tag candidates: 16 directions on four rings round the icon. Each is scored by its leader length plus how far
+    // it strays from the aircraft's own height, so a tag stays near its altitude. Nothing beyond MAX_LEADER is tried.
+    var RINGS = [iconHalf + 10, iconHalf + 28, iconHalf + 48, iconHalf + 70, iconHalf + 90];
+    var MAX_LEADER = 100, ANGLES = 16;
+    function nearestOnRect(r, x, y) {
+      return { x: Math.min(Math.max(x, r.x), r.x + r.w), y: Math.min(Math.max(y, r.y), r.y + r.h) };
+    }
+    function candidates(it, cw, ch) {
+      var out = [];
+      RINGS.forEach(function (R) {
+        for (var k = 0; k < ANGLES; k++) {
+          var th = k * 2 * Math.PI / ANGLES, ux = Math.cos(th), uy = Math.sin(th);
+          var ax = ux > 0.38 ? 1 : (ux < -0.38 ? -1 : 0), ay = uy > 0.38 ? 1 : (uy < -0.38 ? -1 : 0);
+          var r = { x: it.x + ux * R - (ax < 0 ? cw : (ax === 0 ? cw / 2 : 0)),
+                    y: it.y + uy * R - (ay < 0 ? ch : (ay === 0 ? ch / 2 : 0)), w: cw, h: ch };
+          var np = nearestOnRect(r, it.x, it.y);
+          var len = Math.hypot(np.x - it.x, np.y - it.y);
+          if (len > MAX_LEADER) continue;
+          var stray = Math.max(0, Math.abs(r.y + ch / 2 - it.y) - ch / 2);
+          out.push({ r: r, score: len + 1.5 * stray });
+        }
+      });
+      return out.sort(function (m, n) { return m.score - n.score; });
+    }
+    function leaderTo(it, r, name) {
+      var np = nearestOnRect(r, it.x, it.y);
+      var d = Math.hypot(np.x - it.x, np.y - it.y) || 1;
+      var e = { x: it.x + (np.x - it.x) / d * iconHalf * 0.8, y: it.y + (np.y - it.y) / d * iconHalf * 0.8 };
+      var ln = el('line', { x1: f1(e.x), y1: f1(e.y), x2: f1(np.x), y2: f1(np.y), stroke: lineColor,
+        'stroke-width': 2.5, 'stroke-dasharray': '3 2', 'data-xs-leader': name }, leaderLayer);
+      return ln;
+    }
     var order = items.filter(function (i) { return i.c.emerg; }).concat(items.filter(function (i) { return !i.c.emerg; }));
 
     order.forEach(function (it) {
@@ -477,39 +508,31 @@
       cardsLayer.appendChild(card);
       var cw = card.offsetWidth, ch = card.offsetHeight;
 
-      var best = null, away = false;
-      for (var ri = 0; ri < RADII.length && !best; ri++) {
-        for (var i = 0; i < ANCHORS.length; i++) {
-          var a = ANCHORS[i];
-          var lx = it.x + a.ax * RADII[ri] - (a.ax < 0 ? cw : (a.ax === 0 ? cw / 2 : 0));
-          var ly = it.y + a.ay * RADII[ri] - (a.ay < 0 ? ch : (a.ay === 0 ? ch / 2 : 0));
-          var r = { x: lx, y: ly, w: cw, h: ch };
-          if (inside(r) && !overlaps(r)) { best = r; away = ri > 0; break; }
-        }
+      var cands = candidates(it, cw, ch), best = null;
+      for (var i = 0; i < cands.length; i++) {
+        if (inside(cands[i].r) && !overlaps(cands[i].r)) { best = cands[i].r; break; }
       }
       if (!best && c.emerg) {
         // An emergency is always tagged, even if it has to sit over something else.
-        var fx = Math.min(Math.max(it.x + RADII[0], 2), W - cw - 2);
-        var fy = Math.min(Math.max(it.y - ch / 2, 2), py1 - ch - 2);
-        best = { x: fx, y: fy, w: cw, h: ch };
-        away = true;
+        best = { x: Math.min(Math.max(it.x + RINGS[0], px0 + 2), px1 - cw - 2),
+                 y: Math.min(Math.max(it.y - ch / 2, 2), py1 - ch - 2), w: cw, h: ch };
       }
       if (!best) { cardsLayer.removeChild(card); return; }
       placedRects.push(best);
       card.style.left = f1(best.x) + 'px';
       card.style.top = f1(best.y) + 'px';
-      if (away) {
-        var tx = Math.min(Math.max(it.x, best.x), best.x + best.w);
-        var ty = Math.min(Math.max(it.y, best.y), best.y + best.h);
-        el('line', { x1: f1(it.x), y1: f1(it.y), x2: f1(tx), y2: f1(ty), stroke: lineColor, 'stroke-width': 2.5, 'stroke-dasharray': '3 2' }, leaderLayer);
-      }
+      leaderTo(it, best, card.getAttribute('data-xs-tag'));
     });
   }
 
+  // Tag sizes depend on the font, so lay out once it is loaded.
+  function start() {
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(init, init); else init();
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
+    start();
   }
 })();
 </script>

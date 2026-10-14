@@ -81,6 +81,48 @@ RSpec.describe 'SkyWatch' do
     expect(screen).to have_text('MAYDAY')
   end
 
+  # Every tag has its own dashed leader line, and no tag overlaps the provider label or another tag.
+  TAG_GEOMETRY_JS = <<~JS.freeze
+    (function () {
+      var rect = function (e) { var b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+      var hit = function (a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; };
+      var tags = Array.prototype.slice.call(document.querySelectorAll('[data-xs-tag]'));
+      var leaders = Array.prototype.slice.call(document.querySelectorAll('[data-xs-leader]')).map(function (l) { return l.getAttribute('data-xs-leader'); });
+      var label = rect(document.querySelector('.layout[data-chart] .label'));
+      var res = { tags: tags.length, noLeader: [], onLabel: [], overlap: [] };
+      tags.forEach(function (t, i) {
+        var n = t.getAttribute('data-xs-tag'), r = rect(t);
+        if (leaders.indexOf(n) < 0) res.noLeader.push(n);
+        if (hit(r, label)) res.onLabel.push(n);
+        for (var j = i + 1; j < tags.length; j++) if (hit(r, rect(tags[j]))) res.overlap.push(n + '/' + tags[j].getAttribute('data-xs-tag'));
+      });
+      return res;
+    })()
+  JS
+
+  %w[distance eastwest heading].each do |axis|
+    it "gives every tag a leader line and keeps tags clear of the label and each other (#{axis})" do
+      geo = xs_screen(xs_fields.merge('xs_axis' => axis)).evaluate(TAG_GEOMETRY_JS)
+      expect(geo['tags']).to be >= 6
+      expect(geo['noLeader']).to be_empty
+      expect(geo['onLabel']).to be_empty
+      expect(geo['overlap']).to be_empty
+    end
+  end
+
+  it 'keeps every icon below the provider label' do
+    screen = xs_screen(xs_fields)
+    label_bottom = screen.evaluate("document.querySelector('.layout[data-chart] .label').getBoundingClientRect().bottom")
+    tops = screen.evaluate("Array.prototype.map.call(document.querySelectorAll('[data-xs-plane] use'), function (u) { return u.getBoundingClientRect().top; })")
+    expect(tops.min).to be >= label_bottom - 8   # the rotated icon's box is a little tighter than its 24 unit square
+  end
+
+  it 'turns ground aircraft to face left or right, level' do
+    screen = xs_screen(xs_fields.merge('show_ground' => 'true'))
+    rot = screen.evaluate("document.querySelector('[data-xs-ground] g').getAttribute('transform')")
+    expect(rot).to match(/rotate\((90|-90)\)/)
+  end
+
   it 'draws at most 12 aircraft' do
     screen = xs_screen(xs_fields)
     expect(drawn(screen).size).to be_between(1, 12)
