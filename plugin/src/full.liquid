@@ -198,15 +198,20 @@
     // lighter tone than a solid tint (which would quantize to a flat grey in the 2-bit picture).
     function groundPattern(defs, id, onDark) {
       var pat = document.createElementNS(ns, 'pattern');
-      pat.setAttribute('id', id); pat.setAttribute('width', '4'); pat.setAttribute('height', '4');
+      pat.setAttribute('id', id); pat.setAttribute('width', onDark ? '8' : '4'); pat.setAttribute('height', onDark ? '8' : '4');   // dark: an 8 px tile with two dots, half the coverage
       pat.setAttribute('patternUnits', 'userSpaceOnUse');
       // an opaque base, so what lies beneath (the inner zone's shading) does not show through the gaps
       var base = document.createElementNS(ns, 'rect');
-      base.setAttribute('width', '4'); base.setAttribute('height', '4'); base.setAttribute('fill', onDark ? '#000000' : '#ffffff');
+      base.setAttribute('width', onDark ? '8' : '4'); base.setAttribute('height', onDark ? '8' : '4'); base.setAttribute('fill', onDark ? '#000000' : '#ffffff');
       pat.appendChild(base);
       var dot = document.createElementNS(ns, 'rect');
       dot.setAttribute('width', '2'); dot.setAttribute('height', '2'); dot.setAttribute('fill', onDark ? '#aaaaaa' : '#999999');
       pat.appendChild(dot);
+      if (onDark) {   // a second dot, staggered, so the dots read as dots and not as dashes
+        var dot2 = dot.cloneNode(false);
+        dot2.setAttribute('x', '4'); dot2.setAttribute('y', '4');
+        pat.appendChild(dot2);
+      }
       defs.appendChild(pat);
       return 'url(#' + id + ')';
     }

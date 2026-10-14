@@ -728,6 +728,7 @@ RSpec.describe 'SkyWatch' do
       a = density.call(inner)
       b = density.call(outer)
       expect([a, b].max).to be > 0.05              # there are dots
+      expect([a, b].max).to be <= 0.18 unless light  # dark mode: sparser dots, a calm ground (the first pattern covered 25 %)
       expect((a - b).abs / [a, b].max).to be <= 0.2, "inner #{a.round(2)} outer #{b.round(2)}"
     end
   end
