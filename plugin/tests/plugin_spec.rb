@@ -49,16 +49,18 @@ RSpec.describe 'SkyWatch' do
   # with that switched off.
   let(:xs_fields) { custom_fields.merge('view' => 'xsection', 'xs_axis' => 'distance', 'xs_heading' => '90') }
 
-  def xs_screen(fields, view: 'full', light: false)
-    return trmnl.render(view:, mocks:, custom_fields: fields) unless light
+  # light: the plugin copy with dark_mode off. mismatch: a light screen while the plugin setting still says yes.
+  def xs_screen(fields, view: 'full', light: false, mismatch: false)
+    return trmnl.render(view:, mocks:, custom_fields: fields) unless light || mismatch
 
     Dir.mktmpdir do |dir|
       FileUtils.cp_r([File.join(Dir.pwd, 'src'), File.join(Dir.pwd, '.trmnlp.yml')], dir)
-      %w[src/settings.yml .trmnlp.yml].each do |f|
+      (mismatch ? %w[src/settings.yml] : %w[src/settings.yml .trmnlp.yml]).each do |f|
         path = File.join(dir, f)
         File.write(path, File.read(path).sub("dark_mode: 'yes'", "dark_mode: 'no'"))
       end
-      trmnl.plugin(dir).render(view:, mocks:, custom_fields: fields)
+      vars = mismatch ? { 'trmnl' => { 'plugin_settings' => { 'dark_mode' => 'yes' } } } : {}
+      trmnl.plugin(dir).render(view:, mocks:, custom_fields: fields, variables: vars)
     end
   end
 
@@ -291,5 +293,25 @@ RSpec.describe 'SkyWatch' do
     hd = xs_screen(xs_fields.merge('xs_axis' => 'heading', 'xs_heading' => '45'))
     expect(hd).to have_text("SW 225\u00b0").and have_text("045\u00b0 NE")
     expect(xs_screen(xs_fields)).to have_text('all directions')
+  end
+
+  # The panel's text must be readable on its card, in the radar (no map needed) and the cross-section, light and dark.
+  PANEL_COLORS_JS = <<~JS.freeze
+    (function () {
+      var panel = document.querySelector('[data-closest-panel]');
+      var bg = getComputedStyle(panel).backgroundColor;
+      var pick = function (sel) { return Array.prototype.slice.call(panel.querySelectorAll(sel)); };
+      var texts = pick('.title').concat(pick('.value'), pick('.description'), pick('.label'));
+      return { bg: bg, same: texts.filter(function (e) { return e.textContent.trim() && getComputedStyle(e).color === bg; }).map(function (e) { return e.textContent; }),
+               count: texts.length };
+    })()
+  JS
+
+  %w[radar xsection].product([:dark, :light, :mismatch]).each do |mode, look|
+    it "keeps the panel text readable (#{mode}, #{look})" do
+      res = xs_screen(cd_fields.merge('view' => mode), light: look == :light, mismatch: look == :mismatch).evaluate(PANEL_COLORS_JS)
+      expect(res['count']).to be >= 8
+      expect(res['same']).to be_empty
+    end
   end
 end

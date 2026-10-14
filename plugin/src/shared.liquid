@@ -672,8 +672,10 @@ var found = pickClosest(o.planes, o.centerLat, o.centerLon);
 if (!found) return null;
 var p = found.p, imperial = o.unit === 'imperial', ground = p.alt_baro === 'ground';
 var ftMsl = ground ? (o.fieldElev || 0) : (imperial ? +p.alt_baro : +p.alt_baro / 0.3048);
-var fg = o.darkMode ? '#ffffff' : '#000000', bg = o.darkMode ? '#000000' : '#ffffff';
-var soft = o.darkMode ? '#bbbbbb' : '#555555', rule = o.darkMode ? '#777777' : '#999999';
+var scr = o.container.closest ? o.container.closest('.screen') : null;
+var dark = scr ? scr.classList.contains('screen--dark-mode') : o.darkMode;
+var fg = dark ? '#ffffff' : '#000000', bg = dark ? '#000000' : '#ffffff';
+var soft = dark ? '#bbbbbb' : '#555555', rule = dark ? '#777777' : '#999999';
 var SQ = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
 var COMP = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 var dLat = (p.lat - o.centerLat), dLon = (p.lon - o.centerLon) * Math.cos(o.centerLat * Math.PI / 180);
@@ -701,7 +703,7 @@ root.appendChild(el('div', 'label label--inverted', emerg,
 var head = el('div', '', null, 'display:flex;align-items:center;justify-content:space-between;gap:8px;');
 var names = el('div', '', null, 'min-width:0;');
 var callsign = (p.flight || '').trim() || p.r || p.t || '?';
-names.appendChild(el('div', 'title', callsign, 'font-size:22px;line-height:24px;font-weight:bold;white-space:nowrap;'));
+names.appendChild(el('div', 'title', callsign, 'font-size:22px;line-height:24px;font-weight:bold;white-space:nowrap;color:' + fg + ';'));
 names.appendChild(el('div', 'description', (p.desc || p.t || '').trim(), 'font-size:12px;line-height:14px;color:' + soft + ';white-space:nowrap;'));
 head.appendChild(names);
 var iconDef = ICONS[getIconKey(p)];
@@ -734,7 +736,7 @@ var cols = el('div', '', null, 'display:flex;justify-content:space-between;gap:6
 [['ALT', altStr], ['SPEED', spdStr], ['V/S', rateStr]].forEach(function (c) {
 var col = el('div', '', null, 'min-width:0;');
 col.appendChild(el('span', 'label label--small', c[0], 'display:block;font-size:10px;line-height:12px;color:' + soft + ';'));
-col.appendChild(el('div', 'value value--xsmall', c[1], 'font-size:14px;line-height:16px;font-weight:bold;white-space:nowrap;'));
+col.appendChild(el('div', 'value value--xsmall', c[1], 'font-size:14px;line-height:16px;font-weight:bold;white-space:nowrap;color:' + fg + ';'));
 cols.appendChild(col);
 });
 root.appendChild(cols);
