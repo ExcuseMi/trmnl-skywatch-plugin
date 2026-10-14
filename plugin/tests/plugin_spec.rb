@@ -567,4 +567,79 @@ RSpec.describe 'SkyWatch' do
     expect(taxi.find('[data-xs-tag="OO-JAN"]', visible: :all).text(:all)).to include('GND 12 kt')
     expect(panel(cd_fields, mocks: only('', gs: 12))).to include('12 kt')
   end
+
+  # ---- Ground beneath each aircraft ----------------------------------------------------------------------------
+  # A synthetic grid whose value says where it is: grid[bearing][distance] = 100 * bearing + distance, home 7.
+  GROUND_GRID = { 'step_nm' => 2, 'bearings' => 16, 'home_m' => 7, 'grid' => Array.new(16) { |b| Array.new(25) { |i| (100 * b) + i } } }.freeze
+
+  it 'looks the ground up exactly on grid points, interpolates between them and falls back beyond the grid' do
+    screen = xs_screen(xs_fields)
+    at = ->(bearing, dist) { screen.evaluate("window.skyGroundAt(#{GROUND_GRID.to_json}, #{bearing}, #{dist}, -5)") }
+    expect(at.call(67.5, 10)).to eq(304)                 # bearing index 3, 5th ring (10 nm)
+    expect(at.call(78.75, 10)).to be_within(1e-9).of(354) # half way between bearings 3 and 4
+    expect(at.call(67.5, 11)).to be_within(1e-9).of(304.5) # half way between rings
+    expect(at.call(0, 0)).to eq(7)                        # home
+    expect(at.call(0, 1)).to be_within(1e-9).of(3.5)      # half way between home and the first ring
+    expect(at.call(350, 51)).to eq(-5)                    # beyond the 50 nm grid: the fallback
+    expect(screen.evaluate("window.skyGroundAt(null, 90, 10, -5)")).to eq(-5)
+    expect(at.call(359, 50)).to be_within(0.1).of(90.67)  # wraps from bearing 15 (1524) to bearing 0 (24)
+  end
+
+  def bearing_and_distance(lat0, lon0, lat, lon)
+    dy = (lat - lat0) * 60
+    dx = (lon - lon0) * 60 * Math.cos(lat0 * Math::PI / 180)
+    [(Math.atan2(dx, dy) * 180 / Math::PI) % 360, haversine_nm(lat0, lon0, lat, lon)]
+  end
+
+  it 'draws a drop line under each airborne aircraft to the ground beneath it' do
+    screen = xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), mocks: innsbruck_mocks)
+    fixture_data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))['data']
+    drops = screen.all('[data-xs-drop]', visible: :all).to_h { [it['data-xs-drop'], it['data-xs-drop-m'].to_f] }
+    planes = screen.all('[data-xs-plane]', visible: :all).reject { it['data-xs-ground'] || it['data-xs-dim'] }.map { it['data-xs-plane'] }
+    expect(planes.size).to be >= 4
+    expect(drops.keys).to match_array(planes)
+    planes.each do |name|
+      ac = fixture_data['ac'].find { it['flight'] == name }
+      bearing, dist = bearing_and_distance(fixture_data['lat'], fixture_data['lon'], ac['lat'], ac['lon'])
+      expected = screen.evaluate("window.skyGroundAt(#{fixture_data['terrain'].to_json}, #{bearing}, #{dist}, 580)")
+      expect(drops[name]).to be_within(1).of(expected), name
+    end
+    # the helicopter hovers over the valley: its ground is far below the high ground seen behind it
+    skyline = fixture_data['terrain']['grid'].flatten.max
+    expect(drops['OEHEL']).to be < 700     # the valley floor
+    expect(skyline).to be > 3000
+  end
+
+  it 'draws no drop line for ground traffic or dimmed aircraft' do
+    screen = xs_screen(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '0'), mocks: innsbruck_mocks)
+    dropped = screen.all('[data-xs-drop]', visible: :all).map { it['data-xs-drop'] }
+    dimmed = screen.all('[data-xs-dim]', visible: :all).map { it['data-xs-plane'] }
+    expect(dimmed).not_to be_empty
+    expect(dropped & dimmed).to be_empty
+    expect(dropped).not_to include('OE-FDI')
+  end
+
+  it 'falls back to the field elevation for the drop line without terrain data' do
+    screen = xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false))
+    expect(screen.all('[data-xs-drop]', visible: :all).map { it['data-xs-drop-m'].to_f }.uniq).to eq([(1906 * 0.3048).round.to_f])
+  end
+
+  it 'shows the height above ground in the panel, in both units, and hides it on the ground or without terrain' do
+    fixture_data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))['data']
+    heli = fixture_data['ac'].find { it['flight'] == 'OEHEL' }
+    bearing, dist = bearing_and_distance(fixture_data['lat'], fixture_data['lon'], heli['lat'], heli['lon'])
+    ground_m = xs_screen(inn_fields).evaluate("window.skyGroundAt(#{fixture_data['terrain'].to_json}, #{bearing}, #{dist}, 580)")
+    fields = inn_fields.merge('closest_details' => 'true')
+    metric = panel(fields, mocks: innsbruck_mocks)
+    agl_m = ((7800 * 0.3048 - ground_m) / 10).round * 10
+    expect(metric.delete(',')).to include("#{agl_m} m above ground")
+    imperial = panel(fields.merge('unit' => 'imperial'), mocks: innsbruck_mocks)
+    agl_ft = ((7800 - ground_m / 0.3048) / 100).round * 100
+    expect(imperial.delete(',')).to include("#{agl_ft} ft above ground")
+    expect(imperial).to match(/\d,\d{3} ft above ground|\d+ ft above ground/)
+    expect(panel(fields, mocks: innsbruck_mocks(terrain: false))).not_to include('above ground')
+    ground_only = innsbruck_mocks
+    ground_only.values.first[:json]['data']['ac'].select! { it['alt_baro'] == 'ground' }
+    expect(panel(fields, mocks: ground_only)).not_to include('above ground')
+  end
 end

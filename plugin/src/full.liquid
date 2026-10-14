@@ -180,6 +180,20 @@
     }
     window.skyAstro = { sun: sunState, moon: moonState, moonEcliptic: moonEcliptic, phase: moonPhase, nextCrossing: nextCrossing, horizon: HORIZON };
 
+    // Ground elevation (metres) at a bearing and distance from home, bilinear on the polar grid (index -1 is home).
+    // Without a valid grid, or beyond its last ring, the fallback (the field elevation) is returned.
+    function groundAt(terr, bearing, d, fallbackM) {
+      if (!terr || !terr.grid || terr.grid.length !== terr.bearings || !terr.grid[0] || !terr.grid[0].length) return fallbackM;
+      var nb = terr.bearings, step = terr.step_nm, nd = terr.grid[0].length;
+      if (d > nd * step + 0.001) return fallbackM;
+      var val = function (b, i) { return i < 0 ? terr.home_m : terr.grid[b][Math.min(i, nd - 1)]; };
+      var bf = wrap360(bearing) / (360 / nb), b0 = Math.floor(bf) % nb, b1 = (b0 + 1) % nb, bt = bf - Math.floor(bf);
+      var df = Math.max(0, d) / step - 1, i0 = Math.floor(df), it = df - i0;
+      var at = function (b) { return val(b, i0) * (1 - it) + val(b, i0 + 1) * it; };
+      return at(b0) * (1 - bt) + at(b1) * bt;
+    }
+    window.skyGroundAt = groundAt;
+
     function el(tag, attrs, parent) {
       var n = document.createElementNS(ns, tag);
       Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
@@ -362,16 +376,11 @@
     // filled shape through the same piecewise Y axis. Without data the strip stays flat at the field elevation.
     var yGround = yOf(fieldElev);
     var yHome = yGround;
+    var hasTerrain = !!(terrain && terrain.grid && terrain.grid.length === terrain.bearings);
+    var groundFtAt = function (bearing, d) { return groundAt(terrain, bearing, d, fieldElev * FT) / FT; };
     if (terrain && terrain.grid && terrain.grid.length === terrain.bearings && terrain.grid[0] && terrain.grid[0].length) {
-      var nBear = terrain.bearings, stepNm = terrain.step_nm, nDist = terrain.grid[0].length;
-      var gridAt = function (b, i) { return i < 0 ? terrain.home_m : terrain.grid[b][Math.min(i, nDist - 1)]; };
-      // metres at a bearing and distance, interpolated on the polar grid (index -1 is home)
-      var elevAt = function (bearing, d) {
-        var bf = wrap360(bearing) / (360 / nBear), b0 = Math.floor(bf) % nBear, b1 = (b0 + 1) % nBear, bt = bf - Math.floor(bf);
-        var df = d / stepNm - 1, i0 = Math.floor(df), it = df - i0;
-        var at = function (b) { return gridAt(b, i0) * (1 - it) + gridAt(b, i0 + 1) * it; };
-        return at(b0) * (1 - bt) + at(b1) * bt;
-      };
+      var nBear = terrain.bearings;
+      var elevAt = function (bearing, d) { return groundAt(terrain, bearing, d, 0); };
       var skyline = function (d) {
         var m = -1e9;
         for (var k = 0; k < nBear; k++) m = Math.max(m, elevAt(k * 360 / nBear, d));
@@ -387,9 +396,9 @@
           if (first === null) first = x;
           last = x;
         }
+        // a light background silhouette, no hard edge: the aircraft always read as in front of it
         el('polygon', { points: f1(first) + ',' + f1(py1) + ' ' + line.join(' ') + ' ' + f1(last) + ',' + f1(py1),
-          fill: darkMode ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)', stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
-        el('polyline', { points: line.join(' '), fill: 'none', stroke: fg, 'stroke-width': 1.5 }, gridLayer);
+          fill: darkMode ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.12)', stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
       });
       yHome = yOf(terrain.home_m / FT);
     }
@@ -441,7 +450,7 @@
     placedRects.push({ x: homeX - 14, y: yHome - 28, w: 28, h: 28 });
     placedRects.push(labelRect);   // the provider label
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
-      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
+      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0, groundFtFor: hasTerrain ? function (q) { var o2 = place(q); return groundFtAt(o2.bearing, o2.dist); } : null }) : null;
     if (panelRes) placedRects.push(panelRes.rect);   // top left of the plot, kept clear of tags
     // ---- sun and moon on the chart ----------------------------------------------------------------------------
     if (sunMoonOn) {
@@ -534,6 +543,13 @@
       var rot = c.pl.dir * (90 - 20 * s);
       var g = el('g', { 'data-xs-plane': (p.flight || p.r || p.t || '?'),
         transform: 'translate(' + it.x.toFixed(0) + ',' + it.y.toFixed(0) + ')' }, planeLayer);
+      if (!c.ground && !it.dim) {
+        // a thin drop line to the ground directly beneath this aircraft (its own bearing and distance from home)
+        var gFt = groundFtAt(c.pl.bearing, c.pl.dist), gy = yOf(gFt);
+        var dl = el('line', { x1: f1(it.x), y1: f1(it.y), x2: f1(it.x), y2: f1(gy), stroke: fg, 'stroke-opacity': 0.55, 'stroke-width': 1,
+          'data-xs-drop': (p.flight || p.r || p.t || '?'), 'data-xs-drop-m': Math.round(gFt * FT), 'data-xs-drop-y': f1(gy) }, leaderLayer);
+        el('line', { x1: f1(it.x - 4), y1: f1(gy), x2: f1(it.x + 4), y2: f1(gy), stroke: fg, 'stroke-opacity': 0.55, 'stroke-width': 1.5 }, leaderLayer);
+      }
       if (it.dim) { g.setAttribute('opacity', '0.5'); g.setAttribute('data-xs-dim', '1'); }
       if (c.ground) g.setAttribute('data-xs-ground', '1');
       if (c.emerg) {
