@@ -711,4 +711,24 @@ RSpec.describe 'SkyWatch' do
     url = File.read(File.join(__dir__, '..', 'src', 'settings.yml'))[/^polling_url: '(.*)'$/, 1]
     expect(url).to include('&terrain={{ trmnl.plugin_settings.custom_fields_values.xs_terrain')
   end
+
+  # The ground looks the same across the whole width: the inner zone's shading must not show through the dots.
+  %w[distance eastwest heading].product([false, true]).each do |axis, light|
+    it "has the same ground density in the inner and outer zone (#{axis}, #{light ? 'light' : 'dark'})" do
+      screen = xs_screen(inn_fields.merge('xs_axis' => axis, 'xs_heading' => '90'), light:, mocks: innsbruck_mocks)
+      pixels = MiniMagick::Image.open(screen.png_path).get_pixels
+      strip = screen.evaluate("(function () { var b = document.querySelector('[data-xs-strip]').getBoundingClientRect(); return { b: b.bottom, l: b.left, r: b.right }; })()")
+      ys = ((strip['b'] - 14).round..(strip['b'] - 3).round).to_a
+      centre = (strip['l'] + strip['r']) / 2
+      inner, outer = axis == 'distance' ? [(150..250), (550..650)] : [((centre + 20).round..(centre + 120).round), (650..750)]
+      density = lambda do |xs|
+        values = ys.flat_map { |y| xs.map { |x| pixels[y][x][0] } }
+        values.count { |v| light ? v < 250 : v > 5 }.to_f / values.size
+      end
+      a = density.call(inner)
+      b = density.call(outer)
+      expect([a, b].max).to be > 0.05              # there are dots
+      expect((a - b).abs / [a, b].max).to be <= 0.2, "inner #{a.round(2)} outer #{b.round(2)}"
+    end
+  end
 end

@@ -200,6 +200,10 @@
       var pat = document.createElementNS(ns, 'pattern');
       pat.setAttribute('id', id); pat.setAttribute('width', '4'); pat.setAttribute('height', '4');
       pat.setAttribute('patternUnits', 'userSpaceOnUse');
+      // an opaque base, so what lies beneath (the inner zone's shading) does not show through the gaps
+      var base = document.createElementNS(ns, 'rect');
+      base.setAttribute('width', '4'); base.setAttribute('height', '4'); base.setAttribute('fill', onDark ? '#000000' : '#ffffff');
+      pat.appendChild(base);
       var dot = document.createElementNS(ns, 'rect');
       dot.setAttribute('width', '2'); dot.setAttribute('height', '2'); dot.setAttribute('fill', onDark ? '#aaaaaa' : '#999999');
       pat.appendChild(dot);
