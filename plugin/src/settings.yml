@@ -118,7 +118,7 @@ custom_fields:
 - keyname: xs_axis
   field_type: select
   name: Cross-section Horizontal Axis
-  description: "Used only by the cross-section.<br />Distance from home — range, with a compass bearing on each label.<br />East-West — west on the left, east on the right, home in the middle.<br />Runway / custom heading — offset along the heading below; aircraft far off that line are dimmed."
+  description: "Used only by the cross-section.<br />Distance from home - range, with a compass bearing on each label.<br />East-West - west on the left, east on the right, home in the middle.<br />Runway / custom heading - offset along the heading below; aircraft far off that line are dimmed."
   options:
   - Distance from home: distance
   - East-West: eastwest
