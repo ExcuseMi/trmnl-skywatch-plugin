@@ -221,7 +221,7 @@ def check_ip_whitelist() -> bool:
 # ---------------------------------------------------------------------------
 
 def airport_cache_key(lat_key: int, lon_key: int) -> str:
-    return f"skywatch:airports:{lat_key}:{lon_key}"
+    return f"skywatch:airports:v2:{lat_key}:{lon_key}"
 
 
 async def _load_ourairports() -> list:
@@ -254,12 +254,17 @@ async def _refresh_ourairports():
             a_lon = float(row['longitude_deg'])
         except (ValueError, KeyError):
             continue
+        try:
+            elevation_ft = int(float(row.get('elevation_ft') or 0))
+        except ValueError:
+            elevation_ft = 0
         airports.append({
             'iata': iata,
             'icao': (row.get('gps_code') or row.get('ident') or '').strip(),
             'name': (row.get('name') or '').strip(),
             'lat':  a_lat,
             'lon':  a_lon,
+            'elevation_ft': elevation_ft,
         })
 
     await redis_client.set(OURAIRPORTS_CACHE_KEY, json.dumps(airports))
@@ -742,6 +747,12 @@ async def get_planes():
             a for a in tile_airports
             if haversine_nm(lat, lon, a['lat'], a['lon']) <= AIRPORT_RADIUS_NM
         ]
+
+        # Field elevation of the nearest airport in range (0 when none), for the cross-section ground strip
+        data['field_elev_ft'] = min(
+            data['airports'],
+            key=lambda a: haversine_nm(lat, lon, a['lat'], a['lon']),
+        ).get('elevation_ft', 0) if data['airports'] else 0
 
         await enrich_with_routes(data['ac'], route_display)
         return jsonify({'data': data})
