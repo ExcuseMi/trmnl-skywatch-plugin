@@ -4,6 +4,14 @@
   "lon": 3.3748872,
   "provider": "airplanes.live",
   "field_elev_ft": 66,
+  "cities": [
+    {"name": "Gent", "lat": 51.05, "lon": 3.71667, "pop": 265086},
+    {"name": "Lille", "lat": 50.63391, "lon": 3.05512, "pop": 238695},
+    {"name": "Brugge", "lat": 51.20892, "lon": 3.22424, "pop": 118509},
+    {"name": "Kortrijk", "lat": 50.82803, "lon": 3.26487, "pop": 73879},
+    {"name": "Roeselare", "lat": 50.94653, "lon": 3.12269, "pop": 56016},
+    {"name": "Ieper", "lat": 50.85114, "lon": 2.88569, "pop": 35089}
+  ],
     "fetched_at_utc": "2026-09-01T20:16:32.803417+00:00",
   "airports": [
    {

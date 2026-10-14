@@ -454,4 +454,83 @@ RSpec.describe 'SkyWatch' do
       expect(screen).to match_snapshot("xsection-sunmoon-#{name}-#{light ? 'light' : 'dark'}")
     end
   end
+
+  # ---- Terrain and towns ----------------------------------------------------------------------------------------
+  def innsbruck_mocks(terrain: true)
+    data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))
+    data['data'].delete('terrain') unless terrain
+    { 'https://trmnl.bettens.dev/skywatch*' => { json: data } }
+  end
+
+  let(:inn_fields) { { 'address' => 'Innsbruck', 'unit' => 'metric', 'show_ground' => 'true', 'view' => 'xsection', 'xs_axis' => 'distance' } }
+
+  TOWN_GEOMETRY_JS = <<~JS.freeze
+    (function () {
+      var rect = function (e) { var b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+      var hit = function (a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; };
+      var towns = Array.prototype.slice.call(document.querySelectorAll('[data-xs-town]'));
+      var tags = Array.prototype.slice.call(document.querySelectorAll('[data-xs-tag]'));
+      var res = { names: towns.map(function (t) { return t.getAttribute('data-xs-town'); }), overlap: [], onTag: [] };
+      towns.forEach(function (a, i) {
+        for (var j = i + 1; j < towns.length; j++) if (hit(rect(a), rect(towns[j]))) res.overlap.push(a.getAttribute('data-xs-town'));
+        tags.forEach(function (g) { if (hit(rect(a), rect(g))) res.onTag.push(a.getAttribute('data-xs-town')); });
+      });
+      return res;
+    })()
+  JS
+
+  %w[distance eastwest heading].each do |axis|
+    it "names towns on the ground strip without overlaps and at most six (#{axis})" do
+      geo = xs_screen(xs_fields.merge('xs_axis' => axis)).evaluate(TOWN_GEOMETRY_JS)
+      expect(geo['names'].size).to be_between(3, 6)
+      expect(geo['overlap']).to be_empty
+      expect(geo['onTag']).to be_empty
+    end
+  end
+
+  it 'lists the most populous towns first and can switch towns off' do
+    names = xs_screen(xs_fields).evaluate(TOWN_GEOMETRY_JS)['names']
+    expect(names.first).to eq('Gent')
+    expect(xs_screen(xs_fields.merge('xs_cities' => 'false')).all('[data-xs-town]', visible: :all)).to be_empty
+  end
+
+  it 'keeps towns off the heading axis when they are far across the track' do
+    east_west = xs_screen(xs_fields.merge('xs_axis' => 'eastwest')).evaluate(TOWN_GEOMETRY_JS)['names']
+    along = xs_screen(xs_fields.merge('xs_axis' => 'heading', 'xs_heading' => '90')).evaluate(TOWN_GEOMETRY_JS)['names']
+    expect(east_west).to include('Brugge')       # 23 nm north of home
+    expect(along).not_to include('Brugge')       # outside a third of the radius across the track
+  end
+
+  it 'draws no terrain without terrain data, and a flat strip stays' do
+    screen = xs_screen(xs_fields)
+    expect(screen.all('[data-xs-terrain]', visible: :all)).to be_empty
+    inn = xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false))
+    expect(inn.problems).to be_empty
+    expect(inn.all('[data-xs-terrain]', visible: :all)).to be_empty
+  end
+
+  it 'draws the terrain profile, one shape per side on the signed axes' do
+    expect(xs_screen(inn_fields, mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all).size).to eq(1)
+    expect(xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all).size).to eq(2)
+  end
+
+  it 'draws the highest ground at each distance on the distance axis' do
+    # The skyline is the maximum over all bearings, so it reaches higher than any single line (smaller y is higher up).
+    top = lambda do |fields|
+      xs_screen(fields, mocks: innsbruck_mocks).evaluate("Math.min.apply(null, Array.prototype.concat.apply([], Array.prototype.map.call(document.querySelectorAll('[data-xs-terrain]'), function (e) { return e.getAttribute('points').split(' ').map(function (p) { return parseFloat(p.split(',')[1]); }); })))")
+    end
+    skyline = top.call(inn_fields)
+    expect(skyline).to be < top.call(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '0'))
+    expect(skyline).to be < top.call(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '90'))
+  end
+
+  { 'distance' => 'distance', 'eastwest' => 'eastwest' }.each do |axis, _|
+    [false, true].each do |light|
+      it "draws the Innsbruck terrain (#{axis}, #{light ? 'light' : 'dark'})" do
+        screen = xs_screen(inn_fields.merge('xs_axis' => axis), light:, mocks: innsbruck_mocks)
+        expect(screen.problems).to be_empty
+        expect(screen).to match_snapshot("xsection-innsbruck-#{axis}-#{light ? 'light' : 'dark'}")
+      end
+    end
+  end
 end

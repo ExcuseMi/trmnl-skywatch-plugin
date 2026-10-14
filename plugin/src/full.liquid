@@ -34,6 +34,9 @@
   var routeHidden = '{{ cfv.route_display }}' === 'hidden';
   var closestOn  = '{{ cfv.closest_details }}' === 'true';
   var localNow   = {{ local_timestamp | default: 0 }};
+  var terrain    = {{ data.terrain | json }};
+  var cityList   = {{ data.cities | json }};
+  var citiesOn   = '{{ cfv.xs_cities }}' !== 'false';
   var sunMoonOn  = '{{ cfv.xs_sun_moon }}' === 'true';
   var nowSec     = {{ data.fetched_at | default: 'now' | date: "%s" }};
   var utcOff     = {{ trmnl.user.utc_offset | default: 0 }};
@@ -334,13 +337,46 @@
     text(unitTxt, signed ? cx : px1, endY - (signed ? 0 : 0), signed ? 'middle' : 'end', 12, 'bold');
     if (axisMode === 'distance') text('all directions', (px0 + px1) / 2, endY, 'middle', 12);
 
-    // Ground strip at field elevation, with home on it
+    // Terrain: the profile along the axis (the highest ground at each distance on the distance axis), drawn as a
+    // filled shape through the same piecewise Y axis. Without data the strip stays flat at the field elevation.
     var yGround = yOf(fieldElev);
+    var yHome = yGround;
+    if (terrain && terrain.grid && terrain.grid.length === terrain.bearings && terrain.grid[0] && terrain.grid[0].length) {
+      var nBear = terrain.bearings, stepNm = terrain.step_nm, nDist = terrain.grid[0].length;
+      var gridAt = function (b, i) { return i < 0 ? terrain.home_m : terrain.grid[b][Math.min(i, nDist - 1)]; };
+      // metres at a bearing and distance, interpolated on the polar grid (index -1 is home)
+      var elevAt = function (bearing, d) {
+        var bf = wrap360(bearing) / (360 / nBear), b0 = Math.floor(bf) % nBear, b1 = (b0 + 1) % nBear, bt = bf - Math.floor(bf);
+        var df = d / stepNm - 1, i0 = Math.floor(df), it = df - i0;
+        var at = function (b) { return gridAt(b, i0) * (1 - it) + gridAt(b, i0 + 1) * it; };
+        return at(b0) * (1 - bt) + at(b1) * bt;
+      };
+      var skyline = function (d) {
+        var m = -1e9;
+        for (var k = 0; k < nBear; k++) m = Math.max(m, elevAt(k * 360 / nBear, d));
+        return m;
+      };
+      (signed ? [-1, 1] : [1]).forEach(function (side) {
+        var bearing = axisMode === 'eastwest' ? (side > 0 ? 90 : 270) : (side > 0 ? heading : heading + 180);
+        var line = [], first = null, last = null;
+        for (var dd = 0; dd <= radiusNm + 0.001; dd += 1) {
+          var m = axisMode === 'distance' ? skyline(dd) : elevAt(bearing, dd);
+          var x = xAt(dd, side), y = yOf(m / FT);
+          line.push(f1(x) + ',' + f1(y));
+          if (first === null) first = x;
+          last = x;
+        }
+        el('polygon', { points: f1(first) + ',' + f1(py1) + ' ' + line.join(' ') + ' ' + f1(last) + ',' + f1(py1),
+          fill: darkMode ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)', stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
+        el('polyline', { points: line.join(' '), fill: 'none', stroke: fg, 'stroke-width': 1.5 }, gridLayer);
+      });
+      yHome = yOf(terrain.home_m / FT);
+    }
     el('rect', { x: px0, y: f1(yGround), width: px1 - px0, height: f1(py1 - yGround), fill: gridColor }, gridLayer);
     el('line', { x1: px0, y1: f1(yGround), x2: px1, y2: f1(yGround), stroke: fg, 'stroke-width': 2 }, gridLayer);
     var homeX = xOf(0);
     var house = el('path', { d: 'M8 0L0 6V8H1V15H4V10H7V15H15V8H16V6L14 4.5V1H11V2.25L8 0ZM9 10H12V13H9V10Z',
-      transform: 'translate(' + homeX.toFixed(0) + ',' + (yGround - 14).toFixed(0) + ') scale(1.4) translate(-8,-8)',
+      transform: 'translate(' + homeX.toFixed(0) + ',' + (yHome - 14).toFixed(0) + ') scale(1.4) translate(-8,-8)',
       fill: fg, stroke: darkMode ? '#000000' : '#ffffff', 'stroke-width': 1 }, gridLayer);
     house.setAttribute('data-xs-home', '1');
 
@@ -381,7 +417,7 @@
     var placedRects = items.map(function (it) {
       return { x: it.x - iconHalf, y: it.y - iconHalf, w: iconHalf * 2, h: iconHalf * 2 };
     });
-    placedRects.push({ x: homeX - 14, y: yGround - 28, w: 28, h: 28 });
+    placedRects.push({ x: homeX - 14, y: yHome - 28, w: 28, h: 28 });
     placedRects.push(labelRect);   // the provider label
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
       darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
@@ -497,6 +533,29 @@
       var use = el('use', { width: 24, height: 24, x: -12, y: -12, fill: c.emerg ? '#ffffff' : altPlaneColor(c), stroke: 'none' }, inner);
       use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', href);
     });
+
+    // ---- towns along the ground strip: most populous first, at most 6, none overlapping anything placed ----------
+    if (citiesOn && cityList && cityList.length) {
+      var shown = 0;
+      cityList.slice().sort(function (a, b) { return b.pop - a.pop; }).forEach(function (c) {
+        if (shown >= 6 || c.lat == null || c.lon == null) return;
+        var pl = place({ lat: c.lat, lon: c.lon, track: null });
+        if (axisMode === 'heading' && Math.abs(pl.cross) > radiusNm / 3) return;   // the same band as undimmed aircraft
+        if (Math.abs(pl.along) > radiusNm) return;
+        var cxp = xOf(pl.along);
+        var nameEl = text(c.name, cxp, yGround + 16, 'middle', 11, 'normal');
+        var bb = nameEl.getBBox();
+        var nx = Math.min(Math.max(cxp, px0 + 2 + bb.width / 2), px1 - 2 - bb.width / 2);
+        nameEl.setAttribute('x', f1(nx));
+        var rect = { x: nx - bb.width / 2, y: bb.y, w: bb.width, h: bb.height };
+        if (overlaps(rect) || rect.y + rect.h > py1) { nameEl.parentNode.removeChild(nameEl); return; }
+        var tick = el('line', { x1: f1(cxp), y1: f1(yGround), x2: f1(cxp), y2: f1(yGround + 6), stroke: fg, 'stroke-width': 1.5 }, gridLayer);
+        nameEl.setAttribute('data-xs-town', c.name);
+        tick.setAttribute('data-xs-town-tick', c.name);
+        placedRects.push(rect);
+        shown++;
+      });
+    }
 
     // ---- tags: emergencies first, the rest in drawn order ------------------
     // Tag candidates: 16 directions on four rings round the icon. Each is scored by its leader length plus how far
