@@ -611,6 +611,15 @@ def _route_progress(plane: dict, route: dict) -> float | None:
         return None
 
 
+def _dest_distance_nm(plane: dict, route: dict) -> float | None:
+    """Great-circle distance from the aircraft to the destination, from the cached route (no extra fetch)."""
+    try:
+        d = route['destination']
+        return round(haversine_nm(plane['lat'], plane['lon'], float(d['lat']), float(d['lon'])), 1)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _airport_label(airport: dict, route_display: str) -> str:
     if route_display == 'hidden':
         return ''
@@ -661,6 +670,9 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
             plane['dest'] = dest
         if progress is not None:
             plane['progress'] = progress
+        dest_dist = _dest_distance_nm(plane, route)
+        if dest_dist is not None:
+            plane['dest_dist_nm'] = dest_dist
         if origin or dest:
             resolved += 1
 

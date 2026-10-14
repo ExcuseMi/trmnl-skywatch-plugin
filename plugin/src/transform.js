@@ -36,6 +36,7 @@ function transform(input) {
   .slice(0, 30);
 
   // Climb rates (fpm, as sent) run beside the planes, not in them: the radar page prints the planes as they are.
+  var destDists = ac.slice(0, 30).map(function(a) { return a.dest_dist_nm != null ? a.dest_dist_nm : null; });
   var baroRates = ac.slice(0, 30).map(function(a) { return a.baro_rate != null ? a.baro_rate : 0; });
 
   return {
@@ -49,6 +50,7 @@ function transform(input) {
       provider:   d.provider || 'airplanes.live',
       radius_nm:  50,
       baro_rates: baroRates,
+      dest_dists: destDists,
       field_elev_ft: d.field_elev_ft || 0,
       error_code: errorCode,
       error:      (input && input.error) || null,
