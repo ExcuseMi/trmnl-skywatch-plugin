@@ -121,6 +121,11 @@ custom_fields:
   - Cross-section: xsection
   default: radar
   optional: true
+  conditional_validation:
+  - when: radar
+    hidden:
+    - xs_axis
+    - xs_heading
 - keyname: xs_axis
   field_type: select
   name: Cross-section Horizontal Axis
@@ -131,6 +136,13 @@ custom_fields:
   - Runway / custom heading: heading
   default: distance
   optional: true
+  conditional_validation:
+  - when: distance
+    hidden:
+    - xs_heading
+  - when: eastwest
+    hidden:
+    - xs_heading
 - keyname: xs_heading
   field_type: number
   name: Cross-section Heading

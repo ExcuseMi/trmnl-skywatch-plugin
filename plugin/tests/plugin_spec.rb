@@ -6,6 +6,7 @@
 require 'fileutils'
 require 'json'
 require 'tmpdir'
+require 'yaml'
 
 RSpec.describe 'SkyWatch' do
   let(:fixture) { JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch.json'))) }
@@ -247,5 +248,27 @@ RSpec.describe 'SkyWatch' do
       })()
     JS
     expect(hit).to be(false)
+  end
+
+  # settings.yml: every conditional_validation names a value its field offers and fields that exist.
+  it 'has consistent conditional custom fields' do
+    fields = YAML.safe_load_file(File.join(__dir__, '..', 'src', 'settings.yml'))['custom_fields']
+    by_key = fields.to_h { [it['keyname'], it] }
+    conditions = fields.select { it['conditional_validation'] }
+    expect(conditions).not_to be_empty
+    conditions.each do |field|
+      offered = Array(field['options']).map { it.is_a?(Hash) ? it.values.first.to_s : it.to_s }
+      field['conditional_validation'].each do |rule|
+        expect(offered).to include(rule['when'].to_s), "#{field['keyname']}: no option #{rule['when'].inspect}"
+        rule['hidden'].each { |k| expect(by_key).to have_key(k), "#{field['keyname']} hides unknown field #{k}" }
+      end
+    end
+  end
+
+  # A hidden field keeps its old value: the heading is ignored unless the axis is "heading".
+  it 'ignores a stale heading when the axis is not heading' do
+    a = xs_screen(xs_fields.merge('xs_axis' => 'eastwest', 'xs_heading' => '45')).evaluate("document.querySelector('[data-chart] svg').innerHTML.length")
+    b = xs_screen(xs_fields.merge('xs_axis' => 'eastwest', 'xs_heading' => '200')).evaluate("document.querySelector('[data-chart] svg').innerHTML.length")
+    expect(a).to eq(b)
   end
 end
