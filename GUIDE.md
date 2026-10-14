@@ -29,6 +29,23 @@ Each aircraft appears as an icon pointing in its direction of travel, with a lab
 
 ---
 
+## Cross-section view
+
+Set **Display** to *Cross-section* for a vertical slice of the sky around home instead of the map: altitude up, distance across. Only the full layout draws it; the half and quadrant layouts keep the radar.
+
+| Horizontal axis | Meaning |
+|---|---|
+| Distance from home | Range from home, left to right; each label adds a compass bearing (NE) |
+| East-West | West left, east right, home in the middle |
+| Runway / custom heading | Offset along the heading you set (270 for runway 27); aircraft more than a third of the radius off that line are dimmed and carry no label |
+
+- The low band (0 to 10,000 ft) gets 45 % of the height, so approaches and departures are readable; the top of the chart is 20k, 30k, 40k or 50k ft depending on the highest aircraft.
+- The inner third of the radius gets half of the width.
+- Icons face the direction of travel along the axis and tilt when climbing or descending faster than 500 ft/min; the ground strip sits at the nearest airport's field elevation.
+- At most 12 aircraft are drawn: emergencies first, then the nearest low ones, then the highest.
+
+Cross-section view inspired by Avation-Cross-section.
+
 ## How ADS-B Works
 
 Every commercial aircraft continuously broadcasts its position, altitude, speed, and identity on 1090 MHz using an ADS-B transponder. A global network of volunteers runs ground receivers that pick up these signals and feeds them to [airplanes.live](https://airplanes.live), which powers SkyWatch.
