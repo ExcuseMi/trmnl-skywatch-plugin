@@ -774,11 +774,6 @@ var tailEl = el('div', 'description', tail, 'font-size:12px;line-height:14px;col
 tailEl.setAttribute('data-closest-eta', tail);
 root.appendChild(tailEl);
 }
-if (o.groundFtFor && !ground) {
-var aglFt = Math.max(0, ftMsl - o.groundFtFor(p));
-var aglTxt = imperial ? Math.round(aglFt / 100) * 100 : Math.round(aglFt * 0.3048 / 10) * 10;
-root.appendChild(el('div', 'description', String(aglTxt).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (imperial ? ' ft' : ' m') + ' above ground', 'font-size:12px;line-height:14px;color:' + fg + ';'));
-}
 var small = [];
 if (p.r) small.push(p.r);
 if (p.squawk) small.push('SQ ' + p.squawk);

@@ -15,7 +15,6 @@ import redis.asyncio as aioredis
 from quart import Quart, request, jsonify
 
 import cities as geocities
-import terrain as terrain_tiles
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -46,7 +45,6 @@ RADIUS_DEG           = RADIUS_NM / 60.0 * 1.1  # bounding box pre-filter with ma
 AIRPORT_RADIUS_NM       = float(os.getenv('AIRPORT_RADIUS_NM', str(RADIUS_NM)))  # independent of plane search radius
 AIRPORT_FETCH_RADIUS_NM = AIRPORT_RADIUS_NM + 25.0  # same tile-center margin as FETCH_RADIUS_NM
 NM_PER_DEG_LAT       = 60.0
-TERRAIN_CACHE_TTL    = 90 * 24 * 3600   # terrain does not change
 CITIES_CACHE_KEY     = 'skywatch:geonames'
 CITIES_TILE_TTL      = 7 * 24 * 3600
 CITIES_REFRESH       = 7 * 24 * 3600
@@ -315,24 +313,6 @@ async def fetch_cities(lat_key: int, lon_key: int) -> list:
     nearby = geocities.within(json.loads(raw_all), t_lat, t_lon, AIRPORT_FETCH_RADIUS_NM, limit=10_000)
     await redis_client.setex(key, CITIES_TILE_TTL, json.dumps(nearby))
     return nearby
-
-
-async def get_terrain(lat: float, lon: float):
-    """The polar terrain grid for a location, cached 90 days; None on any failure (the plugin draws a flat strip)."""
-    key = f"skywatch:terrain:v1:{round(lat, 2)}:{round(lon, 2)}"
-    try:
-        raw = await redis_client.get(key)
-        if raw:
-            return json.loads(raw)
-        logger.info(f"terrain: cache miss for {round(lat, 2)},{round(lon, 2)}, fetching tiles")
-        async with httpx.AsyncClient(timeout=15.0, headers={'User-Agent': USER_AGENT}) as client:
-            grid = await terrain_tiles.fetch_terrain(lat, lon, client)
-        if grid:
-            await redis_client.setex(key, TERRAIN_CACHE_TTL, json.dumps(grid))
-        return grid
-    except Exception as e:
-        logger.warning(f"terrain unavailable: {e}")
-        return None
 
 
 async def _background_ourairports():
@@ -777,7 +757,6 @@ async def get_planes():
     show_ground   = request.args.get('show_ground', 'false').lower() == 'true'
     route_display = request.args.get('route_display', 'codes')
     want_xsection = request.args.get('view') == 'xsection'
-    want_terrain = want_xsection and request.args.get('terrain', 'false').lower() == 'true'
 
     if address:
         address = address.strip()
@@ -796,10 +775,9 @@ async def get_planes():
 
     await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
-    raw_data, tile_airports, terrain, tile_cities = await asyncio.gather(
+    raw_data, tile_airports, tile_cities = await asyncio.gather(
         fetch_planes(lat, lon, show_ground),
         fetch_airports(lat_key, lon_key),
-        get_terrain(lat, lon) if want_terrain else _none(),
         fetch_cities(lat_key, lon_key) if want_xsection else _none(),
     )
 
@@ -838,10 +816,8 @@ async def get_planes():
             key=lambda a: haversine_nm(lat, lon, a['lat'], a['lon']),
         ).get('elevation_ft', 0) if data['airports'] else 0
 
-        # Cross-section only: terrain grid and towns (the plugin draws without them when absent)
+        # Cross-section only: nearby towns for the ground strip
         if want_xsection:
-            if terrain:
-                data['terrain'] = terrain
             data['cities'] = geocities.within(tile_cities or [], lat, lon, RADIUS_NM)
 
         await enrich_with_routes(data['ac'], route_display)

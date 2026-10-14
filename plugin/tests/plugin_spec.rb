@@ -457,14 +457,13 @@ RSpec.describe 'SkyWatch' do
     end
   end
 
-  # ---- Terrain and towns ----------------------------------------------------------------------------------------
-  def innsbruck_mocks(terrain: true)
+  # ---- Towns and the Innsbruck example ----------------------------------------------------------------------------------------
+  def innsbruck_mocks
     data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))
-    data['data'].delete('terrain') unless terrain
     { 'https://trmnl.bettens.dev/skywatch*' => { json: data } }
   end
 
-  let(:inn_fields) { { 'address' => 'Innsbruck', 'unit' => 'metric', 'show_ground' => 'true', 'view' => 'xsection', 'xs_axis' => 'distance', 'xs_terrain' => 'true' } }
+  let(:inn_fields) { { 'address' => 'Innsbruck', 'unit' => 'metric', 'show_ground' => 'true', 'view' => 'xsection', 'xs_axis' => 'distance' } }
 
   TOWN_GEOMETRY_JS = <<~JS.freeze
     (function () {
@@ -503,32 +502,9 @@ RSpec.describe 'SkyWatch' do
     expect(along).not_to include('Brugge')       # outside a third of the radius across the track
   end
 
-  it 'draws no terrain without terrain data, and a flat strip stays' do
-    screen = xs_screen(xs_fields)
-    expect(screen.all('[data-xs-terrain]', visible: :all)).to be_empty
-    inn = xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false))
-    expect(inn.problems).to be_empty
-    expect(inn.all('[data-xs-terrain]', visible: :all)).to be_empty
-  end
-
-  it 'draws the terrain profile, one shape per side on the signed axes' do
-    expect(xs_screen(inn_fields, mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all).size).to eq(1)
-    expect(xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all).size).to eq(2)
-  end
-
-  it 'draws the highest ground at each distance on the distance axis' do
-    # The skyline is the maximum over all bearings, so it reaches higher than any single line (smaller y is higher up).
-    top = lambda do |fields|
-      xs_screen(fields, mocks: innsbruck_mocks).evaluate("Math.min.apply(null, Array.prototype.concat.apply([], Array.prototype.map.call(document.querySelectorAll('[data-xs-terrain]'), function (e) { return e.getAttribute('points').split(' ').map(function (p) { return parseFloat(p.split(',')[1]); }); })))")
-    end
-    skyline = top.call(inn_fields)
-    expect(skyline).to be < top.call(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '0'))
-    expect(skyline).to be < top.call(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '90'))
-  end
-
   { 'distance' => 'distance', 'eastwest' => 'eastwest' }.each do |axis, _|
     [false, true].each do |light|
-      it "draws the Innsbruck terrain (#{axis}, #{light ? 'light' : 'dark'})" do
+      it "draws the Innsbruck example (#{axis}, #{light ? 'light' : 'dark'})" do
         screen = xs_screen(inn_fields.merge('xs_axis' => axis), light:, mocks: innsbruck_mocks)
         expect(screen.problems).to be_empty
         expect(screen).to match_snapshot("xsection-innsbruck-#{axis}-#{light ? 'light' : 'dark'}")
@@ -568,119 +544,6 @@ RSpec.describe 'SkyWatch' do
     expect(panel(cd_fields, mocks: only('', gs: 12))).to include('12 kt')
   end
 
-  # ---- Ground beneath each aircraft ----------------------------------------------------------------------------
-  # A synthetic grid whose value says where it is: grid[bearing][distance] = 100 * bearing + distance, home 7.
-  GROUND_GRID = { 'step_nm' => 2, 'bearings' => 16, 'home_m' => 7, 'grid' => Array.new(16) { |b| Array.new(25) { |i| (100 * b) + i } } }.freeze
-
-  it 'looks the ground up exactly on grid points, interpolates between them and falls back beyond the grid' do
-    screen = xs_screen(xs_fields)
-    at = ->(bearing, dist) { screen.evaluate("window.skyGroundAt(#{GROUND_GRID.to_json}, #{bearing}, #{dist}, -5)") }
-    expect(at.call(67.5, 10)).to eq(304)                 # bearing index 3, 5th ring (10 nm)
-    expect(at.call(78.75, 10)).to be_within(1e-9).of(354) # half way between bearings 3 and 4
-    expect(at.call(67.5, 11)).to be_within(1e-9).of(304.5) # half way between rings
-    expect(at.call(0, 0)).to eq(7)                        # home
-    expect(at.call(0, 1)).to be_within(1e-9).of(3.5)      # half way between home and the first ring
-    expect(at.call(350, 51)).to eq(-5)                    # beyond the 50 nm grid: the fallback
-    expect(screen.evaluate("window.skyGroundAt(null, 90, 10, -5)")).to eq(-5)
-    expect(at.call(359, 50)).to be_within(0.1).of(90.67)  # wraps from bearing 15 (1524) to bearing 0 (24)
-  end
-
-  def bearing_and_distance(lat0, lon0, lat, lon)
-    dy = (lat - lat0) * 60
-    dx = (lon - lon0) * 60 * Math.cos(lat0 * Math::PI / 180)
-    [(Math.atan2(dx, dy) * 180 / Math::PI) % 360, haversine_nm(lat0, lon0, lat, lon)]
-  end
-
-  it 'draws a drop line under each airborne aircraft to the ground beneath it' do
-    screen = xs_screen(inn_fields.merge('xs_axis' => 'eastwest'), mocks: innsbruck_mocks)
-    fixture_data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))['data']
-    drops = screen.all('[data-xs-drop]', visible: :all).to_h { [it['data-xs-drop'], it['data-xs-drop-m'].to_f] }
-    airborne = screen.all('[data-xs-plane]', visible: :all).reject { it['data-xs-ground'] || it['data-xs-dim'] }.map { it['data-xs-plane'] }
-    low = ->(name) { fixture_data['ac'].find { it['flight'] == name }['alt_baro'] < 10_000 }
-    planes = airborne.select(&low)
-    expect(planes.size).to be >= 3
-    expect(airborne - planes).not_to be_empty            # aircraft above 10,000 ft are drawn but get no drop line
-    expect(drops.keys).to match_array(planes)
-    planes.each do |name|
-      ac = fixture_data['ac'].find { it['flight'] == name }
-      bearing, dist = bearing_and_distance(fixture_data['lat'], fixture_data['lon'], ac['lat'], ac['lon'])
-      expected = screen.evaluate("window.skyGroundAt(#{fixture_data['terrain'].to_json}, #{bearing}, #{dist}, 580)")
-      expect(drops[name]).to be_within(1).of(expected), name
-    end
-    # the helicopter hovers over the valley: its ground is far below the high ground seen behind it
-    skyline = fixture_data['terrain']['grid'].flatten.max
-    expect(drops['OEHEL']).to be < 700     # the valley floor
-    expect(skyline).to be > 3000
-  end
-
-  it 'draws no drop line for ground traffic or dimmed aircraft' do
-    screen = xs_screen(inn_fields.merge('xs_axis' => 'heading', 'xs_heading' => '0'), mocks: innsbruck_mocks)
-    dropped = screen.all('[data-xs-drop]', visible: :all).map { it['data-xs-drop'] }
-    dimmed = screen.all('[data-xs-dim]', visible: :all).map { it['data-xs-plane'] }
-    expect(dimmed).not_to be_empty
-    expect(dropped & dimmed).to be_empty
-    expect(dropped).not_to include('OE-FDI')
-  end
-
-  it 'draws no drop lines over the flat fallback strip' do
-    expect(xs_screen(inn_fields, mocks: innsbruck_mocks(terrain: false)).all('[data-xs-drop]', visible: :all)).to be_empty
-    expect(xs_screen(xs_fields).all('[data-xs-drop]', visible: :all)).to be_empty   # the Belgium fixture has no terrain
-  end
-
-  # The terrain shape reaches both plot edges, and its silhouette stays visible in the 2-bit picture across the whole
-  # width: beside the inner zone it once turned white because its tint was too faint.
-  TERRAIN_EDGES_JS = <<~JS.freeze
-    (function () {
-      var svg = document.querySelector('[data-chart] svg').getBoundingClientRect();
-      var boxes = Array.prototype.map.call(document.querySelectorAll('[data-xs-terrain]'), function (e) { return e.getBoundingClientRect(); });
-      var pts = [];
-      Array.prototype.forEach.call(document.querySelectorAll('[data-xs-terrain]'), function (e) {
-        e.getAttribute('points').split(' ').forEach(function (p, i, all) {
-          var xy = p.split(',').map(parseFloat);
-          if (i > 0 && i < all.length - 1) pts.push([xy[0] + svg.left, xy[1] + svg.top]);
-        });
-      });
-      return { left: Math.min.apply(null, boxes.map(function (b) { return b.left; })) - svg.left,
-               right: Math.max.apply(null, boxes.map(function (b) { return b.right; })) - svg.left, width: svg.width, pts: pts };
-    })()
-  JS
-
-  %w[distance eastwest heading].each do |axis|
-    it "spans the full plot width with a visible silhouette (#{axis})" do
-      screen = xs_screen(inn_fields.merge('xs_axis' => axis, 'xs_heading' => '90'), mocks: innsbruck_mocks)
-      edges = screen.evaluate(TERRAIN_EDGES_JS)
-      expect(edges['left']).to be <= 56           # the plot starts at x = 54
-      expect(edges['right']).to be >= edges['width'] - 18
-      pixels = MiniMagick::Image.open(screen.png_path).get_pixels
-      mean = ->(x, y0, y1) { (-3..3).flat_map { |dx| (y0..y1).map { |y| pixels[y][x.round + dx][0] } }.then { |v| v.sum.to_f / v.size } }
-      pts = edges['pts'].select { |x, y| x > 64 && x < edges['width'] - 24 && y > 40 && y < 320 }
-      outer = pts.select { |x, _| x < 54 + (edges['width'] - 70) * 0.18 || x > 54 + (edges['width'] - 70) * 0.82 }
-      expect(outer.size).to be >= 10
-      # the dots make the fill a lighter tone: compare the mean of a patch above the outline with one inside the shape
-      visible = outer.count { |x, y| (mean.call(x, (y - 14).round, (y - 6).round) - mean.call(x, (y + 6).round, (y + 14).round)).abs >= 10 }
-      expect(visible.to_f / outer.size).to be >= 0.8
-    end
-  end
-
-  it 'shows the height above ground in the panel, in both units, and hides it on the ground or without terrain' do
-    fixture_data = JSON.parse(File.read(File.join(__dir__, 'fixtures', 'skywatch-innsbruck.json')))['data']
-    heli = fixture_data['ac'].find { it['flight'] == 'OEHEL' }
-    bearing, dist = bearing_and_distance(fixture_data['lat'], fixture_data['lon'], heli['lat'], heli['lon'])
-    ground_m = xs_screen(inn_fields).evaluate("window.skyGroundAt(#{fixture_data['terrain'].to_json}, #{bearing}, #{dist}, 580)")
-    fields = inn_fields.merge('closest_details' => 'true')
-    metric = panel(fields, mocks: innsbruck_mocks)
-    agl_m = ((7800 * 0.3048 - ground_m) / 10).round * 10
-    expect(metric.delete(',')).to include("#{agl_m} m above ground")
-    imperial = panel(fields.merge('unit' => 'imperial'), mocks: innsbruck_mocks)
-    agl_ft = ((7800 - ground_m / 0.3048) / 100).round * 100
-    expect(imperial.delete(',')).to include("#{agl_ft} ft above ground")
-    expect(imperial).to match(/\d,\d{3} ft above ground|\d+ ft above ground/)
-    expect(panel(fields, mocks: innsbruck_mocks(terrain: false))).not_to include('above ground')
-    ground_only = innsbruck_mocks
-    ground_only.values.first[:json]['data']['ac'].select! { it['alt_baro'] == 'ground' }
-    expect(panel(fields, mocks: ground_only)).not_to include('above ground')
-  end
-
   # The ground is a lighter tone than a solid tint: a dot pattern covers a fraction of the pixels, and the top edge
   # of the strip stays a solid line. Measured on the 2-bit picture in light mode (the old fill was a solid grey).
   it 'fills the ground with a light dot pattern and keeps the strip edge solid' do
@@ -694,22 +557,6 @@ RSpec.describe 'SkyWatch' do
     expect(non_white).to be_between(0.1, 0.5)        # a solid grey would be near 1.0
     edge = xs.map { |x| pixels[strip['t'].round][x][0] }
     expect(edge.count { it < 60 }.to_f / edge.size).to be >= 0.9   # the field line is solid black
-  end
-
-  # Terrain is its own setting, off by default: the payload may hold terrain, the chart then keeps the flat strip.
-  it 'draws the flat strip, no drop lines and no height above ground when the terrain setting is off' do
-    off = inn_fields.reject { |k, _| k == 'xs_terrain' }
-    screen = xs_screen(off, mocks: innsbruck_mocks)
-    expect(screen.all('[data-xs-terrain]', visible: :all)).to be_empty
-    expect(screen.all('[data-xs-drop]', visible: :all)).to be_empty
-    expect(panel(off.merge('closest_details' => 'true'), mocks: innsbruck_mocks)).not_to include('above ground')
-    expect(xs_screen(off.merge('xs_terrain' => 'false'), mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all)).to be_empty
-    expect(xs_screen(inn_fields, mocks: innsbruck_mocks).all('[data-xs-terrain]', visible: :all)).not_to be_empty
-  end
-
-  it 'asks the backend for terrain only when the setting is on' do
-    url = File.read(File.join(__dir__, '..', 'src', 'settings.yml'))[/^polling_url: '(.*)'$/, 1]
-    expect(url).to include('&terrain={{ trmnl.plugin_settings.custom_fields_values.xs_terrain')
   end
 
   # The ground looks the same across the whole width: the inner zone's shading must not show through the dots.

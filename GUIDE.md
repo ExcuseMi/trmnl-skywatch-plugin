@@ -47,7 +47,6 @@ Set **Display** to *Cross-section* for a vertical slice of the sky around home i
 - **Sun and moon** (setting *Show Sun and Moon*): computed from the time and your location, no extra requests. Each body above the horizon is an icon (the moon in its current phase) at the plot edge, at the position along the axis where its direction from home would leave the chart, with its elevation and compass direction. Below the horizon the icon sits at the end of the ground strip with "rises" and the time.
 - The horizontal axis is enlarged for the first 15 nm (30 km): that zone takes half the width, is shaded faintly and marked with a break (//).
 
-- **Terrain** (setting *Show Terrain*, off by default; without it the strip is flat at the airport's elevation): the ground under the strip is real. Elevation comes from AWS Terrain Tiles (Mapzen terrain), fetched once per location and cached for 90 days. East-West and heading axes show the profile along that line; the distance axis shows the highest ground at each distance (the skyline). Without terrain data the strip stays flat at the airport's elevation.
 - **Towns** (setting *Show Towns*, on by default): up to six of the most populous towns are named along the ground strip, from GeoNames (CC BY 4.0). On the heading axis only towns close to the line are shown.
 
 Cross-section view inspired by Avation-Cross-section.

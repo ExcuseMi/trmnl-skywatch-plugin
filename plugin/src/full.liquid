@@ -34,7 +34,6 @@
   var routeHidden = '{{ cfv.route_display }}' === 'hidden';
   var closestOn  = '{{ cfv.closest_details }}' === 'true';
   var localNow   = {{ local_timestamp | default: 0 }};
-  var terrain    = '{{ cfv.xs_terrain }}' === 'true' ? {{ data.terrain | json }} : null;   // off: the flat strip, whatever the payload holds
   var cityList   = {{ data.cities | json }};
   var citiesOn   = '{{ cfv.xs_cities }}' !== 'false';
   var sunMoonOn  = '{{ cfv.xs_sun_moon }}' === 'true';
@@ -179,20 +178,6 @@
       return null;
     }
     window.skyAstro = { sun: sunState, moon: moonState, moonEcliptic: moonEcliptic, phase: moonPhase, nextCrossing: nextCrossing, horizon: HORIZON };
-
-    // Ground elevation (metres) at a bearing and distance from home, bilinear on the polar grid (index -1 is home).
-    // Without a valid grid, or beyond its last ring, the fallback (the field elevation) is returned.
-    function groundAt(terr, bearing, d, fallbackM) {
-      if (!terr || !terr.grid || terr.grid.length !== terr.bearings || !terr.grid[0] || !terr.grid[0].length) return fallbackM;
-      var nb = terr.bearings, step = terr.step_nm, nd = terr.grid[0].length;
-      if (d > nd * step + 0.001) return fallbackM;
-      var val = function (b, i) { return i < 0 ? terr.home_m : terr.grid[b][Math.min(i, nd - 1)]; };
-      var bf = wrap360(bearing) / (360 / nb), b0 = Math.floor(bf) % nb, b1 = (b0 + 1) % nb, bt = bf - Math.floor(bf);
-      var df = Math.max(0, d) / step - 1, i0 = Math.floor(df), it = df - i0;
-      var at = function (b) { return val(b, i0) * (1 - it) + val(b, i0 + 1) * it; };
-      return at(b0) * (1 - bt) + at(b1) * bt;
-    }
-    window.skyGroundAt = groundAt;
 
     // A fine dot pattern for the ground: light grey dots covering a quarter of each 4 px tile, so the ground reads as a
     // lighter tone than a solid tint (which would quantize to a flat grey in the 2-bit picture).
@@ -394,38 +379,10 @@
     text(unitTxt, signed ? cx : px1, endY - (signed ? 0 : 0), signed ? 'middle' : 'end', 12, 'bold');
     if (axisMode === 'distance') text('all directions', (px0 + px1) / 2, endY, 'middle', 12);
 
-    // Terrain: the profile along the axis (the highest ground at each distance on the distance axis), drawn as a
-    // filled shape through the same piecewise Y axis. Without data the strip stays flat at the field elevation.
+    // Ground strip at field elevation (a light dot pattern with an opaque base, a solid edge line)
     var yGround = yOf(fieldElev);
     var groundFill = groundPattern(svg.querySelector('defs'), 'xs-ground-' + instanceId, darkMode);
     var yHome = yGround;
-    var hasTerrain = !!(terrain && terrain.grid && terrain.grid.length === terrain.bearings);
-    var groundFtAt = function (bearing, d) { return groundAt(terrain, bearing, d, fieldElev * FT) / FT; };
-    if (terrain && terrain.grid && terrain.grid.length === terrain.bearings && terrain.grid[0] && terrain.grid[0].length) {
-      var nBear = terrain.bearings;
-      var elevAt = function (bearing, d) { return groundAt(terrain, bearing, d, 0); };
-      var skyline = function (d) {
-        var m = -1e9;
-        for (var k = 0; k < nBear; k++) m = Math.max(m, elevAt(k * 360 / nBear, d));
-        return m;
-      };
-      (signed ? [-1, 1] : [1]).forEach(function (side) {
-        var bearing = axisMode === 'eastwest' ? (side > 0 ? 90 : 270) : (side > 0 ? heading : heading + 180);
-        var line = [], first = null, last = null;
-        for (var dd = 0; dd <= radiusNm + 0.001; dd += 1) {
-          var m = axisMode === 'distance' ? skyline(dd) : elevAt(bearing, dd);
-          var x = xAt(dd, side), y = yOf(m / FT);
-          line.push(f1(x) + ',' + f1(y));
-          if (first === null) first = x;
-          last = x;
-        }
-        // a light background silhouette, no hard edge: the aircraft always read as in front of it. The fill must be
-        // strong enough to survive the 2-bit palette (a 12 % tint turned white outside the shaded inner zone).
-        el('polygon', { points: f1(first) + ',' + f1(py1) + ' ' + line.join(' ') + ' ' + f1(last) + ',' + f1(py1),
-          fill: groundFill, stroke: 'none', 'data-xs-terrain': '1' }, gridLayer);
-      });
-      yHome = yOf(terrain.home_m / FT);
-    }
     el('rect', { x: px0, y: f1(yGround), width: px1 - px0, height: f1(py1 - yGround), fill: groundFill, 'data-xs-strip': '1' }, gridLayer);
     el('line', { x1: px0, y1: f1(yGround), x2: px1, y2: f1(yGround), stroke: fg, 'stroke-width': 2 }, gridLayer);
     var homeX = xOf(0);
@@ -474,7 +431,7 @@
     placedRects.push({ x: homeX - 14, y: yHome - 28, w: 28, h: 28 });
     placedRects.push(labelRect);   // the provider label
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
-      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0, groundFtFor: hasTerrain ? function (q) { var o2 = place(q); return groundFtAt(o2.bearing, o2.dist); } : null }) : null;
+      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
     if (panelRes) placedRects.push(panelRes.rect);   // top left of the plot, kept clear of tags
     // ---- sun and moon on the chart ----------------------------------------------------------------------------
     if (sunMoonOn) {
@@ -567,14 +524,6 @@
       var rot = c.pl.dir * (90 - 20 * s);
       var g = el('g', { 'data-xs-plane': (p.flight || p.r || p.t || '?'),
         transform: 'translate(' + it.x.toFixed(0) + ',' + it.y.toFixed(0) + ')' }, planeLayer);
-      if (!c.ground && !it.dim && hasTerrain && c.ft < 10000) {
-        // a thin drop line to the ground beneath this aircraft (its own bearing and distance from home), only for
-        // aircraft below 10,000 ft and only over real terrain: at altitude or over a flat strip it is clutter
-        var gFt = groundFtAt(c.pl.bearing, c.pl.dist), gy = yOf(gFt);
-        var dl = el('line', { x1: f1(it.x), y1: f1(it.y), x2: f1(it.x), y2: f1(gy), stroke: fg, 'stroke-opacity': 0.55, 'stroke-width': 1,
-          'data-xs-drop': (p.flight || p.r || p.t || '?'), 'data-xs-drop-m': Math.round(gFt * FT), 'data-xs-drop-y': f1(gy) }, leaderLayer);
-        el('line', { x1: f1(it.x - 4), y1: f1(gy), x2: f1(it.x + 4), y2: f1(gy), stroke: fg, 'stroke-opacity': 0.55, 'stroke-width': 1.5 }, leaderLayer);
-      }
       if (it.dim) { g.setAttribute('opacity', '0.5'); g.setAttribute('data-xs-dim', '1'); }
       if (c.ground) g.setAttribute('data-xs-ground', '1');
       if (c.emerg) {
@@ -707,7 +656,12 @@
 
   // Tag sizes depend on the font, so lay out once it is loaded.
   function start() {
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(init, init); else init();
+    if (!(document.fonts && document.fonts.load)) { init(); return; }
+    // fonts load lazily, on first use: ask for the label font in both weights, so tag widths are measured with it
+    var t = document.querySelector('.title_bar .title');
+    var fam = t ? getComputedStyle(t).fontFamily : 'monospace';
+    Promise.all([document.fonts.load('12px ' + fam), document.fonts.load('bold 12px ' + fam)])
+      .then(function () { return document.fonts.ready; }).then(init, init);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);

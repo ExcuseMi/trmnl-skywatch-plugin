@@ -50,7 +50,6 @@ function transform(input) {
       provider:   d.provider || 'airplanes.live',
       radius_nm:  50,
       baro_rates: baroRates,
-      ...(d.terrain ? { terrain: d.terrain } : {}),
       ...(Array.isArray(d.cities) ? { cities: d.cities } : {}),
       dest_dists: destDists,
       field_elev_ft: d.field_elev_ft || 0,
