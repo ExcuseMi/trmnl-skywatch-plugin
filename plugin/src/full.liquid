@@ -34,6 +34,7 @@
   var routeHidden = '{{ cfv.route_display }}' === 'hidden';
   var closestOn  = '{{ cfv.closest_details }}' === 'true';
   var localNow   = {{ local_timestamp | default: 0 }};
+  var timeFmt    = '{{ cfv.time_format | default: "auto" | escape }}';
   var settingDark = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
 
   if (axisMode !== 'eastwest' && axisMode !== 'heading') axisMode = 'distance';
@@ -306,7 +307,7 @@
     placedRects.push({ x: homeX - 14, y: yGround - 28, w: 28, h: 28 });
     placedRects.push(labelRect);   // the provider label
     var panelRes = closestOn ? closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit,
-      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, mode: 'xs', px0: px0, py0: py0 }) : null;
+      darkMode: darkMode, labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial'), mode: 'xs', px0: px0, py0: py0 }) : null;
     if (panelRes) placedRects.push(panelRes.rect);   // top left of the plot, kept clear of tags
 
     function overlaps(r) {

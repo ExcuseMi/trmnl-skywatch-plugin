@@ -74,6 +74,16 @@ custom_fields:
   - Imperial (kt, ft): imperial
   default: imperial
   optional: true
+- keyname: time_format
+  field_type: select
+  name: Clock Format
+  description: Time format for arrival times and sun/moon times in the new panels. Automatic follows the unit setting (imperial 12-hour, metric 24-hour). The title bar clock still follows the unit setting.
+  options:
+  - Automatic (from units): auto
+  - 24-hour: 24h
+  - 12-hour (AM/PM): 12h
+  default: auto
+  optional: true
 - keyname: route_display
   field_type: select
   name: Route Label Style

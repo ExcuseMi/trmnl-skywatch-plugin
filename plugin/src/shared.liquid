@@ -84,6 +84,8 @@
   var fieldElev  = parseFloat('{{ data.field_elev_ft | default: 0 }}') || 0;
   var localNow   = {{ local_timestamp | default: 0 }};
   var routeHidden = '{{ trmnl.plugin_settings.custom_fields_values.route_display }}' === 'hidden';
+  var timeFmt    = '{{ trmnl.plugin_settings.custom_fields_values.time_format | default: "auto" }}';
+  var clock12    = timeFmt === '12h' || (timeFmt !== '24h' && unit === 'imperial');
   var panelRect = null, closestRef = null;{% endif %}
 
   function whenMapsReady(cb) {
@@ -508,7 +510,7 @@
       var z = zoomSetting === 'auto' ? computeAutoZoom(60) : manualZoom;
       var home = mercatorPx(centerLat, centerLon, z);
       var res = closestPanel({ container: container, planes: planes, centerLat: centerLat, centerLon: centerLon, unit: unit, darkMode: darkMode,
-        labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, mode: 'radar', W: W, H: H,
+        labelFont: labelFont, routeHidden: routeHidden, fieldElev: fieldElev, localNow: localNow, clock12: clock12, mode: 'radar', W: W, H: H,
         project: function (q) { var m = mercatorPx(q.lat, q.lon, z); return { x: W / 2 + m.x - home.x, y: H / 2 + m.y - home.y }; } });
       if (res) { panelRect = res.rect; closestRef = res.ref; }
     })();
@@ -761,7 +763,7 @@ var kt = p.gs != null ? (imperial ? +p.gs : +p.gs / 1.852) : 0;
 if (kt > 50 && o.localNow != null) {
 var t = new Date((o.localNow + (+p.dest_dist_nm) / kt * 3600) * 1000);
 var hh = t.getUTCHours(), mm = ('0' + t.getUTCMinutes()).slice(-2);
-tail += ' · ETA ' + (imperial ? ((hh % 12) || 12) + ':' + mm + ' ' + (hh < 12 ? 'AM' : 'PM') : ('0' + hh).slice(-2) + ':' + mm);
+tail += ' · ETA ' + (o.clock12 ? ((hh % 12) || 12) + ':' + mm + ' ' + (hh < 12 ? 'AM' : 'PM') : ('0' + hh).slice(-2) + ':' + mm);
 }
 }
 var phaseEl = el('div', 'description', phase, 'font-size:12px;line-height:14px;color:' + fg + ';margin-top:2px;');

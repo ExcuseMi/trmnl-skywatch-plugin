@@ -351,4 +351,13 @@ RSpec.describe 'SkyWatch' do
     expect(imperial).to eq([0, 5, 10, 15, 20, 30, 40, 50])
     expect(metric).to eq([0, 10, 20, 30, 40, 60, 80, 93])
   end
+
+  # The clock format is its own choice, not derived from the units.
+  it 'shows the ETA in 12 h with metric units and in 24 h with imperial units when asked' do
+    metric12 = panel(cd_fields.merge('unit' => 'metric', 'time_format' => '12h'), mocks: only('BEL7MZ'))
+    expect(metric12).to include('ETA 8:28 PM')
+    imperial24 = panel(cd_fields.merge('time_format' => '24h'), mocks: only('BEL7MZ'))
+    expect(imperial24).to include('ETA 20:28')
+    expect(panel(cd_fields.merge('unit' => 'metric'), mocks: only('BEL7MZ'))).to include('ETA 20:28')   # auto follows the units
+  end
 end
