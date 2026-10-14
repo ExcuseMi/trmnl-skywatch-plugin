@@ -1,0 +1,173 @@
+{
+ "data": {
+  "lat": 47.2692,
+  "lon": 11.4041,
+  "provider": "airplanes.live",
+  "field_elev_ft": 1906,
+  "fetched_at_utc": "2026-09-01T10:00:00.000000+00:00",
+  "airports": [
+   {
+    "lat": 47.2602,
+    "lon": 11.344,
+    "iata": "INN",
+    "icao": "LOWI",
+    "name": "Innsbruck Airport"
+   }
+  ],
+  "ac": [
+   {
+    "r": "OE-LBN",
+    "t": "A320",
+    "gs": 165,
+    "cat": "A3",
+    "lat": 47.27,
+    "lon": 11.73,
+    "desc": "Airbus A320",
+    "track": 262,
+    "flight": "AUA523",
+    "squawk": "1000",
+    "alt_baro": 6500,
+    "baro_rate": -900,
+    "origin": "VIE",
+    "dest": "INN",
+    "progress": 0.93,
+    "dest_dist_nm": 17.0
+   },
+   {
+    "r": "OE-XEC",
+    "t": "EC35",
+    "gs": 95,
+    "cat": "A7",
+    "lat": 47.28,
+    "lon": 11.46,
+    "desc": "Eurocopter EC-135",
+    "track": 40,
+    "flight": "OEHEL",
+    "squawk": "7000",
+    "alt_baro": 7800,
+    "baro_rate": 300
+   },
+   {
+    "r": "OE-DKB",
+    "t": "C172",
+    "gs": 105,
+    "cat": "A1",
+    "lat": 47.12,
+    "lon": 11.2,
+    "desc": "Cessna 172 Skyhawk",
+    "track": 95,
+    "flight": "OEDKB",
+    "squawk": "7000",
+    "alt_baro": 9500,
+    "baro_rate": 0
+   },
+   {
+    "r": "D-AIBC",
+    "t": "B738",
+    "gs": 380,
+    "cat": "A3",
+    "lat": 47.65,
+    "lon": 11.6,
+    "desc": "Boeing 737-800",
+    "track": 350,
+    "flight": "DLH1AB",
+    "squawk": "2063",
+    "alt_baro": 24000,
+    "baro_rate": -1800,
+    "origin": "MUC",
+    "dest": "FRA",
+    "progress": 0.3,
+    "dest_dist_nm": 160.0
+   },
+   {
+    "r": "OE-IZK",
+    "t": "A319",
+    "gs": 450,
+    "cat": "A3",
+    "lat": 47.0,
+    "lon": 11.9,
+    "desc": "Airbus A319",
+    "track": 285,
+    "flight": "EZY91AB",
+    "squawk": "4112",
+    "alt_baro": 35000,
+    "baro_rate": 0,
+    "origin": "VCE",
+    "dest": "BSL",
+    "progress": 0.55,
+    "dest_dist_nm": 150.0
+   },
+   {
+    "r": "EI-FZD",
+    "t": "B738",
+    "gs": 470,
+    "cat": "A3",
+    "lat": 46.85,
+    "lon": 10.9,
+    "desc": "Boeing 737-800",
+    "track": 60,
+    "flight": "RYR4KP",
+    "squawk": "4203",
+    "alt_baro": 38000,
+    "baro_rate": 0,
+    "origin": "BGY",
+    "dest": "STN",
+    "progress": 0.2,
+    "dest_dist_nm": 640.0
+   },
+   {
+    "r": "OE-FDI",
+    "t": "C172",
+    "gs": 0,
+    "cat": "A1",
+    "lat": 47.2602,
+    "lon": 11.344,
+    "desc": "Cessna 172 Skyhawk",
+    "track": 270,
+    "flight": "",
+    "squawk": "7000",
+    "alt_baro": "ground",
+    "baro_rate": 0
+   }
+  ],
+  "total": 7,
+  "cities": [
+   {
+    "name": "Innsbruck",
+    "lat": 47.26266,
+    "lon": 11.39454,
+    "pop": 132493
+   },
+   {
+    "name": "Bolzano",
+    "lat": 46.49067,
+    "lon": 11.33982,
+    "pop": 104029
+   },
+   {
+    "name": "Rosenheim",
+    "lat": 47.85637,
+    "lon": 12.12247,
+    "pop": 63324
+   },
+   {
+    "name": "Garmisch-Partenkirchen",
+    "lat": 47.49213,
+    "lon": 11.09576,
+    "pop": 26140
+   },
+   {
+    "name": "Kufstein",
+    "lat": 47.58337,
+    "lon": 12.16604,
+    "pop": 19090
+   },
+   {
+    "name": "Schwaz",
+    "lat": 47.34177,
+    "lon": 11.70697,
+    "pop": 13860
+   }
+  ]
+ }
+}

@@ -6,7 +6,8 @@ static_data: ''
 polling_verb: get
 framework_version: 3.3.1
 serverless_language: node
-polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}'
+refresh_interval_floor:
+polling_url: 'https://trmnl.bettens.dev/skywatch?lat={{ trmnl.plugin_settings.custom_fields_values.lat | default: 51.5074 }}&lon={{ trmnl.plugin_settings.custom_fields_values.lon | default: -0.1278 }}&address={{ trmnl.plugin_settings.custom_fields_values.address | url_encode }}&show_ground={{ trmnl.plugin_settings.custom_fields_values.show_ground | url_encode }}&route_display={{ trmnl.plugin_settings.custom_fields_values.route_display | default: "codes" }}&view={{ trmnl.plugin_settings.custom_fields_values.view | default: "radar" }}'
 polling_headers: ''
 polling_body: ''
 id: 286469
@@ -39,7 +40,7 @@ custom_fields:
     <br /><br /><strong>Labels</strong><br /> Callsign · aircraft type · altitude · speed. Brightness reflects altitude. Emergency squawks flagged automatically.
     <br /><br /><strong>Routes</strong><br /> Origin → destination labels powered by <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a>. Progress bar shows position along the route.
     <br /><br /><strong>Airports</strong><br /> Large and medium airports marked with crosshair and IATA code. <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/AIRPORTS.md" target="_blank">Full airport list →</a> · <a href="https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md" target="_blank">Display guide →</a>
-    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a> and <a href="https://adsb.fi" target="_blank">adsb.fi</a>· Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
+    <br /><br /><strong>Data sources</strong><br /> ADS-B signals via <a href="https://airplanes.live" target="_blank">airplanes.live</a>, <a href="https://adsb.lol" target="_blank">adsb.lol</a> and <a href="https://adsb.fi" target="_blank">adsb.fi</a>· Airport data via <a href="https://ourairports.com" target="_blank">OurAirports</a> · Route data via <a href="https://www.adsbdb.com" target="_blank">adsbdb.com</a> · Towns via <a href="https://www.geonames.org" target="_blank">GeoNames</a> (CC BY 4.0) · Icons by <a href="https://adsb-radar.com/" target="_blank">ADS-B Radar</a>
   github_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin
   learn_more_url: https://github.com/ExcuseMi/trmnl-skywatch-plugin/blob/main/GUIDE.md
   category: travel,environment
@@ -74,6 +75,16 @@ custom_fields:
   - Imperial (kt, ft): imperial
   default: imperial
   optional: true
+- keyname: time_format
+  field_type: select
+  name: Clock Format
+  description: Time format for arrival times and sun/moon times in the new panels. Automatic follows the unit setting (imperial 12-hour, metric 24-hour). The title bar clock still follows the unit setting.
+  options:
+  - Automatic (from units): auto
+  - 24-hour: 24h
+  - 12-hour (AM/PM): 12h
+  default: auto
+  optional: true
 - keyname: route_display
   field_type: select
   name: Route Label Style
@@ -90,6 +101,24 @@ custom_fields:
   description: Include aircraft currently on the ground, such as those taxiing or parked at airports.
   default: 'false'
   optional: true
+- keyname: closest_details
+  field_type: boolean
+  name: Show Closest Aircraft Details
+  description: A panel with the details of the aircraft closest to home (full layout only).
+  default: 'false'
+  optional: true
+- keyname: xs_sun_moon
+  field_type: boolean
+  name: Show Sun and Moon
+  description: Cross-section only. The sun and moon's position as seen from your location.
+  default: 'false'
+  optional: true
+- keyname: xs_cities
+  field_type: boolean
+  name: Show Towns
+  description: Cross-section only. Names of nearby towns along the ground strip.
+  default: 'true'
+  optional: true
 - keyname: map_zoom
   field_type: select
   name: Map Zoom
@@ -105,6 +134,46 @@ custom_fields:
   - 12 (Closer): '12'
   - 13 (Closest): '13'
   default: auto
+  optional: true
+- keyname: view
+  field_type: select
+  name: Display
+  description: Radar map, or a cross-section of the sky around home (altitude against distance). The cross-section only applies to the full layout; smaller layouts keep the radar.
+  options:
+  - Radar map: radar
+  - Cross-section: xsection
+  default: radar
+  optional: true
+  conditional_validation:
+  - when: radar
+    hidden:
+    - xs_axis
+    - xs_heading
+    - xs_sun_moon
+    - xs_cities
+- keyname: xs_axis
+  field_type: select
+  name: Cross-section Horizontal Axis
+  description: Used only by the cross-section.<br />Distance from home - range, with a compass bearing on each label.<br />East-West - west on the left, east on the right, home in the middle.<br />Runway / custom heading - offset along the heading below; aircraft far off that line are dimmed.
+  options:
+  - Distance from home: distance
+  - East-West: eastwest
+  - Runway / custom heading: heading
+  default: distance
+  optional: true
+  conditional_validation:
+  - when: distance
+    hidden:
+    - xs_heading
+  - when: eastwest
+    hidden:
+    - xs_heading
+- keyname: xs_heading
+  field_type: number
+  name: Cross-section Heading
+  description: Degrees (0-359) for the Runway / custom heading axis. 90 points east, 270 west; a runway number times ten is a good start (runway 27 is 270).
+  placeholder: '90'
+  default: '90'
   optional: true
 name: SkyWatch
 description: Real-time planes on a live map

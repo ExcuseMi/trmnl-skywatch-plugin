@@ -14,6 +14,8 @@ from pathlib import Path
 import redis.asyncio as aioredis
 from quart import Quart, request, jsonify
 
+import cities as geocities
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('httpx').setLevel(logging.WARNING)
 logging.getLogger('httpcore').setLevel(logging.WARNING)
@@ -43,6 +45,9 @@ RADIUS_DEG           = RADIUS_NM / 60.0 * 1.1  # bounding box pre-filter with ma
 AIRPORT_RADIUS_NM       = float(os.getenv('AIRPORT_RADIUS_NM', str(RADIUS_NM)))  # independent of plane search radius
 AIRPORT_FETCH_RADIUS_NM = AIRPORT_RADIUS_NM + 25.0  # same tile-center margin as FETCH_RADIUS_NM
 NM_PER_DEG_LAT       = 60.0
+CITIES_CACHE_KEY     = 'skywatch:geonames'
+CITIES_TILE_TTL      = 7 * 24 * 3600
+CITIES_REFRESH       = 7 * 24 * 3600
 MAX_CACHE_PLANES     = 250
 
 def haversine_nm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -221,7 +226,7 @@ def check_ip_whitelist() -> bool:
 # ---------------------------------------------------------------------------
 
 def airport_cache_key(lat_key: int, lon_key: int) -> str:
-    return f"skywatch:airports:{lat_key}:{lon_key}"
+    return f"skywatch:airports:v2:{lat_key}:{lon_key}"
 
 
 async def _load_ourairports() -> list:
@@ -254,16 +259,60 @@ async def _refresh_ourairports():
             a_lon = float(row['longitude_deg'])
         except (ValueError, KeyError):
             continue
+        try:
+            elevation_ft = int(float(row.get('elevation_ft') or 0))
+        except ValueError:
+            elevation_ft = 0
         airports.append({
             'iata': iata,
             'icao': (row.get('gps_code') or row.get('ident') or '').strip(),
             'name': (row.get('name') or '').strip(),
             'lat':  a_lat,
             'lon':  a_lon,
+            'elevation_ft': elevation_ft,
         })
 
     await redis_client.set(OURAIRPORTS_CACHE_KEY, json.dumps(airports))
     logger.info(f"OurAirports: {len(airports)} large/medium airports cached")
+
+
+async def _refresh_cities():
+    """Download GeoNames cities15000 and store the parsed list in Redis; keep the old one on any failure."""
+    logger.info("Refreshing GeoNames cities...")
+    try:
+        async with httpx.AsyncClient(timeout=60.0, headers={'User-Agent': USER_AGENT}) as client:
+            resp = await client.get(geocities.CITIES_URL)
+            resp.raise_for_status()
+        cities = geocities.parse_cities(geocities.read_zip(resp.content))
+    except Exception as e:
+        logger.error(f"GeoNames fetch error: {e} - keeping existing cache")
+        return
+    if not cities:
+        logger.error("GeoNames: no cities parsed - keeping existing cache")
+        return
+    await redis_client.set(CITIES_CACHE_KEY, json.dumps(cities))
+    logger.info(f"GeoNames: {len(cities)} cities cached")
+
+
+async def _background_cities():
+    while True:
+        await _refresh_cities()
+        await asyncio.sleep(CITIES_REFRESH)
+
+
+async def fetch_cities(lat_key: int, lon_key: int) -> list:
+    """Cities near a tile, cached per tile for 7 days like the airports."""
+    key = f"skywatch:cities:v1:{lat_key}:{lon_key}"
+    raw = await redis_client.get(key)
+    if raw:
+        return json.loads(raw)
+    raw_all = await redis_client.get(CITIES_CACHE_KEY)
+    if not raw_all:
+        return []
+    t_lat, t_lon = tile_center(lat_key, lon_key)
+    nearby = geocities.within(json.loads(raw_all), t_lat, t_lon, AIRPORT_FETCH_RADIUS_NM, limit=10_000)
+    await redis_client.setex(key, CITIES_TILE_TTL, json.dumps(nearby))
+    return nearby
 
 
 async def _background_ourairports():
@@ -606,6 +655,15 @@ def _route_progress(plane: dict, route: dict) -> float | None:
         return None
 
 
+def _dest_distance_nm(plane: dict, route: dict) -> float | None:
+    """Great-circle distance from the aircraft to the destination, from the cached route (no extra fetch)."""
+    try:
+        d = route['destination']
+        return round(haversine_nm(plane['lat'], plane['lon'], float(d['lat']), float(d['lon'])), 1)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _airport_label(airport: dict, route_display: str) -> str:
     if route_display == 'hidden':
         return ''
@@ -656,6 +714,9 @@ async def enrich_with_routes(aircraft: list, route_display: str = 'codes') -> No
             plane['dest'] = dest
         if progress is not None:
             plane['progress'] = progress
+        dest_dist = _dest_distance_nm(plane, route)
+        if dest_dist is not None:
+            plane['dest_dist_nm'] = dest_dist
         if origin or dest:
             resolved += 1
 
@@ -681,6 +742,10 @@ def error_response(code: str, status: int = 200, **extra):
     return jsonify({'error': ERROR_MESSAGES[code], 'error_code': code, **extra}), status
 
 
+async def _none():
+    return None
+
+
 @app.route('/')
 async def get_planes():
     if not check_ip_whitelist():
@@ -691,6 +756,7 @@ async def get_planes():
     address       = request.args.get('address', type=str)
     show_ground   = request.args.get('show_ground', 'false').lower() == 'true'
     route_display = request.args.get('route_display', 'codes')
+    want_xsection = request.args.get('view') == 'xsection'
 
     if address:
         address = address.strip()
@@ -709,9 +775,10 @@ async def get_planes():
 
     await increment_stat('requests')
     lat_key, lon_key = tile_key(lat, lon)
-    raw_data, tile_airports = await asyncio.gather(
+    raw_data, tile_airports, tile_cities = await asyncio.gather(
         fetch_planes(lat, lon, show_ground),
         fetch_airports(lat_key, lon_key),
+        fetch_cities(lat_key, lon_key) if want_xsection else _none(),
     )
 
     if raw_data:
@@ -742,6 +809,16 @@ async def get_planes():
             a for a in tile_airports
             if haversine_nm(lat, lon, a['lat'], a['lon']) <= AIRPORT_RADIUS_NM
         ]
+
+        # Field elevation of the nearest airport in range (0 when none), for the cross-section ground strip
+        data['field_elev_ft'] = min(
+            data['airports'],
+            key=lambda a: haversine_nm(lat, lon, a['lat'], a['lon']),
+        ).get('elevation_ft', 0) if data['airports'] else 0
+
+        # Cross-section only: nearby towns for the ground strip
+        if want_xsection:
+            data['cities'] = geocities.within(tile_cities or [], lat, lon, RADIUS_NM)
 
         await enrich_with_routes(data['ac'], route_display)
         return jsonify({'data': data})
@@ -811,6 +888,7 @@ async def startup():
     for _ in range(3):
         asyncio.ensure_future(api_worker())
     asyncio.ensure_future(_background_ourairports())
+    asyncio.ensure_future(_background_cities())
     asyncio.ensure_future(_background_stats_logger())
 
     if not await redis_client.get(STATS_STARTED_AT_KEY):

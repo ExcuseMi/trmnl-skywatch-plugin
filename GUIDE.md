@@ -29,6 +29,37 @@ Each aircraft appears as an icon pointing in its direction of travel, with a lab
 
 ---
 
+## Cross-section view
+
+Set **Display** to *Cross-section* for a vertical slice of the sky around home instead of the map: altitude up, distance across. Only the full layout draws it; the half and quadrant layouts keep the radar.
+
+| Horizontal axis | Meaning |
+|---|---|
+| Distance from home | Range from home, left to right; each label adds a compass bearing (NE) |
+| East-West | West left, east right, home in the middle |
+| Runway / custom heading | Offset along the heading you set (270 for runway 27); aircraft more than a third of the radius off that line are dimmed and carry no label |
+
+- The low band (0 to 10,000 ft) gets 45 % of the height, so approaches and departures are readable; the top of the chart is 20k, 30k, 40k or 50k ft depending on the highest aircraft.
+- The inner third of the radius gets half of the width.
+- Icons face the direction of travel along the axis and tilt when climbing or descending faster than 500 ft/min; the ground strip sits at the nearest airport's field elevation.
+- At most 12 aircraft are drawn: emergencies first, then the nearest low ones, then the highest.
+
+- **Sun and moon** (setting *Show Sun and Moon*): computed from the time and your location, no extra requests. Each body above the horizon is an icon (the moon in its current phase) at the plot edge, at the position along the axis where its direction from home would leave the chart, with its elevation and compass direction. Below the horizon the icon sits at the end of the ground strip with "rises" and the time.
+- The horizontal axis is enlarged for the first 15 nm (30 km): that zone takes half the width, is shaded faintly and marked with a break (//).
+
+- **Towns** (setting *Show Towns*, on by default): up to six of the most populous towns are named along the ground strip, from GeoNames (CC BY 4.0). On the heading axis only towns close to the line are shown.
+
+Cross-section view inspired by Avation-Cross-section.
+
+## Closest aircraft panel
+
+Setting *Show Closest Aircraft Details* (full layout, radar and cross-section) adds a panel for the airborne aircraft nearest to home: callsign, type, altitude, speed, vertical rate, distance and bearing, route with progress, phase of flight (taking off, climbing, cruising, descending, approach, on the ground), distance to go and an estimated arrival time (from the distance to the destination and the current speed). An emergency squawk shows at the top. The aircraft is ringed on the chart. *Clock Format* sets 12 or 24 hour times for the arrival and sun/moon times; Automatic follows the units.
+
+## Settings that depend on others
+
+The cross-section settings (axis, heading, sun and moon) only show when *Display* is Cross-section, and the heading only when the axis is Runway / custom heading. A hidden setting keeps its value but is ignored.
+
+
 ## How ADS-B Works
 
 Every commercial aircraft continuously broadcasts its position, altitude, speed, and identity on 1090 MHz using an ADS-B transponder. A global network of volunteers runs ground receivers that pick up these signals and feeds them to [airplanes.live](https://airplanes.live), which powers SkyWatch.
