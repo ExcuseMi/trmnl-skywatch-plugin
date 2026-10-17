@@ -55,6 +55,10 @@ Cross-section view inspired by Avation-Cross-section.
 
 Setting *Show Closest Aircraft Details* (full layout, radar and cross-section) adds a panel for the airborne aircraft nearest to home: callsign, type, altitude, speed, vertical rate, distance and bearing, route with progress, phase of flight (taking off, climbing, cruising, descending, approach, on the ground), distance to go and an estimated arrival time (from the distance to the destination and the current speed). An emergency squawk shows at the top. The aircraft is ringed on the chart. *Clock Format* sets 12 or 24 hour times for the arrival and sun/moon times; Automatic follows the units.
 
+## Map colours
+
+Setting *Map colours* is Dark by default. Light draws dark aircraft and lines on a white map; use it if the dark map is hard to read on your device.
+
 ## Settings that depend on others
 
 The cross-section settings (axis, heading, sun and moon) only show when *Display* is Cross-section, and the heading only when the axis is Runway / custom heading. A hidden setting keeps its value but is ignored.
