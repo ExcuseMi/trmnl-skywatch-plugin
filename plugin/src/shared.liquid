@@ -229,13 +229,17 @@
       }
 
       function altPlaneColor(alt) {
-        if (alt === 'ground' || alt == null) return '#999999';
+{% if trmnl.plugin_settings.custom_fields_values.map_theme == 'light' %}        if (alt === 'ground' || alt == null) return '#555555';
+        var ftL = unit === 'imperial' ? +alt : +alt / 0.3048;
+        if (ftL < 5000)  return '#333333';
+        return '#000000';
+{% else %}        if (alt === 'ground' || alt == null) return '#999999';
         var ft = unit === 'imperial' ? +alt : +alt / 0.3048;
         if (ft < 5000)  return '#aaaaaa';
         if (ft < 15000) return '#cccccc';
         if (ft < 30000) return '#eeeeee';
         return '#ffffff';
-      }
+{% endif %}      }
 
       var SQUAWK_LABELS = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
 
@@ -267,14 +271,14 @@
         ou.setAttribute('width','24'); ou.setAttribute('height','24');
         ou.setAttribute('x','-12'); ou.setAttribute('y','-12');
         ou.setAttribute('fill', 'none');
-        ou.setAttribute('stroke', '#000000');
+        ou.setAttribute('stroke', '{% if trmnl.plugin_settings.custom_fields_values.map_theme == 'light' %}#ffffff{% else %}#000000{% endif %}');
         ou.setAttribute('stroke-width', '2.5');
         g.appendChild(ou);
         var use = document.createElementNS(ns, 'use');
         use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+instanceId);
         use.setAttribute('width','24'); use.setAttribute('height','24');
         use.setAttribute('x','-12'); use.setAttribute('y','-12');
-        use.setAttribute('fill', SQUAWK_LABELS[p.squawk] ? '#ffffff' : altPlaneColor(p.alt_baro));
+        use.setAttribute('fill', SQUAWK_LABELS[p.squawk] ? '{% if trmnl.plugin_settings.custom_fields_values.map_theme == 'light' %}#000000{% else %}#ffffff{% endif %}' : altPlaneColor(p.alt_baro));
         use.setAttribute('stroke', 'none');
         g.appendChild(use);
         layer.appendChild(g);{% if cd == "true" %}

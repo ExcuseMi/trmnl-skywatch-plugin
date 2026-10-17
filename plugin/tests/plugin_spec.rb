@@ -812,4 +812,17 @@ RSpec.describe 'SkyWatch' do
     expect(screen.problems).to be_empty
     expect(screen).to match_snapshot('xsection-distance-maptheme-light')
   end
+
+  # The radar draws no pixels here (no WebGL), so the colour table the page script ships is asserted: light has
+  # solid black aircraft (dark grey on the ground or low) with a white outline, never the white dark-mode fills.
+  %w[full half_horizontal half_vertical quadrant].each do |layout|
+    it "map_theme light ships black aircraft fills and no white ones (#{layout})" do
+      light = trmnl.render(view: layout, mocks:, custom_fields: light_fields).html
+      body = light[/function altPlaneColor.*?\n      \}/m]
+      expect(body).to include("return '#000000'")
+      expect(body).not_to match(/#(ffffff|eeeeee|cccccc|aaaaaa)/)
+      expect(light).to include("ou.setAttribute('stroke', '#ffffff')")
+      expect(radar_page(layout)[/function altPlaneColor.*?\n      \}/m]).to include("return '#ffffff'")
+    end
+  end
 end
