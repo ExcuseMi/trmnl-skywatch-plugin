@@ -18,7 +18,8 @@
 
 <script>
 (function () {
-  var instanceId = '{{ instance_id }}';
+{% if trmnl.plugin_settings.custom_fields_values.map_theme == 'light' %}  Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('screen--dark-mode', 'dark-mode'); });
+{% endif %}  var instanceId = '{{ instance_id }}';
   var planes     = {{ data.planes | json }};
   var baroRates  = {{ data.baro_rates | json | default: "[]" }};
   var destDists  = {{ data.dest_dists | json | default: "[]" }};
@@ -40,7 +41,7 @@
   var nowSec     = {{ data.fetched_at | default: 'now' | date: "%s" }};
   var utcOff     = {{ trmnl.user.utc_offset | default: 0 }};
   var timeFmt    = '{{ cfv.time_format | default: "auto" | escape }}';
-  var settingDark = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
+  var settingDark = '{% render "theme", trmnl: trmnl %}' === 'yes';
 
   if (axisMode !== 'eastwest' && axisMode !== 'heading') axisMode = 'distance';
   if (!isFinite(heading)) heading = 90;
@@ -62,7 +63,7 @@
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
     var screenEl = container.closest('.screen');
-    var darkMode = screenEl ? screenEl.classList.contains('screen--dark-mode') : settingDark;
+    var darkMode = settingDark;
     var fg = darkMode ? '#ffffff' : '#000000';
     var gridColor = darkMode ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.2)';
     var lineColor = darkMode ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)';

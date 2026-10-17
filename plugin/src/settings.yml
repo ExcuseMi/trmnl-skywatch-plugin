@@ -75,6 +75,15 @@ custom_fields:
   - Imperial (kt, ft): imperial
   default: imperial
   optional: true
+- keyname: map_theme
+  field_type: select
+  name: Map colours
+  description: Dark is the default. Light - dark aircraft and lines on a white map; use it if the dark map is hard to read on your device.
+  options:
+  - Dark: dark
+  - Light: light
+  default: dark
+  optional: true
 - keyname: time_format
   field_type: select
   name: Clock Format
