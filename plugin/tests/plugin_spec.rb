@@ -777,4 +777,39 @@ RSpec.describe 'SkyWatch' do
       expect(screen).to match_snapshot("xsection-busy-#{device}-#{axis}-#{light ? 'light' : 'dark'}")
     end
   end
+
+  # ---- Map colours setting (map_theme) --------------------------------------------------------------------------
+  # Dark stays the default (the snapshots above prove it byte for byte). Light: the screen loses its dark classes,
+  # so framework text, icons and the map follow, and the plugin draws black on white in the radar and the
+  # cross-section. Run in the browser, so the classes are those left after the page script ran.
+  let(:light_fields) { custom_fields.merge('map_theme' => 'light') }
+  let(:screen_classes) { "document.querySelector('.screen').className" }
+
+  %w[full half_horizontal half_vertical quadrant].each do |layout|
+    [['radar', {}], ['xsection', { 'view' => 'xsection', 'xs_axis' => 'distance', 'xs_heading' => '90' }]].each do |view, extra|
+      it "map_theme light drops the dark screen classes and draws black on white (#{layout}, #{view})" do
+        fields = light_fields.merge(extra)
+        screen = trmnl.render(view: layout, device: 'og_plus', mocks:, custom_fields: fields)
+        expect(screen.evaluate(screen_classes)).not_to match(/dark-mode/)
+        expect(screen.html).to include("var darkMode   = 'no' === 'yes'").or include("var settingDark = 'no' === 'yes'")
+        dark = trmnl.render(view: layout, device: 'og_plus', mocks:, custom_fields: fields.merge('map_theme' => 'dark'))
+        expect(dark.evaluate(screen_classes)).to match(/dark-mode/)
+      end
+    end
+  end
+
+  it 'tags follow the theme (light and dark cross-section)' do
+    cls = "Array.prototype.map.call(document.querySelectorAll('.text-stroke'), function (c) { return c.className; }).join(' ')"
+    light = trmnl.render(view: 'full', device: 'og_plus', mocks:, custom_fields: light_fields.merge(xs_fields)).evaluate(cls)
+    dark = xs_screen(xs_fields).evaluate(cls)
+    expect(light).to include('text--white').and include('text-stroke--black')
+    expect(dark).to include('text--black')
+    expect(dark).not_to include('text--white')
+  end
+
+  it 'draws the light cross-section like the plugin built light (snapshot)' do
+    screen = trmnl.render(view: 'full', device: 'og_plus', mocks:, custom_fields: light_fields.merge(xs_fields))
+    expect(screen.problems).to be_empty
+    expect(screen).to match_snapshot('xsection-distance-maptheme-light')
+  end
 end
