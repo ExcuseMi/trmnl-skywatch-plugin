@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-23.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-24.
 
-**4568 airports** across 235 countries.
+**4569 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -3184,6 +3184,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | QCY | EGXC | RAF Coningsby | Lincoln, Lincolnshire | GB |
 | QGU | RJNG | Gifu Airport | Gifu | JP |
 | QHR | HAHM | Harar Meda Airport | Debre Zeyit | ET |
+| QKO | EGOS | RAF Shawbury | Shrewsbury, Shropshire | GB |
 | QMJ | OIAI | Shahid Asiyaee Airport | Masjed Soleyman | IR |
 | QOW | DNIM | Sam Mbakwe International Cargo Airport | Owerri | NG |
 | QPG | WSAP | Paya Lebar Air Base | Paya Lebar | SG |
