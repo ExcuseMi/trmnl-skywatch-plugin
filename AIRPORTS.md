@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-25.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-26.
 
 **4569 airports** across 235 countries.
 
@@ -1487,7 +1487,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | HDG | ZBHD | Handan Airport | Handan | CN |
 | HDM | OIHH | Hamadan Airport | Hamadan | IR |
 | HDN | KHDN | Yampa Valley Airport | Hayden | US |
-| HDS | FAHT | Eastgate Airport / Air Force Base Hoedspruit | Hoedspruit | ZA |
+| HDS | FAHS | Eastgate Airport / Air Force Base Hoedspruit | Hoedspruit | ZA |
 | HDY | VTSS | Hat Yai International Airport | Hat Yai | TH |
 | HEA | OAHR | Herat - Khwaja Abdullah Ansari International Airport | Guzara | AF |
 | HEH | VYHH | Heho Airport | Heho | MM |
@@ -1743,6 +1743,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | ITO | PHTO | Hilo International Airport | Hilo | US |
 | IUE | NIUE | Niue International Airport | Alofi | NU |
 | IVC | NZNV | Invercargill Airport | Invercargill | NZ |
+| IVD | WALK | Nusantara International Airport | Nusantara | ID |
 | IVL | EFIV | Ivalo Airport | Ivalo | FI |
 | IVR | YIVL | Inverell Airport | Inverell | AU |
 | IWA | UUBI | Ivanovo South Airport | Ivanovo | RU |
@@ -3184,7 +3185,6 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | QCY | EGXC | RAF Coningsby | Lincoln, Lincolnshire | GB |
 | QGU | RJNG | Gifu Airport | Gifu | JP |
 | QHR | HAHM | Harar Meda Airport | Debre Zeyit | ET |
-| QKO | EGOS | RAF Shawbury | Shrewsbury, Shropshire | GB |
 | QMJ | OIAI | Shahid Asiyaee Airport | Masjed Soleyman | IR |
 | QOW | DNIM | Sam Mbakwe International Cargo Airport | Owerri | NG |
 | QPG | WSAP | Paya Lebar Air Base | Paya Lebar | SG |
