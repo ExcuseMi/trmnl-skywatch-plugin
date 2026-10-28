@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-27.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-10-28.
 
 **4569 airports** across 235 countries.
 
@@ -2337,7 +2337,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | MAY | MYAB | Clarence A. Bain Airport | Mangrove Cay | BS |
 | MAZ | TJMZ | Eugenio Maria De Hostos Airport | Mayaguez | PR |
 | MBA | HKMO | Moi International Airport | Mombasa | KE |
-| MBD | FAMM | Mmabatho International Airport | Mafeking | ZA |
+| MBD | FAMM | George Dick Montshioa Airport | Mafeking | ZA |
 | MBE | RJEB | Monbetsu Airport | Monbetsu | JP |
 | MBG | KMBG | Mobridge Municipal Airport | Mobridge | US |
 | MBI | HTGW | Songwe Airport | Mbeya | TZ |
@@ -3395,7 +3395,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | SCU | MUCU | Antonio Maceo International Airport | Santiago | CU |
 | SCV | LRSV | Suceava Ștefan cel Mare International Airport | Suceava | RO |
 | SCW | UUYY | Syktyvkar Airport | Syktyvkar | RU |
-| SDB | FALW | Langebaanweg Airport | Langebaanweg | ZA |
+| SDB | FALW | Langebaanweg Air Force Base | Langebaanweg | ZA |
 | SDD | FNUB | Lubango Mukanka International Airport | Lubango | AO |
 | SDE | SANE | Vicecomodoro Angel D. La Paz Aragonés Airport | Santiago del Estero | AR |
 | SDF | KSDF | Louisville Muhammad Ali International Airport | Louisville | US |
