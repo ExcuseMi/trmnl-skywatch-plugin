@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-02.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-03.
 
-**4569 airports** across 235 countries.
+**4570 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -428,6 +428,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BKW | KBKW | Raleigh County Memorial Airport | Beaver | US |
 | BKY | FZMA | Bukavu Kavumu Airport | Kamakombe | CD |
 | BLA | SVBC | General José Antonio Anzoategui International Airport | Barcelona | VE |
+| BLB | MPPA | Panamá Pacífico International Airport | Panamá City | PA |
 | BLD | KBVU | Boulder City Municipal Airport | Boulder City | US |
 | BLE | ESSD | Dala Airport | Borlange | SE |
 | BLF | KBLF | Mercer County Airport | Bluefield | US |
@@ -710,7 +711,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | CJA | SPJR | Mayor General FAP Armando Revoredo Iglesias Airport | Cajamarca | PE |
 | CJB | VOCB | Coimbatore International Airport | Coimbatore | IN |
 | CJC | SCCF | El Loa Airport | Calama | CL |
-| CJJ | RKTU | Cheongju International Airport/Cheongju Air Base (K-59/G-513) | Cheongju | KR |
+| CJJ | RKTU | Cheongju International Airport | Cheongju | KR |
 | CJL | OPCH | Chitral Airport | Chitral | PK |
 | CJM | VTSE | Chumphon Airport | Chumphon | TH |
 | CJS | MMCS | Abraham González International Airport | Ciudad Juárez | MX |
