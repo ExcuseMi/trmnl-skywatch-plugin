@@ -1,8 +1,8 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-03.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-04.
 
-**4570 airports** across 235 countries.
+**4571 airports** across 235 countries.
 
 | IATA | ICAO | Airport | City | Country |
 |------|------|---------|------|---------|
@@ -1552,6 +1552,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | HNL | PHNL | Daniel K. Inouye International Airport | Honolulu, Oahu | US |
 | HNM | PHHN | Hana Airport | Hana | US |
 | HNS | PAHN | Haines Airport | Haines | US |
+| HNY | ZGHY | Hengyang Nanyue Airport | Hengyang | CN |
 | HOB | KHOB | Lea County Regional Airport | Hobbs | US |
 | HOF | OEAH | Al-Ahsa International Airport | Hofuf | SA |
 | HOG | MUHG | Frank Pais International Airport | Holguin | CU |
