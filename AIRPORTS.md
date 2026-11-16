@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-15.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-16.
 
 **4571 airports** across 235 countries.
 
@@ -4495,7 +4495,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | YYC | CYYC | Calgary International Airport | Calgary | CA |
 | YYD | CYYD | Smithers Airport | Smithers | CA |
 | YYE | CYYE | Fort Nelson Airport | Fort Nelson | CA |
-| YYF | CYYF | Penticton Airport | Penticton | CA |
+| YYF | CYYF | Penticton Regional Airport | Penticton | CA |
 | YYG | CYYG | Charlottetown Airport | Charlottetown | CA |
 | YYJ | CYYJ | Victoria International Airport | Victoria | CA |
 | YYL | CYYL | Lynn Lake Airport | Lynn Lake | CA |
