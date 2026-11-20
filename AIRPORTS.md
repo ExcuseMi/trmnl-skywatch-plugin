@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-19.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-20.
 
 **4571 airports** across 235 countries.
 
@@ -324,7 +324,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BDS | LIBR | Brindisi Airport | Brindisi | IT |
 | BDT | FZFD | Gbadolite Airport | Gbadolite | CD |
 | BDU | ENDU | Bardufoss Airport | Målselv | NO |
-| BEB | EGPL | Benbecula Airport | Balivanich | GB |
+| BEB | EGPL | Benbecula Airport | Balivanich, Eilean Siar | GB |
 | BED | KBED | Laurence G Hanscom Field | Bedford | US |
 | BEF | MNBL | Bluefields Airport | Bluefields | NI |
 | BEG | LYBE | Belgrade Nikola Tesla Airport | Belgrade | RS |
@@ -504,7 +504,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | BRN | LSZB | Bern Airport | Bern | CH |
 | BRO | KBRO | Brownsville South Padre Island International Airport | Brownsville | US |
 | BRQ | LKTB | Brno-Tuřany Airport | Brno | CZ |
-| BRR | EGPR | Barra Airport | Eoligarry | GB |
+| BRR | EGPR | Barra Airport | Eoligarry, Eilean Siar | GB |
 | BRS | EGGD | Bristol Airport | Bristol | GB |
 | BRT | YBTI | Bathurst Island Airport | Wurrumiyanga | AU |
 | BRU | EBBR | Brussels Airport | Zaventem | BE |
