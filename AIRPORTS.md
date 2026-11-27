@@ -1,6 +1,6 @@
 # SkyWatch Airport List
 
-Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-26.
+Large and medium airports shown on the SkyWatch radar display. Updated daily from [OurAirports](https://ourairports.com). Last updated: 2026-11-27.
 
 **4571 airports** across 235 countries.
 
@@ -776,7 +776,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | COO | DBBB | Cotonou Cadjehoun International Airport | Cotonou | BJ |
 | COQ | ZMCD | Choibalsan Airport |  | MN |
 | COR | SACO | Ingeniero Aeronáutico Ambrosio L.V. Taravella International Airport | Cordoba | AR |
-| COS | KCOS | City of Colorado Springs Municipal Airport | Colorado Springs | US |
+| COS | KCOS | Colorado Springs Airport | Colorado Springs | US |
 | COU | KCOU | Columbia Regional Airport | Columbia | US |
 | COV | LTDB | Çukurova International Airport | Tarsus | TR |
 | CPC | SAZY | Aviador C. Campos Airport | Chapelco/San Martin de los Andes | AR |
@@ -1495,7 +1495,7 @@ Large and medium airports shown on the SkyWatch radar display. Updated daily fro
 | HEK | ZYHE | Heihe Aihui Airport | Heihe | CN |
 | HEL | EFHK | Helsinki Vantaa Airport | Helsinki (Vantaa) | FI |
 | HER | LGIR | Heraklion International Nikos Kazantzakis Airport | Heraklion | GR |
-| HET | ZBHH | Hohhot Baita International Airport | Hohhot | CN |
+| HET | ZBHH | Hohhot Shengle International Airport | Hohhot | CN |
 | HFA | LLHA | Uri Michaeli Haifa International Airport | Haifa | IL |
 | HFD | KHFD | Hartford Brainard Airport | Hartford | US |
 | HFE | ZSOF | Hefei Xinqiao International Airport | Hefei | CN |
